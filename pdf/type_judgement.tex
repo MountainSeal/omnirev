@@ -1,247 +1,540 @@
 \documentclass[10pt]{jsarticle}
 
-%\pagestyle{empty}
+\pagestyle{empty}
 
-\usepackage[left=0cm, top=1cm, right=0cm, nohead, dvipdfm]{geometry}
+\usepackage[left=0.5cm, top=0.5cm, right=0.5cm, bottom=0.5cm, nohead, dvipdfm]{geometry}
 \usepackage{comment}
 \usepackage{bussproofs}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{latexsym}
 \usepackage{txfonts}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+\usepackage{array}
 
-% Optional to turn on the short abbreviations
 \EnableBpAbbreviations
+\newenvironment{bprooftree}
+               {\leavevmode\hbox\bgroup}
+               {\DisplayProof\egroup}
+
+\usetikzlibrary{decorations.markings, shapes}
+\tikzset{middlearrow/.style n args={3}{
+    decoration={
+      markings,
+      mark=at position 0.5 with {\arrow{#1}, \node[#2]{#3};},
+    },
+    postaction={decorate}
+  }
+}
+
+\newcommand*{\vcenteredhbox}[1]{\begingroup
+\setbox0=\hbox{#1}\parbox{\wd0}{\box0}\endgroup}
+
 
 \begin{document}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{Id}
+  \UnaryInfC{$v:\tau \vdash v:\tau$}
+\end{prooftree}
 
-\section{構造規則}
 \begin{prooftree}
-  \AxiomC{}
-  \RightLabel{Int-Identity}
-  \UnaryInfC{$\Gamma,x:\tau;\quad \vdash x:\tau$}
+  \AxiomC{$\Gamma \vdash \Delta$}
+  \AxiomC{$\Gamma' \vdash \Delta'$}
+  \RightLabel{Mix}
+  \BinaryInfC{$\Gamma,\Gamma' \vdash \Delta,\Delta'$}
 \end{prooftree}
+
 \begin{prooftree}
-  \AxiomC{}
-  \RightLabel{Lin-Identity}
-  \UnaryInfC{$\Gamma;x:\tau \vdash x:\tau$}
+  \AxiomC{$\Delta \vdash \Gamma$}
+  \RightLabel{Flip}
+  \UnaryInfC{$\Gamma \vdash \Delta$}
 \end{prooftree}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v':\tau',v:\tau,\Gamma' \vdash \Delta$}
+    \LeftLabel{Ex${}_\text{L}$}
+    \UnaryInfC{$\Gamma,v:\tau,v':\tau',\Gamma' \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash \Delta,v':\tau',v:\tau,\Delta'$}
+    \RightLabel{Ex${}_\text{R}$}
+    \UnaryInfC{$\Gamma \vdash \Delta,v:\tau,v':\tau',\Delta'$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash v:\tau,\Delta$}
+    \LeftLabel{$\star_\text{L}$}
+    \UnaryInfC{$\Gamma,\langle\rangle/v:\tau^\star \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v:\tau \vdash \Delta$}
+    \RightLabel{$\star_\text{R}$}
+    \UnaryInfC{$\Gamma \vdash \langle\rangle/v:\tau^\star,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash \Delta$}
+    \LeftLabel{$\iota_\text{L}$}
+    \UnaryInfC{$\Gamma,\langle\rangle:\iota \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash \Delta$}
+    \RightLabel{$\iota_\text{R}$}
+    \UnaryInfC{$\Gamma \vdash \langle\rangle:\iota,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v_1:\tau_1,v_2:\tau_2 \vdash \Delta$}
+    \LeftLabel{$\otimes_\text{L}$}
+    \UnaryInfC{$\Gamma,\langle{v_1,v_2}\rangle:\tau_1\otimes\tau_2 \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash v_1:\tau_1,v_2:\tau_2,\Delta$}
+    \RightLabel{$\otimes_\text{R}$}
+    \UnaryInfC{$\Gamma \vdash \langle{v_1,v_2}\rangle:\tau_1\otimes\tau_2,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v:\tau_1 \vdash \Delta$}
+    \LeftLabel{$\oplus_\text{L${}_1$}$}
+    \UnaryInfC{$\Gamma,\langle{\text{left}\;v}\rangle:\tau_1\oplus\tau_2 \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash v:\tau_1,\Delta$}
+    \RightLabel{$\oplus_\text{R${}_1$}$}
+    \UnaryInfC{$\Gamma \vdash \langle{\text{left}\;v}\rangle:\tau_1\oplus\tau_2,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v:\tau_2 \vdash \Delta$}
+    \LeftLabel{$\oplus_\text{L${}_2$}$}
+    \UnaryInfC{$\Gamma,\langle{\text{right}\;v}\rangle:\tau_1\oplus\tau_2 \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash v:\tau_2,\Delta$}
+    \RightLabel{$\oplus_\text{R${}_2$}$}
+    \UnaryInfC{$\Gamma \vdash \langle{\text{right}\;v}\rangle:\tau_1\oplus\tau_2,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Gamma,v:\tau[\mu{x}.\tau/x] \vdash \Delta$}
+    \LeftLabel{$\mu_\text{L}$}
+    \UnaryInfC{$\Gamma,\langle{v}\rangle:\mu{x}.\tau \vdash \Delta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Gamma \vdash v:\tau[\mu{x}.\tau/x],\Delta$}
+    \RightLabel{$\mu_\text{R}$}
+    \UnaryInfC{$\Gamma \vdash \langle{v}\rangle:\mu{x}.\tau,\Delta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Xi,v:\tau;\Gamma \vdash \quad;\Theta$}
+    \LeftLabel{$!_\text{L}$}
+    \UnaryInfC{$\Xi;\Gamma,\{v\}:!\tau \vdash \quad;\Theta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\quad \vdash \Delta;v:\tau,\Theta$}
+    \RightLabel{$!_\text{R}$}
+    \UnaryInfC{$\Xi;\quad \vdash \{v\}:!\tau,\Delta;\Theta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Xi,v':\tau',v:\tau,\Xi';\Gamma \vdash \Delta;\Theta$}
+    \LeftLabel{Classical-Ex${}_\text{L}$}
+    \UnaryInfC{$\Xi,v:\tau,v':\tau',\Xi';\Gamma \vdash \Delta;\Theta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma \vdash \Delta;\Theta,v':\tau',v:\tau,\Theta'$}
+    \RightLabel{Classical-Ex${}_\text{R}$}
+    \UnaryInfC{$\Xi;\Gamma \vdash \Delta;\Theta,v:\tau,v':\tau',\Theta'$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma \vdash \Delta;\Theta$}
+    \LeftLabel{W${}_\text{L}$}
+    \UnaryInfC{$\Xi,v:\tau;\Gamma \vdash \Delta;\Theta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma \vdash \Delta;\Theta$}
+    \RightLabel{W${}_\text{R}$}
+    \UnaryInfC{$\Xi;\Gamma \vdash \Delta;v:\tau,\Theta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Xi,v:\tau,v:\tau;\Gamma \vdash \Delta;\Theta$}
+    \LeftLabel{C${}_\text{L}$}
+    \UnaryInfC{$\Xi,v:\tau;\Gamma \vdash \Delta;\Theta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma \vdash \Delta;v:\tau,v:\tau,\Theta$}
+    \RightLabel{C${}_\text{R}$}
+    \UnaryInfC{$\Xi;\Gamma \vdash \Delta;v:\tau,\Theta$}
+  \end{bprooftree}
+\end{center}
+
+\begin{center}
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma,\{v_1\}:!\tau_1,v_2:\tau_2[v_1/x] \vdash \Delta;\Theta$}
+    \LeftLabel{$\Sigma_\text{L}$}
+    \UnaryInfC{$\Xi;\Gamma,\langle\{v_1\},v_2\rangle:\Sigma_{x:!\tau_1}\tau_2 \vdash \Delta;\Theta$}
+  \end{bprooftree}
+  \quad
+  \begin{bprooftree}
+    \AxiomC{$\Xi;\Gamma \vdash \{v_1\}:!\tau_1,v_2:\tau_2[v_1/x],\Delta;\Theta$}
+    \RightLabel{$\Sigma_\text{R}$}
+    \UnaryInfC{$\Xi;\Gamma \vdash \langle\{v_1\},v_2\rangle:\Sigma_{x:!\tau_1}\tau_2,\Delta;\Theta$}
+  \end{bprooftree}
+\end{center}
+
 \begin{prooftree}
-  \AxiomC{$\Gamma,y:\tau,x:\sigma,\Delta;\Xi \vdash z:\upsilon$}
-  \RightLabel{Int-Exchange}
-  \UnaryInfC{$\Gamma,x:\sigma,y:\tau,\Delta;\Xi \vdash z:\upsilon$}
+  \AxiomC{$\Xi \vdash \tau:\text{type}$}
+  \RightLabel{$\star_\text{T}$}
+  \UnaryInfC{$\Xi \vdash \tau^\star:\text{type}$}
 \end{prooftree}
+
 \begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,y:\tau,x:\sigma,\Theta \vdash z:\upsilon$}
-  \RightLabel{Lin-Exchange}
-  \UnaryInfC{$\Gamma;\Xi,x:\sigma,y:\tau,\Theta \vdash z:\upsilon$}
+  \AxiomC{$$}
+  \RightLabel{$\iota_\text{T}$}
+  \UnaryInfC{$\vdash \iota:\text{type}$}
 \end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Xi_1 \vdash \tau_1:\text{type}$}
+  \AxiomC{$\Xi_2 \vdash \tau_2:\text{type}$}
+  \RightLabel{$\otimes_\text{T}$}
+  \BinaryInfC{$\Xi_1,\Xi_2 \vdash \tau_1\otimes\tau_2:\text{type}$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Xi_1 \vdash \tau_1:\text{type}$}
+  \AxiomC{$\Xi_2 \vdash \tau_2:\text{type}$}
+  \RightLabel{$\oplus_\text{T}$}
+  \BinaryInfC{$\Xi_1,\Xi_2 \vdash \tau_1\oplus\tau_2:\text{type}$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Xi,x:\text{type} \vdash \tau:\text{type}$}
+  \RightLabel{$\mu_\text{T}$}
+  \UnaryInfC{$\Xi \vdash \mu{x}.\tau:\text{type}$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Xi \vdash \tau:\text{type}$}
+  \RightLabel{$!_\text{T}$}
+  \UnaryInfC{$\Xi \vdash !\tau:\text{type}$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Xi,x:\tau_1 \vdash \tau_2:\text{type}$}
+  \RightLabel{$\Sigma_\text{T}$}
+  \UnaryInfC{$\Xi \vdash \Sigma_{x:!\tau_1}\tau_2:\text{type}$}
+\end{prooftree}
+
 \newpage
 
-\section{論理規則}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash e:\sigma$}
-  \RightLabel{$\multimap$-Left}
-  \UnaryInfC{$\Gamma;\Xi,f:\sigma\multimap\tau \vdash f\;e:\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,x:\sigma \vdash e:\tau$}
-  \RightLabel{$\multimap$-Right}
-  \UnaryInfC{$\Gamma;\Xi \vdash \lambda\;x::\sigma\;.\;e:\sigma\multimap\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash e:\tau$}
-  \RightLabel{$unit$-Left}
-  \UnaryInfC{$\Gamma;\Xi,x:unit \vdash e:\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{}
-  \RightLabel{$unit$-Right}
-  \UnaryInfC{$\Gamma;\quad \vdash \langle\rangle:unit$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,x_1:\sigma_1,x_2:\sigma_2 \vdash e:\tau$}
-  \RightLabel{$\otimes$-Left}
-  \UnaryInfC{$\Gamma;\Xi,z:\sigma_1\otimes\sigma_2 \vdash let\;z\;be\;\langle{x_1,x_2}\rangle\;in\;e:\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash e_1:\tau_1$}
-  \AxiomC{$\Gamma;\Theta \vdash e_2:\tau_2$}
-  \RightLabel{$\otimes$-Right}
-  \BinaryInfC{$\Gamma;\Xi,\Theta \vdash \langle{e_1,e_2}\rangle:\tau_1\otimes\tau_2$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,x_1:\sigma_1 \vdash e_1:\tau$}
-  \AxiomC{$\Gamma;\Xi,x_2:\sigma_2 \vdash e_2:\tau$}
-  \RightLabel{$\oplus$-Left}
-  \BinaryInfC{$\Gamma;\Xi,z:\sigma_1\oplus\sigma_2 \vdash case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2:\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash x:\tau_1$}
-  \RightLabel{$\oplus$-Right${}_\text{1}$}
-  \UnaryInfC{$\Gamma;\Xi \vdash \langle{inl_{\tau_2}\;x}\rangle:\tau_1\oplus\tau_2$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash x:\tau_2$}
-  \RightLabel{$\oplus$-Right${}_\text{2}$}
-  \UnaryInfC{$\Gamma;\Xi \vdash \langle{inr_{\tau_1}\;x}\rangle:\tau_1\oplus\tau_2$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma,x:\sigma\;;\Xi \vdash e:\tau$}
-  \RightLabel{$!$-Left}
-  \UnaryInfC{$\Gamma;\Xi,z:!\sigma \vdash change\;z\;to\;x\;in\;e:\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash x:\tau$}
-  \RightLabel{$!$-Right}
-  \UnaryInfC{$\Gamma;\quad \vdash [x]:!\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash e:!\sigma$}
-  \AxiomC{$\emptyset \diamond e \hookrightarrow v$}
-  \AxiomC{$\{x \mapsto v\} \diamond \tau \hookrightarrow \tau'$}
-  \RightLabel{$\Pi$-Left}
-  \TrinaryInfC{$\Gamma;f:\Pi\;x::!\sigma\;.\;\tau \vdash (f\;e):\tau'$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma,x:\sigma;\Xi \vdash e:\tau$}
-  \RightLabel{$\Pi$-Right}
-  \UnaryInfC{$\Gamma;\Xi \vdash \Lambda\;x::!\sigma\;.\;e:\Pi\;x::!\sigma\;.\;\tau$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{}
-  \RightLabel{$type$-Type}
-  \UnaryInfC{$\Gamma;\quad \vdash type:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash \sigma:type$}
-  \AxiomC{$\Gamma;\quad \vdash \tau:type$}
-  \RightLabel{$\multimap$-Type}
-  \BinaryInfC{$\Gamma;\quad \vdash \sigma\multimap\tau:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{}
-  \RightLabel{$unit$-Type}
-  \UnaryInfC{$\Gamma;\quad \vdash unit:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash \tau_1:type$}
-  \AxiomC{$\cdots$}
-  \AxiomC{$\Gamma;\quad \vdash \tau_2:type$}
-  \RightLabel{$\otimes$-Type}
-  \TrinaryInfC{$\Gamma;\quad \vdash \tau_1\otimes\tau_2:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash \tau_1:type$}
-  \AxiomC{$\cdots$}
-  \AxiomC{$\Gamma;\quad \vdash \tau_2:type$}
-  \RightLabel{$\oplus$-Type}
-  \TrinaryInfC{$\Gamma;\quad \vdash \tau_1\oplus\tau_2:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma;\quad \vdash \tau:type$}
-  \RightLabel{$!$-Type}
-  \UnaryInfC{$\Gamma;\quad \vdash !\tau:type$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\Gamma,x:\sigma\;;\quad \vdash \tau:type$}
-  \RightLabel{$\Pi$-Type}
-  \UnaryInfC{$\Gamma;\quad \vdash \Pi\;x::!\sigma\;.\;\tau:type$}
-\end{prooftree}
-\newpage
 
-\section{評価規則}
-\begin{prooftree}
-  \AxiomC{$\varsigma_f \diamond f \hookrightarrow \lambda\;x::\sigma\;.\;e'$}
-  \AxiomC{$\varsigma_e \diamond e \hookrightarrow v'$}
-  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_x$}
-  \AxiomC{$\varsigma_x \diamond e \hookrightarrow v$}
-  \RightLabel{$\multimap$-C}
-  \QuaternaryInfC{$\varsigma_f\uplus\varsigma_e \diamond f\;e \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{v_1,v_2}\rangle$}
-  \AxiomC{$\langle{v_1,v_2}\rangle \bowtie \langle{x_1,x_2}\rangle \rightsquigarrow \varsigma_{out}$}
-  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
-  \RightLabel{$\otimes$-C}
-  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond let\;z\;be\;\langle{x_1,x_2}\rangle\;in\;e \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{inl_{\sigma_2}\;v'}\rangle$}
-  \AxiomC{$v' \bowtie x_1 \rightsquigarrow \varsigma_{out}$}
-  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
-  \RightLabel{$\oplus$-C${}_\text{1}$}
-  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2 \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{inr_{\sigma_1}\;v'}\rangle$}
-  \AxiomC{$v' \bowtie x_2 \rightsquigarrow \varsigma_{out}$}
-  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
-  \RightLabel{$\oplus$-C${}_\text{2}$}
-  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2 \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow [v']$}
-  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_{out}$}
-  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
-  \RightLabel{$!$-C}
-  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond change\;z\;to\;x\;in\;e \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_f \diamond f \hookrightarrow \Lambda\;x::!\sigma\;.\;e'$}
-  \AxiomC{$\varsigma_e \diamond e \hookrightarrow v'$}
-  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_x$}
-  \AxiomC{$\varsigma_x \diamond e \hookrightarrow v$}
-  \RightLabel{$\Pi$-C}
-  \QuaternaryInfC{$\varsigma_f\uplus\varsigma_e \diamond f\;e \hookrightarrow v$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_1 \diamond \sigma \hookrightarrow \nu_1$}
-  \AxiomC{$\varsigma_2 \diamond \tau \hookrightarrow \nu_2$}
-  \RightLabel{$\multimap$-Type-C}
-  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \sigma\multimap\tau \hookrightarrow \nu_1\multimap\nu_2$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_1 \diamond \tau_1 \hookrightarrow \nu_1$}
-  \AxiomC{$\varsigma_2 \diamond \tau_2 \hookrightarrow \nu_2$}
-  \RightLabel{$\otimes$-Type-C}
-  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \tau_1\otimes\tau_2 \hookrightarrow \nu_1\otimes\nu_2$}
-\end{prooftree}
-\begin{prooftree}
-  \AxiomC{$\varsigma_1 \diamond \tau_1 \hookrightarrow \nu_1$}
-  \AxiomC{$\varsigma_2 \diamond \tau_2 \hookrightarrow \nu_2$}
-  \RightLabel{$\oplus$-Type-C}
-  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \tau_1\oplus\tau_2 \hookrightarrow \nu_1\oplus\nu_2$}
-\end{prooftree}
-\newpage
+\footnotesize
+\begin{tabular}{lcc}
+  Identity &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$v \quad id \quad v$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T$}] (0,0) -- (1,0);
+      \draw (1,0.5) rectangle (2,-0.5) node[pos=.5]{$id$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T$}] (2,0) -- (3,0);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Composition &
+  \begin{bprooftree}
+    \AxiomC{$v_1 \quad f \quad v_2$}
+    \AxiomC{$v_2 \quad g \quad v_3$}
+    \BinaryInfC{$v_1 \quad f;g \quad v_3$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw (1,0.5) rectangle (2,-0.5) node[pos=.5]{$f$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,0)--(3,0);
+      \draw (3,0.5) rectangle (4,-0.5) node[pos=.5]{$g$};
+      \fill (3,0.5) rectangle (3.25,0.25);
+    \draw[middlearrow={>}{above}{$T_3$}] (4,0)--(5,0);
+    \end{tikzpicture}
+  } \\ \\
 
+  Product &
+  \begin{bprooftree}
+    \AxiomC{$v_1 \quad f \quad v'_1$}
+    \AxiomC{$v_2 \quad g \quad v'_2$}
+    \BinaryInfC{$\langle{v_1,v_2}\rangle \quad f\times{g} \quad \langle{v'_1,v'_2}\rangle$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5, align=center]{$f$ \\\smallskip\\ $\times$ \\\smallskip\\ $g$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T'_1$}] (2,0)--(3,0);
+      \draw[middlearrow={>}{above}{$T'_2$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
 
+  Unitor${}_\otimes$ &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$\langle{\langle\rangle,v}\rangle \quad unit_\otimes \quad v$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$I$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$unit_\otimes$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Associator${}_\otimes$ &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$\langle{v_1,\langle{v_2,v_3}\rangle}\rangle \quad assoc_\otimes \quad \langle{\langle{v_1,v_2}\rangle,v_3}\rangle$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-0.75)--(1,-0.75);
+      \draw[middlearrow={>}{above}{$T_3$}] (0,-1.25)--(1,-1.25);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$assoc_\otimes$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_1$}] (2,0.25)--(3,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,-0.25)--(3,-0.25);
+      \draw[middlearrow={>}{above}{$T_3$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Symmetric${}_\otimes$ &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$\langle{v_1,v_2}\rangle \quad sym_\otimes \quad \langle{v_2,v_1}\rangle$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$sym_\otimes$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,0)--(3,0);
+      \draw[middlearrow={>}{above}{$T_1$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Evaluation${}_\otimes$ &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$\langle{v,\langle\rangle/v}\rangle \quad eval \quad \langle\rangle$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T^\star$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$eval$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$I$}] (2,0)--(3,0);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Sum &
+  \begin{tabular}{c}
+    \begin{bprooftree}
+      \AxiomC{$v \quad f \quad v'$}
+      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad f+g \quad \langle{\text{left}\;v'}\rangle$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{$v \quad g \quad v'$}
+      \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad f+g \quad \langle{\text{right}\;v'}\rangle$}
+    \end{bprooftree}
+  \end{tabular} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5, align=center]{$f$ \\\smallskip\\ $+$ \\\smallskip\\ $g$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T'_1$}] (2,0)--(3,0);
+      \draw[middlearrow={>}{above}{$T'_2$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
 
+%  Unitor${}_\oplus$ &
+%  \begin{bprooftree}
+%    \AxiomC{}
+%    \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad unit_\oplus \quad v$}
+%  \end{bprooftree} &
+%  \vcenteredhbox{
+%    \begin{tikzpicture}
+%      \draw[middlearrow={>}{above}{$O$}] (0,0)--(1,0);
+%      \draw[middlearrow={>}{above}{$T$}] (0,-1)--(1,-1);
+%      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$unit_\oplus$};
+%      \fill (1,0.5) rectangle (1.25,0.25);
+%      \draw[middlearrow={>}{above}{$T$}] (2,-1)--(3,-1);
+%    \end{tikzpicture}
+%  } \\ \\
 
+  Associator${}_\oplus$ &
+  \begin{tabular}{c}
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad assoc_\oplus \quad \langle{\text{left}\;\langle{\text{left}\;v}\rangle}\rangle$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{right}\;\langle{\text{left}\;v}\rangle}\rangle \quad assoc_\oplus \quad \langle{\text{left}\;\langle{\text{right}\;v}\rangle}\rangle$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{right}\;\langle{\text{right}\;v}\rangle}\rangle \quad assoc_\oplus \quad \langle{\text{right}\;v}\rangle$}
+    \end{bprooftree}
+  \end{tabular} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-0.75)--(1,-0.75);
+      \draw[middlearrow={>}{above}{$T_3$}] (0,-1.25)--(1,-1.25);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$assoc_\oplus$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_1$}] (2,0.25)--(3,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,-0.25)--(3,-0.25);
+      \draw[middlearrow={>}{above}{$T_3$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Symmetric${}_\oplus$ &
+  \begin{tabular}{c}
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad sym_\oplus \quad \langle{\text{right}\;v}\rangle$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad sym_\oplus \quad \langle{\text{left}\;v}\rangle$}
+    \end{bprooftree}
+  \end{tabular} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$sym_\oplus$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,0)--(3,0);
+      \draw[middlearrow={>}{above}{$T_1$}] (2,-1)--(3,-1);
+    \end{tikzpicture}
+  } \\ \\
 
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,w:\mu\;x\;.\;\sigma \vdash e:\tau$}
-  \RightLabel{$\mu$-L}
-  \UnaryInfC{$\Gamma;\Xi,z:\mu\;x\;.\;\sigma[\mu\;x\;.\;\sigma/x] \vdash unfold\;z\;as\;w\;in\;e:\tau$}
-\end{prooftree}
-
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi \vdash e:\tau[\mu\;x.\;\tau/x]$}
-  \RightLabel{$\mu$-R}
-  \UnaryInfC{$\Gamma;\Xi \vdash fold\;e:\mu\;x\;.\;\tau$}
-\end{prooftree}
-
-\begin{prooftree}
-  \AxiomC{$\Gamma,x:type;\quad \vdash \tau:type$}
-  \RightLabel{$\mu$-Type}
-  \UnaryInfC{$\Gamma;\quad \vdash \mu\;x\;.\;\tau:type$}
-\end{prooftree}
-
-\begin{prooftree}
-  \AxiomC{$\Gamma;\Xi,x_1:\sigma \vdash e_1:\tau\oplus\chi$}
-  \AxiomC{$\Gamma;\Xi,x_2:\chi \vdash e_2:\tau\oplus\chi$}
-  \RightLabel{trace}
-  \BinaryInfC{$\Gamma;\Xi,x:\sigma \vdash trace\;x\;of\;\langle{inl_{\chi}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma}\;x_2}\rangle\,\Rightarrow\,e_2:\tau$}
-\end{prooftree}
-
+  Trace${}_\oplus$ &
+  \begin{tabular}{c}
+    \begin{bprooftree}
+      \AxiomC{$\langle{\text{right}\;v_1}\rangle \quad f;loop\;f \quad \langle{\text{right}\;v_3}\rangle$}
+      \UnaryInfC{$v_1 \quad trace\;f \quad v_3$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{$\langle{\text{left}\;v_2}\rangle \quad f;loop\;f \quad v$}
+      \UnaryInfC{$\langle{\text{left}\;v_2}\rangle \quad loop\;f \quad v$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\text{right}\;v_3}\rangle \quad loop\;f \quad \langle{\text{right}\;v_3}\rangle$}
+    \end{bprooftree}
+  \end{tabular} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw (0,0.75)--(3,0.75);
+      \draw (0,0.75) to[bend right=90] (0,0);
+      \draw (3,0.75) to[bend left=90] (3,0);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,0)--(1,0);
+      \draw[middlearrow={>}{above}{$T_1$}] (-1,-1)--(1,-1);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$f$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,0)--(3,0);
+      \draw[middlearrow={>}{above}{$T_3$}] (2,-1)--(4,-1);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Distribution &
+  \begin{tabular}{c}
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\langle{\text{left}\;v_1}\rangle,v_3}\rangle \quad distrib \quad \langle{\text{left}\;\langle{v_1,v_3}\rangle}\rangle$}
+    \end{bprooftree} \\ \\
+    \begin{bprooftree}
+      \AxiomC{}
+      \UnaryInfC{$\langle{\langle{\text{right}\;v_2}\rangle,v_3}\rangle \quad distrib \quad \langle{\text{right}\;\langle{v_2,v_3}\rangle}\rangle$}
+    \end{bprooftree}
+  \end{tabular} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T_1$}] (0,0.25)--(1,0.25);
+      \draw[middlearrow={>}{above}{$T_2$}] (0,-0.25)--(1,-0.25);
+      \draw[middlearrow={>}{above}{$T_3$}] (0,-1.25)--(1,-1.25);
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$distrib$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$T_1$}] (2,0.2)--(3,0.2);
+      \draw[middlearrow={>}{above}{$T_3$}] (2,-0.2)--(3,-0.2);
+      \draw[middlearrow={>}{above}{$T_2$}] (2,-0.8)--(3,-0.8);
+      \draw[middlearrow={>}{above}{$T_3$}] (2,-1.2)--(3,-1.2);
+    \end{tikzpicture}
+  } \\ \\
+  
+  Fold &
+  \begin{bprooftree}
+    \AxiomC{}
+    \UnaryInfC{$\langle{v}\rangle \quad fold \quad v$}
+  \end{bprooftree} &
+  \vcenteredhbox{
+    \begin{tikzpicture}
+      \draw[middlearrow={>}{above}{$T[\mu{x}.T/x]$}] (0,0) -- (1,0);
+      \draw (1,0.5) rectangle (2,-0.5) node[pos=.5]{$fold$};
+      \fill (1,0.5) rectangle (1.25,0.25);
+      \draw[middlearrow={>}{above}{$\mu{x}.T$}] (2,0) -- (3,0);
+    \end{tikzpicture}
+  }
+\end{tabular}
 \end{document}
