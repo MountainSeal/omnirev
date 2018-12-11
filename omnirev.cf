@@ -1,0 +1,47 @@
+--Entire Program
+Prog . Program ::= [Def] ;
+entrypoints Program ;
+
+--Definition
+DType . Def ::= "type" Ident "=" Type ;
+DFunc . Def ::= "func" Ident ":" Type "<->" Type "=" Func ;
+(:[]) . [Def] ::= Def ;
+(:)   . [Def] ::= Def [Def] ;
+
+--Type
+TUnit   . Type4 ::= "unit" ;
+TTensor . Type2 ::= Type2 "*" Type3 ;
+TSum    . Type  ::= Type "+" Type2 ;
+TStar   . Type3 ::= "~" Type4 ;
+TVar    . Type4 ::= Ident ;
+_       . Type4 ::= "(" Type ")" ;
+
+_ . Type  ::= Type2 ;
+_ . Type2 ::= Type3 ;
+_ . Type3 ::= Type4 ;
+
+--Function
+FId        . Func5 ::= "id" ;
+FComp      . Func  ::= Func ";" Func2 ;
+FTensor    . Func3 ::= Func3 "*" Func4 ;
+FTensUnit  . Func5 ::= "unit_*" ;
+FTensAssoc . Func5 ::= "assoc_*" ;
+FTensSym   . Func5 ::= "sym_*" ;
+FSum       . Func2 ::= Func2 "+" Func3 ;
+FSumAssoc  . Func5 ::= "assoc_+" ;
+FSumSym    . Func5 ::= "sym_+" ;
+FDistrib   . Func5 ::= "distrib" ;     
+FEval      . Func5 ::= "eval" Type ;
+--FStar      . Func  ::= "~" Func ;
+FDagger    . Func4 ::= "^" Func5 ;
+FVar       . Func5 ::= Ident ;
+_          . Func5 ::= "(" Func ")" ;
+FShift     . Func5 ::= "shift" Integer ;
+
+_ . Func  ::= Func2 ;
+_ . Func2 ::= Func3 ;
+_ . Func3 ::= Func4 ;
+_ . Func4 ::= Func5 ;
+
+comment "//" ;
+comment "/*" "*/" ;

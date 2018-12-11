@@ -1,0 +1,247 @@
+\documentclass[10pt]{jsarticle}
+
+%\pagestyle{empty}
+
+\usepackage[left=0cm, top=1cm, right=0cm, nohead, dvipdfm]{geometry}
+\usepackage{comment}
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{txfonts}
+
+% Optional to turn on the short abbreviations
+\EnableBpAbbreviations
+
+\begin{document}
+
+\section{構造規則}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{Int-Identity}
+  \UnaryInfC{$\Gamma,x:\tau;\quad \vdash x:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{Lin-Identity}
+  \UnaryInfC{$\Gamma;x:\tau \vdash x:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma,y:\tau,x:\sigma,\Delta;\Xi \vdash z:\upsilon$}
+  \RightLabel{Int-Exchange}
+  \UnaryInfC{$\Gamma,x:\sigma,y:\tau,\Delta;\Xi \vdash z:\upsilon$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,y:\tau,x:\sigma,\Theta \vdash z:\upsilon$}
+  \RightLabel{Lin-Exchange}
+  \UnaryInfC{$\Gamma;\Xi,x:\sigma,y:\tau,\Theta \vdash z:\upsilon$}
+\end{prooftree}
+\newpage
+
+\section{論理規則}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash e:\sigma$}
+  \RightLabel{$\multimap$-Left}
+  \UnaryInfC{$\Gamma;\Xi,f:\sigma\multimap\tau \vdash f\;e:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,x:\sigma \vdash e:\tau$}
+  \RightLabel{$\multimap$-Right}
+  \UnaryInfC{$\Gamma;\Xi \vdash \lambda\;x::\sigma\;.\;e:\sigma\multimap\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash e:\tau$}
+  \RightLabel{$unit$-Left}
+  \UnaryInfC{$\Gamma;\Xi,x:unit \vdash e:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{$unit$-Right}
+  \UnaryInfC{$\Gamma;\quad \vdash \langle\rangle:unit$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,x_1:\sigma_1,x_2:\sigma_2 \vdash e:\tau$}
+  \RightLabel{$\otimes$-Left}
+  \UnaryInfC{$\Gamma;\Xi,z:\sigma_1\otimes\sigma_2 \vdash let\;z\;be\;\langle{x_1,x_2}\rangle\;in\;e:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash e_1:\tau_1$}
+  \AxiomC{$\Gamma;\Theta \vdash e_2:\tau_2$}
+  \RightLabel{$\otimes$-Right}
+  \BinaryInfC{$\Gamma;\Xi,\Theta \vdash \langle{e_1,e_2}\rangle:\tau_1\otimes\tau_2$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,x_1:\sigma_1 \vdash e_1:\tau$}
+  \AxiomC{$\Gamma;\Xi,x_2:\sigma_2 \vdash e_2:\tau$}
+  \RightLabel{$\oplus$-Left}
+  \BinaryInfC{$\Gamma;\Xi,z:\sigma_1\oplus\sigma_2 \vdash case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash x:\tau_1$}
+  \RightLabel{$\oplus$-Right${}_\text{1}$}
+  \UnaryInfC{$\Gamma;\Xi \vdash \langle{inl_{\tau_2}\;x}\rangle:\tau_1\oplus\tau_2$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash x:\tau_2$}
+  \RightLabel{$\oplus$-Right${}_\text{2}$}
+  \UnaryInfC{$\Gamma;\Xi \vdash \langle{inr_{\tau_1}\;x}\rangle:\tau_1\oplus\tau_2$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma,x:\sigma\;;\Xi \vdash e:\tau$}
+  \RightLabel{$!$-Left}
+  \UnaryInfC{$\Gamma;\Xi,z:!\sigma \vdash change\;z\;to\;x\;in\;e:\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash x:\tau$}
+  \RightLabel{$!$-Right}
+  \UnaryInfC{$\Gamma;\quad \vdash [x]:!\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash e:!\sigma$}
+  \AxiomC{$\emptyset \diamond e \hookrightarrow v$}
+  \AxiomC{$\{x \mapsto v\} \diamond \tau \hookrightarrow \tau'$}
+  \RightLabel{$\Pi$-Left}
+  \TrinaryInfC{$\Gamma;f:\Pi\;x::!\sigma\;.\;\tau \vdash (f\;e):\tau'$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma,x:\sigma;\Xi \vdash e:\tau$}
+  \RightLabel{$\Pi$-Right}
+  \UnaryInfC{$\Gamma;\Xi \vdash \Lambda\;x::!\sigma\;.\;e:\Pi\;x::!\sigma\;.\;\tau$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{$type$-Type}
+  \UnaryInfC{$\Gamma;\quad \vdash type:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash \sigma:type$}
+  \AxiomC{$\Gamma;\quad \vdash \tau:type$}
+  \RightLabel{$\multimap$-Type}
+  \BinaryInfC{$\Gamma;\quad \vdash \sigma\multimap\tau:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{}
+  \RightLabel{$unit$-Type}
+  \UnaryInfC{$\Gamma;\quad \vdash unit:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash \tau_1:type$}
+  \AxiomC{$\cdots$}
+  \AxiomC{$\Gamma;\quad \vdash \tau_2:type$}
+  \RightLabel{$\otimes$-Type}
+  \TrinaryInfC{$\Gamma;\quad \vdash \tau_1\otimes\tau_2:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash \tau_1:type$}
+  \AxiomC{$\cdots$}
+  \AxiomC{$\Gamma;\quad \vdash \tau_2:type$}
+  \RightLabel{$\oplus$-Type}
+  \TrinaryInfC{$\Gamma;\quad \vdash \tau_1\oplus\tau_2:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma;\quad \vdash \tau:type$}
+  \RightLabel{$!$-Type}
+  \UnaryInfC{$\Gamma;\quad \vdash !\tau:type$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma,x:\sigma\;;\quad \vdash \tau:type$}
+  \RightLabel{$\Pi$-Type}
+  \UnaryInfC{$\Gamma;\quad \vdash \Pi\;x::!\sigma\;.\;\tau:type$}
+\end{prooftree}
+\newpage
+
+\section{評価規則}
+\begin{prooftree}
+  \AxiomC{$\varsigma_f \diamond f \hookrightarrow \lambda\;x::\sigma\;.\;e'$}
+  \AxiomC{$\varsigma_e \diamond e \hookrightarrow v'$}
+  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_x$}
+  \AxiomC{$\varsigma_x \diamond e \hookrightarrow v$}
+  \RightLabel{$\multimap$-C}
+  \QuaternaryInfC{$\varsigma_f\uplus\varsigma_e \diamond f\;e \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{v_1,v_2}\rangle$}
+  \AxiomC{$\langle{v_1,v_2}\rangle \bowtie \langle{x_1,x_2}\rangle \rightsquigarrow \varsigma_{out}$}
+  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
+  \RightLabel{$\otimes$-C}
+  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond let\;z\;be\;\langle{x_1,x_2}\rangle\;in\;e \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{inl_{\sigma_2}\;v'}\rangle$}
+  \AxiomC{$v' \bowtie x_1 \rightsquigarrow \varsigma_{out}$}
+  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
+  \RightLabel{$\oplus$-C${}_\text{1}$}
+  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2 \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow \langle{inr_{\sigma_1}\;v'}\rangle$}
+  \AxiomC{$v' \bowtie x_2 \rightsquigarrow \varsigma_{out}$}
+  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
+  \RightLabel{$\oplus$-C${}_\text{2}$}
+  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond case\;z\;of\;\langle{inl_{\sigma_2}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma_1}\;x_2}\rangle\,\Rightarrow\,e_2 \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_{in} \diamond z \hookrightarrow [v']$}
+  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_{out}$}
+  \AxiomC{$\varsigma_{out}\uplus\varsigma_e \diamond e \hookrightarrow v$}
+  \RightLabel{$!$-C}
+  \TrinaryInfC{$\varsigma_{in}\uplus\varsigma_e \diamond change\;z\;to\;x\;in\;e \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_f \diamond f \hookrightarrow \Lambda\;x::!\sigma\;.\;e'$}
+  \AxiomC{$\varsigma_e \diamond e \hookrightarrow v'$}
+  \AxiomC{$v' \bowtie x \rightsquigarrow \varsigma_x$}
+  \AxiomC{$\varsigma_x \diamond e \hookrightarrow v$}
+  \RightLabel{$\Pi$-C}
+  \QuaternaryInfC{$\varsigma_f\uplus\varsigma_e \diamond f\;e \hookrightarrow v$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_1 \diamond \sigma \hookrightarrow \nu_1$}
+  \AxiomC{$\varsigma_2 \diamond \tau \hookrightarrow \nu_2$}
+  \RightLabel{$\multimap$-Type-C}
+  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \sigma\multimap\tau \hookrightarrow \nu_1\multimap\nu_2$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_1 \diamond \tau_1 \hookrightarrow \nu_1$}
+  \AxiomC{$\varsigma_2 \diamond \tau_2 \hookrightarrow \nu_2$}
+  \RightLabel{$\otimes$-Type-C}
+  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \tau_1\otimes\tau_2 \hookrightarrow \nu_1\otimes\nu_2$}
+\end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\varsigma_1 \diamond \tau_1 \hookrightarrow \nu_1$}
+  \AxiomC{$\varsigma_2 \diamond \tau_2 \hookrightarrow \nu_2$}
+  \RightLabel{$\oplus$-Type-C}
+  \BinaryInfC{$\varsigma_1\uplus\varsigma_2 \diamond \tau_1\oplus\tau_2 \hookrightarrow \nu_1\oplus\nu_2$}
+\end{prooftree}
+\newpage
+
+
+
+
+
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,w:\mu\;x\;.\;\sigma \vdash e:\tau$}
+  \RightLabel{$\mu$-L}
+  \UnaryInfC{$\Gamma;\Xi,z:\mu\;x\;.\;\sigma[\mu\;x\;.\;\sigma/x] \vdash unfold\;z\;as\;w\;in\;e:\tau$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi \vdash e:\tau[\mu\;x.\;\tau/x]$}
+  \RightLabel{$\mu$-R}
+  \UnaryInfC{$\Gamma;\Xi \vdash fold\;e:\mu\;x\;.\;\tau$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma,x:type;\quad \vdash \tau:type$}
+  \RightLabel{$\mu$-Type}
+  \UnaryInfC{$\Gamma;\quad \vdash \mu\;x\;.\;\tau:type$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma;\Xi,x_1:\sigma \vdash e_1:\tau\oplus\chi$}
+  \AxiomC{$\Gamma;\Xi,x_2:\chi \vdash e_2:\tau\oplus\chi$}
+  \RightLabel{trace}
+  \BinaryInfC{$\Gamma;\Xi,x:\sigma \vdash trace\;x\;of\;\langle{inl_{\chi}\;x_1}\rangle\,\Rightarrow\,e_1\;|\langle{inr_{\sigma}\;x_2}\rangle\,\Rightarrow\,e_2:\tau$}
+\end{prooftree}
+
+\end{document}

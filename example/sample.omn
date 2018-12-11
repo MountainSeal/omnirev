@@ -1,0 +1,3 @@
+type qubit = unit + unit
+
+func test : unit <-> unit = ^eval(qubit);eval(qubit)

@@ -1,0 +1,1 @@
+type qubit = unit + unit
