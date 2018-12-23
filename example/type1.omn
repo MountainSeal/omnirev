@@ -1,1 +1,6 @@
+// 型の例
+type alias = unit
 type qubit = unit + unit
+type tens = unit * unit
+type str = ~unit
+type tvar = qubit

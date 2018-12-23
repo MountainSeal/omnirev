@@ -1,0 +1,9 @@
+type qubit = unit + unit
+
+// 関数(同型射)の例
+
+// 恒等関数
+func test_id : unit <-> unit = id
+func test2 : unit * unit <-> unit * unit = id * id
+func test3 : unit + unit <-> unit + unit = id + id
+func test4 : qubit <-> unit + unit = id

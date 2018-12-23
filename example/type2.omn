@@ -1,2 +1,0 @@
-type qubit = unit + unit
-type byte = qubit * qubit * qubit * qubit
