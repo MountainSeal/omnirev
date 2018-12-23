@@ -1,10 +1,9 @@
 name:                omnirev
-version:             0.1.0.0
-github:              "githubuser/omnirev"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2018 Author name here"
+version:             0.0.0
+github:              "MountainSeal/omnirev"
+license:             MIT
+author:              "MountainSeal"
+copyright:           "MountainSeal"
 
 extra-source-files:
 - README.md
@@ -17,7 +16,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/omnirev#readme>
+description:         Please see the README on GitHub at <https://github.com/MountainSeal/omnirev#readme>
 
 build-tools:
 - alex
