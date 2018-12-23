@@ -6,10 +6,10 @@ import Omnirev.ErrM as Err
 import Test.Hspec
 
 spec :: Spec
-spec = do
+spec = 
   describe "typeChecker" $ do
-    it "check" $
+    it "check type" $ do
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)]) `shouldBe` "Success!"
-  describe "typeChecker" $ do
-    it "check" $
-      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit),DType (Ident "byte") (TTensor (TTensor (TTensor (TVar (Ident "qubit")) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit")))]) `shouldBe` "Success!"
+      check (Prog [DType (Ident "alias") TUnit,DType (Ident "qubit") (TSum TUnit TUnit),DType (Ident "tens") (TTensor TUnit TUnit),DType (Ident "str") (TStar TUnit),DType (Ident "tvar") (TVar (Ident "qubit"))]) `shouldBe` "Success!"
+    it "check function" $ 
+      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit),DFunc (Ident "test_id") TUnit TUnit FId,DFunc (Ident "test2") (TTensor TUnit TUnit) (TTensor TUnit TUnit) (FTensor FId FId),DFunc (Ident "test3") (TSum TUnit TUnit) (TSum TUnit TUnit) (FSum FId FId),DFunc (Ident "test4") (TVar (Ident "qubit")) (TVar (Ident "qubit")) FId]) `shouldBe` "Success!"
