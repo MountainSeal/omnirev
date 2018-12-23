@@ -28,7 +28,7 @@ update str d cxt = case (Map.lookup str cxt) of
 checkProgram :: Program -> Result
 checkProgram (Prog defs) =
   case defs of
-    [] -> failure ""
+    [] -> failure "there is no program."
     _ -> checkDefs defs (empty, empty)
 
 
@@ -58,15 +58,19 @@ checkType ty tcxt = case ty of
   TUnit -> Ok ""
   TTensor t1 t2 ->
     case (res1, res2) of
-      (Ok _, Ok _) -> Ok ""
-      _ -> failure ""
+      (Ok _, Ok _)     -> Ok ""
+      (Ok _, Bad s2)   -> Bad $ "right side type of a tensor is something wrong.\n" ++ s2
+      (Bad s1, Ok _)   -> Bad $ "left side type of a tensor is something wrong.\n" ++ s1
+      (Bad s1, Bad s2) -> Bad $ "both side type of a tensor is something wrong.\n" ++ s1 ++ s2
     where
       res1 = checkType t1 tcxt
       res2 = checkType t2 tcxt
   TSum t1 t2 ->
     case (res1, res2) of
-      (Ok _, Ok _) -> Ok ""
-      _ -> failure ""
+      (Ok _, Ok _)     -> Ok ""
+      (Ok _, Bad s2)   -> Bad $ "right side type of a sum is something wrong.\n" ++ s2
+      (Bad s1, Ok _)   -> Bad $ "left side type of a sum is something wrong.\n" ++ s1
+      (Bad s1, Bad s2) -> Bad $ "both side type of a sum is something wrong.\n" ++ s1 ++ s2
     where
       res1 = checkType t1 tcxt
       res2 = checkType t2 tcxt
@@ -74,95 +78,99 @@ checkType ty tcxt = case ty of
   TVar (Ident str) ->
     case (Map.lookup str tcxt) of
       Just _ -> Ok ""
-      Nothing -> failure ""
+      Nothing -> Bad $ "not found type variable " ++ str ++ ".\n"
 
 
 checkFunc :: Func -> (Type, Type) -> (Context Type, Context Iso) -> Result
 checkFunc func (tyIn, tyOut) (tcxt, fcxt) = case func of
   FId -> if tyIn == tyOut
          then Ok ""
-         else failure ""
+         else Bad "id function must have same domain and codomain.\n"
   
   FComp f1 f2 -> case maybeTy of
     Just _ -> Ok ""
-    Nothing -> failure ""
+    Nothing -> Bad "composite function must have same codomain of left side function and domain of right side function.\n"
     where
       maybeTy = searchOutType (FComp f1 f2) tyIn fcxt
   
   FTensor func1 func2 -> case (tyIn, tyOut) of
     (TTensor t1 t2, TTensor t1' t2') ->
       case (res1, res2) of
-        (Ok _, Ok _) -> Ok ""
-        _ -> failure ""
+        (Ok _, Ok _)     -> Ok ""
+        (Ok _, Bad s2)   -> Bad $ "right side function of tensor is something wrong.\n" ++ s2
+        (Bad s1, Ok _)   -> Bad $ "left side function of tensor is something wrong.\n" ++ s1
+        (Bad s1, Bad s2) -> Bad $ "both side function of tensor is something wrong.\n" ++ s1 ++ s2
       where
         res1 = checkFunc func1 (t1, t1') (tcxt, fcxt)
         res2 = checkFunc func2 (t2, t2') (tcxt, fcxt)
-    _ -> failure ""
+    _ -> Bad "invalid domain or codomain of tensor function.\n"
   
   FTensUnit -> case (tyIn, tyOut) of
     (TTensor TUnit t, t') -> if t == t'
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of unit_*.\n"
+    _ -> Bad "invalid domain or codomain of unit_*.\n"
   
   FTensAssoc -> case (tyIn, tyOut) of
     (TTensor t1 (TTensor t2 t3), TTensor (TTensor t1' t2') t3') ->
       if t1 == t1' && t2 == t2' && t3 == t3'
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of assoc_*.\n"
+    _ -> Bad "invalid domain or codomain of assoc_*.\n"
   
   FTensSym -> case (tyIn, tyOut) of
     (TTensor t1 t2, TTensor t2' t1') ->
       if t1 == t1' && t2 == t2'
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of sym_*.\n"
+    _ -> Bad "invalid domain or codomain of sym_*.\n"
   
   FSum func1 func2 -> case (tyIn, tyOut) of
     (TSum t1 t2, TSum t1' t2') ->
       case (res1, res2) of
-        (Ok _, Ok _) -> Ok ""
-        _ -> failure ""
+        (Ok _, Ok _)     -> Ok ""
+        (Ok _, Bad s2)   -> Bad $ "both side function of sum is something wrong.\n" ++ s2
+        (Bad s1, Ok _)   -> Bad $ "both side function of sum is something wrong.\n" ++ s1
+        (Bad s1, Bad s2) -> Bad $ "both side function of sum is something wrong.\n" ++ s1 ++ s2
       where
         res1 = checkFunc func1 (t1, t1') (tcxt, fcxt)
         res2 = checkFunc func2 (t2, t2') (tcxt, fcxt)
-    _ -> failure ""
+    _ -> Bad "invalid domain or codomain of sum function.\n"
   
   FSumAssoc -> case (tyIn, tyOut) of
     (TSum t1 (TSum t2 t3), TSum (TSum t1' t2') t3') ->
       if t1 == t1' && t2 == t2' && t3 == t3'
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of assoc_+.\n"
+    _ -> Bad "invalid domain or codomain of assoc_+.\n"
   
   FSumSym -> case (tyIn, tyOut) of
     (TSum t1 t2, TSum t2' t1') ->
       if t1 == t1' && t2 == t2'
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of sym_+.\n"
+    _ -> Bad "invalid domain or codomain of sym_+.\n"
   
   FDistrib -> case (tyIn, tyOut) of
     (TTensor (TSum t1 t2) t3, TSum (TTensor t1' t3') (TTensor t2' t3'')) ->
       if t1 == t1' && t2 == t2' && t3 == t3' && t3' == t3''
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of distrib.\n"
+    _ -> Bad "invalid domain or codomain of distrib.\n"
   
   FEval t -> case (tyIn, tyOut) of
     (TTensor t' (TStar t''), TUnit) ->
       if t == t' && t' == t''
       then Ok ""
-      else failure ""
-    _ -> failure ""
+      else Bad "invalid domain or codomain of eval.\n"
+    _ -> Bad "invalid domain or codomain of eval.\n"
   
   FDagger f -> checkFunc f (tyOut, tyIn) (tcxt, fcxt)
   
   FVar (Ident str) ->
     case (Map.lookup str fcxt) of
       Just _ -> Ok ""
-      Nothing -> failure ""
+      Nothing -> Bad $ "not found type variable " ++ str ++ ".\n"
 
   FShift _ -> Ok ""
 
