@@ -2,5 +2,5 @@
 type alias = unit
 type qubit = unit + unit
 type tens = unit * unit
-type str = ~unit
-type tvar = qubit
+type star = ~unit
+type var = qubit
