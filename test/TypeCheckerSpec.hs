@@ -16,7 +16,7 @@ spec =
                   ,DType (Ident "tvar") (TVar (Ident "qubit"))
                   ])
         `shouldBe` "Success!"
-    it "check function" $ 
+    it "check function" $
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DType (Ident "octet") (TTensor (TTensor (TTensor (TTensor (TTensor (TTensor (TTensor (TVar (Ident "qubit")) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit")))
                   ,DFunc (Ident "fId") TUnit TUnit FId
@@ -59,3 +59,15 @@ spec =
                   ,DFunc (Ident "fshft") (TVar (Ident "qubit")) (TVar (Ident "qubit")) (FShift 45)
                   ])
       `shouldBe` "Success!"
+    it "check type not found error" $
+      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
+                  ,DFunc (Ident "fdistrib")
+                    (TTensor (TSum TUnit (TVar (Ident "qubit"))) (TVar (Ident "octet")))
+                    (TSum (TTensor TUnit (TVar (Ident "octet"))) (TTensor (TVar (Ident "qubit")) (TVar (Ident "octet")))) FDistrib
+                  ])
+        `shouldNotBe` "Success!"
+    it "check type variable" $
+      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
+                  ,DFunc (Ident "test") (TVar (Ident "qubit")) (TSum TUnit TUnit) FId
+                  ])
+      `shouldNotBe` "Success!"
