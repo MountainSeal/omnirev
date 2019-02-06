@@ -308,3 +308,25 @@ searchInType func outType cxt = case (func, outType) of
     Just t
 
   _ -> Nothing
+
+
+-- |The `purify` function replace type variables.
+purify :: Type -> Context Type -> Maybe Type
+purify ty ctxt =
+  case ty of
+    TUnit -> Just TUnit
+    TTensor t1 t2 ->
+      case (purify t1 ctxt, purify t2 ctxt) of
+        (Just t1', Just t2') -> Just $ TTensor t1' t2'
+        _ -> Nothing
+    TSum t1 t2 ->
+      case (purify t1 ctxt, purify t2 ctxt) of
+        (Just t1', Just t2') -> Just $ TSum t1' t2'
+        _ -> Nothing
+    TStar t ->
+      case purify t ctxt of
+        Just t' -> Just $ TStar t'
+    TVar (Ident str) ->
+      case Map.lookup str ctxt of
+        Just t -> purify t ctxt
+        Nothing -> Nothing
