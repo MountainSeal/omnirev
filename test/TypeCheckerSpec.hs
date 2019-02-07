@@ -4,9 +4,10 @@ import Omnirev.AbsOmnirev
 import Omnirev.TypeChecker as TC
 import Omnirev.ErrM as Err
 import Test.Hspec
+import Data.Map as Map
 
 spec :: Spec
-spec = 
+spec =
   describe "typeChecker" $ do
     it "check type" $ do
       check (Prog [DType (Ident "alias") TUnit
@@ -70,4 +71,9 @@ spec =
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DFunc (Ident "test") (TVar (Ident "qubit")) (TSum TUnit TUnit) FId
                   ])
-      `shouldNotBe` "Success!"
+      `shouldBe` "Success!"
+    it "purify type" $ do
+      purify (TVar (Ident "qubit")) (Map.fromList [("qubit", TSum TUnit TUnit)])
+        `shouldBe` Just (TSum TUnit TUnit)
+      purify (TTensor TUnit (TVar (Ident "qubit"))) (Map.fromList [("qubit", TSum TUnit TUnit)])
+        `shouldBe` Just (TTensor TUnit (TSum TUnit TUnit))

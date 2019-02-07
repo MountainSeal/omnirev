@@ -48,9 +48,13 @@ checkDef def (tcxt, fcxt) = case def of
   DType (Ident str) ty -> case checkType ty tcxt of
     Ok o -> (update str ty tcxt, fcxt, Ok o)
     Bad x -> (tcxt, fcxt, Bad x)
-  DFunc (Ident str) tyIn tyOut f -> case checkFunc f (tyIn, tyOut) (tcxt, fcxt) of
-    Ok o -> (tcxt, update str (f, tyIn, tyOut) fcxt, Ok o)
-    Bad x -> (tcxt, fcxt, Bad x)
+  DFunc (Ident str) tyIn tyOut f ->
+    case (purify tyIn tcxt, purify tyOut tcxt) of
+      (Just tyIn', Just tyOut') ->
+        case checkFunc f (tyIn', tyOut') (tcxt, fcxt) of
+          Ok o -> (tcxt, update str (f, tyIn, tyOut) fcxt, Ok o)
+          Bad x -> (tcxt, fcxt, Bad x)
+      _ -> (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
 
 
 checkType :: Type -> Context Type -> Result
@@ -91,6 +95,7 @@ checkFunc func (tyIn, tyOut) (tcxt, fcxt) = case func of
     Just _ -> Ok ""
     Nothing -> Bad "composite function must have same codomain of left side function and domain of right side function.\n"
     where
+      -- ここでのみsearchOutTypeを使うので，ここでpurifyすれば良い
       maybeTy = searchOutType (FComp f1 f2) tyIn fcxt
 
   FTensor func1 func2 -> case (tyIn, tyOut) of
@@ -158,12 +163,16 @@ checkFunc func (tyIn, tyOut) (tcxt, fcxt) = case func of
       else Bad "invalid domain or codomain of distrib.\n"
     _ -> Bad "invalid domain or codomain of distrib.\n"
 
-  FEval t -> case (tyIn, tyOut) of
-    (TTensor t' (TStar t''), TUnit) ->
-      if t == t' && t' == t''
-      then Ok ""
-      else Bad "invalid domain or codomain of eval.\n"
-    _ -> Bad "invalid domain or codomain of eval.\n"
+  FEval t ->
+    case purify t tcxt of
+      Just t' ->
+        case (tyIn, tyOut) of
+          (TTensor t'' (TStar t'''), TUnit) ->
+            if t' == t'' && t'' == t'''
+            then Ok ""
+            else Bad "invalid domain or codomain of eval.\n"
+          _ -> Bad "invalid domain or codomain of eval.\n"
+      Nothing -> Bad $ "type" ++ show t ++ "not found."
 
   FDagger f -> checkFunc f (tyOut, tyIn) (tcxt, fcxt)
 
