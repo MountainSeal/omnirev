@@ -8,7 +8,6 @@ import System.Exit ( exitFailure, exitSuccess )
 
 import Omnirev.LexOmnirev
 import Omnirev.ParOmnirev
-import Omnirev.SkelOmnirev
 import Omnirev.PrintOmnirev
 import Omnirev.AbsOmnirev
 
