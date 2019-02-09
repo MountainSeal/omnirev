@@ -66,22 +66,29 @@ checkDefs (d:ds) (tcxt, fcxt) =
     (tcxt', fcxt', res) = checkDef d (tcxt, fcxt)
 
 
--- ここで既に定義されている別名がないか確認するべき
 checkDef :: Def -> (Context Type, Context Iso) -> (Context Type, Context Iso, Result)
 checkDef def (tcxt, fcxt) = case def of
   DType (Ident str) t ->
-    case checkType t tcxt of
-      Ok  o -> (update str t tcxt, fcxt, Ok o)
-      Bad x -> (tcxt, fcxt, Bad x)
+    case Map.lookup str tcxt of
+      Just t' ->
+        (tcxt, fcxt, Bad $ "there is definition conflict: " ++ str)
+      Nothing ->
+        case checkType t tcxt of
+          Ok  o -> (update str t tcxt, fcxt, Ok o)
+          Bad x -> (tcxt, fcxt, Bad x)
 
   DFunc (Ident str) dom cod f ->
-    case (purify dom tcxt, purify cod tcxt) of
-      (Just dom', Just cod') ->
-        case checkFunc f (dom', cod') (tcxt, fcxt) of
-          Ok  o -> (tcxt, update str (f, dom, cod) fcxt, Ok o)
-          Bad x -> (tcxt, fcxt, Bad x)
-      _ ->
-        (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
+    case Map.lookup str fcxt of
+      Just (f', dom', cod') ->
+        (tcxt, fcxt, Bad $ "there is definition conflict: " ++ str)
+      Nothing ->
+        case (purify dom tcxt, purify cod tcxt) of
+          (Just dom', Just cod') ->
+            case checkFunc f (dom', cod') (tcxt, fcxt) of
+              Ok  o -> (tcxt, update str (f, dom, cod) fcxt, Ok o)
+              Bad x -> (tcxt, fcxt, Bad x)
+          _ ->
+            (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
 
 
 checkType :: Type -> Context Type -> Result

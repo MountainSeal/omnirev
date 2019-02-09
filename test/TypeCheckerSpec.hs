@@ -7,9 +7,9 @@ import Test.Hspec
 import Data.Map as Map
 
 spec :: Spec
-spec =
-  describe "typeChecker" $ do
-    it "check type" $ do
+spec = do
+  describe "check" $ do
+    it "type" $
       check (Prog [DType (Ident "alias") TUnit
                   ,DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DType (Ident "tens") (TTensor TUnit TUnit)
@@ -17,7 +17,7 @@ spec =
                   ,DType (Ident "tvar") (TVar (Ident "qubit"))
                   ])
         `shouldBe` "Success!"
-    it "check function" $
+    it "function" $
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DType (Ident "octet") (TTensor (TTensor (TTensor (TTensor (TTensor (TTensor (TTensor (TVar (Ident "qubit")) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit"))) (TVar (Ident "qubit")))
                   ,DFunc (Ident "fId") TUnit TUnit FId
@@ -60,19 +60,23 @@ spec =
                   ,DFunc (Ident "fshft") (TVar (Ident "qubit")) (TVar (Ident "qubit")) (FShift 45)
                   ])
       `shouldBe` "Success!"
-    it "check type not found error" $
+    it "type not found error" $
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DFunc (Ident "fdistrib")
                     (TTensor (TSum TUnit (TVar (Ident "qubit"))) (TVar (Ident "octet")))
                     (TSum (TTensor TUnit (TVar (Ident "octet"))) (TTensor (TVar (Ident "qubit")) (TVar (Ident "octet")))) FDistrib
                   ])
         `shouldNotBe` "Success!"
-    it "check type variable" $
+    it "definition conflict error" $
+      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit),DType (Ident "qubit") (TSum (TSum TUnit TUnit) TUnit)])
+      `shouldNotBe` "Success!"
+    it "type variable" $
       check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
                   ,DFunc (Ident "test") (TVar (Ident "qubit")) (TSum TUnit TUnit) FId
                   ])
       `shouldBe` "Success!"
-    it "purify type" $ do
+  describe "purify" $
+    it "type" $ do
       purify (TVar (Ident "qubit")) (Map.fromList [("qubit", TSum TUnit TUnit)])
         `shouldBe` Just (TSum TUnit TUnit)
       purify (TTensor TUnit (TVar (Ident "qubit"))) (Map.fromList [("qubit", TSum TUnit TUnit)])
