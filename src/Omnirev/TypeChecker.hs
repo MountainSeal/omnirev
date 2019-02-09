@@ -1,3 +1,4 @@
+-- |与えられたomnirevの構文の型が正しく型付けできているか検査するためのモジュール群
 module Omnirev.TypeChecker where
 
 import Omnirev.AbsOmnirev
@@ -9,13 +10,13 @@ type Context a = Map String a
 type Iso = (Func, Type, Type)
 
 
-
+-- |Entrypoint of type checking 
 check :: Program -> String
 check p = case checkProg p of
   Ok  s -> s
   Bad s -> s
 
-
+-- |Syntax sugar for type checking failure
 failure :: Show a => a -> Result
 failure x = Bad $ "type check error: " ++ show x
 
