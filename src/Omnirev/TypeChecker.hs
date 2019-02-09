@@ -3,7 +3,7 @@ module Omnirev.TypeChecker where
 
 import Omnirev.AbsOmnirev
 import Omnirev.ErrM
-import Data.Map as Map hiding (update)
+import Data.Map as Map
 
 type Result = Err String
 type Context a = Map String a
@@ -19,12 +19,6 @@ check p = case checkProg p of
 -- |Syntax sugar for type checking failure
 failure :: Show a => a -> Result
 failure x = Bad $ "type check error: " ++ show x
-
-
-update :: String -> a -> Context a -> Context a
-update str d cxt = case Map.lookup str cxt of
-  Just _ -> cxt
-  Nothing -> Map.insert str d cxt
 
 
 -- |The `purify` function replace type variables.
@@ -75,7 +69,7 @@ checkDef def (tcxt, fcxt) = case def of
         (tcxt, fcxt, Bad $ "there is definition conflict: " ++ str)
       Nothing ->
         case checkType t tcxt of
-          Ok  o -> (update str t tcxt, fcxt, Ok o)
+          Ok  o -> (Map.insert str t tcxt, fcxt, Ok o)
           Bad x -> (tcxt, fcxt, Bad x)
 
   DFunc (Ident str) dom cod f ->
@@ -86,7 +80,7 @@ checkDef def (tcxt, fcxt) = case def of
         case (purify dom tcxt, purify cod tcxt) of
           (Just dom', Just cod') ->
             case checkFunc f (dom', cod') (tcxt, fcxt) of
-              Ok  o -> (tcxt, update str (f, dom, cod) fcxt, Ok o)
+              Ok  o -> (tcxt, Map.insert str (f, dom, cod) fcxt, Ok o)
               Bad x -> (tcxt, fcxt, Bad x)
           _ ->
             (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
