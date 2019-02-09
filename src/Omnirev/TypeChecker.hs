@@ -11,9 +11,10 @@ type Iso = (Func, Type, Type)
 
 
 check :: Program -> String
-check p = case checkProgram p of
-  Ok s -> s
+check p = case checkProg p of
+  Ok  s -> s
   Bad s -> s
+
 
 failure :: Show a => a -> Result
 failure x = Bad $ "type check error: " ++ show x
@@ -25,41 +26,69 @@ update str d cxt = case Map.lookup str cxt of
   Nothing -> Map.insert str d cxt
 
 
-checkProgram :: Program -> Result
-checkProgram (Prog defs) =
+-- |The `purify` function replace type variables.
+purify :: Type -> Context Type -> Maybe Type
+purify t cxt =
+  case t of
+    TUnit ->
+      Just TUnit
+    TTensor t1 t2 ->
+      case (purify t1 cxt, purify t2 cxt) of
+        (Just t1', Just t2') -> Just $ TTensor t1' t2'
+        _                    -> Nothing
+    TSum t1 t2 ->
+      case (purify t1 cxt, purify t2 cxt) of
+        (Just t1', Just t2') -> Just $ TSum t1' t2'
+        _                    -> Nothing
+    TStar t ->
+      case purify t cxt of
+        Just t' -> Just $ TStar t'
+    TVar (Ident str) ->
+      case Map.lookup str cxt of
+        Just t  -> purify t cxt
+        Nothing -> Nothing
+
+
+checkProg :: Program -> Result
+checkProg (Prog defs) =
   case defs of
     [] -> failure "there is no program."
-    _ -> checkDefs defs (empty, empty)
+    _  -> checkDefs defs (empty, empty)
 
 
 checkDefs :: [Def] -> (Context Type, Context Iso) -> Result
-checkDefs defs (tcxt, fcxt) = case defs of
-  [] -> Ok "Success!"
-  d:ds ->
-    case res of
-      Ok _ -> checkDefs ds (newTcxt, newFcxt)
-      Bad x -> failure x
-    where
-      (newTcxt, newFcxt, res) = checkDef d (tcxt, fcxt)
+checkDefs [] _ = Ok "Success!"
+checkDefs (d:ds) (tcxt, fcxt) =
+  case res of
+    Ok  _ -> checkDefs ds (tcxt', fcxt')
+    Bad x -> failure x
+  where
+    (tcxt', fcxt', res) = checkDef d (tcxt, fcxt)
 
 
+-- ここで既に定義されている別名がないか確認するべき
 checkDef :: Def -> (Context Type, Context Iso) -> (Context Type, Context Iso, Result)
 checkDef def (tcxt, fcxt) = case def of
-  DType (Ident str) ty -> case checkType ty tcxt of
-    Ok o -> (update str ty tcxt, fcxt, Ok o)
-    Bad x -> (tcxt, fcxt, Bad x)
-  DFunc (Ident str) tyIn tyOut f ->
-    case (purify tyIn tcxt, purify tyOut tcxt) of
-      (Just tyIn', Just tyOut') ->
-        case checkFunc f (tyIn', tyOut') (tcxt, fcxt) of
-          Ok o -> (tcxt, update str (f, tyIn, tyOut) fcxt, Ok o)
+  DType (Ident str) t ->
+    case checkType t tcxt of
+      Ok  o -> (update str t tcxt, fcxt, Ok o)
+      Bad x -> (tcxt, fcxt, Bad x)
+
+  DFunc (Ident str) dom cod f ->
+    case (purify dom tcxt, purify cod tcxt) of
+      (Just dom', Just cod') ->
+        case checkFunc f (dom', cod') (tcxt, fcxt) of
+          Ok  o -> (tcxt, update str (f, dom, cod) fcxt, Ok o)
           Bad x -> (tcxt, fcxt, Bad x)
-      _ -> (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
+      _ ->
+        (tcxt, fcxt, Bad $ "type" ++ str ++ "not found")
 
 
 checkType :: Type -> Context Type -> Result
-checkType ty tcxt = case ty of
-  TUnit -> Ok ""
+checkType t cxt = case t of
+  TUnit ->
+    Ok ""
+
   TTensor t1 t2 ->
     case (res1, res2) of
       (Ok _, Ok _)     -> Ok ""
@@ -67,8 +96,9 @@ checkType ty tcxt = case ty of
       (Bad s1, Ok _)   -> Bad $ "left side type of a tensor is something wrong.\n" ++ s1
       (Bad s1, Bad s2) -> Bad $ "both side type of a tensor is something wrong.\n" ++ s1 ++ s2
     where
-      res1 = checkType t1 tcxt
-      res2 = checkType t2 tcxt
+      res1 = checkType t1 cxt
+      res2 = checkType t2 cxt
+
   TSum t1 t2 ->
     case (res1, res2) of
       (Ok _, Ok _)     -> Ok ""
@@ -76,133 +106,147 @@ checkType ty tcxt = case ty of
       (Bad s1, Ok _)   -> Bad $ "left side type of a sum is something wrong.\n" ++ s1
       (Bad s1, Bad s2) -> Bad $ "both side type of a sum is something wrong.\n" ++ s1 ++ s2
     where
-      res1 = checkType t1 tcxt
-      res2 = checkType t2 tcxt
-  TStar t -> checkType t tcxt
+      res1 = checkType t1 cxt
+      res2 = checkType t2 cxt
+
+  TStar t ->
+    checkType t cxt
+
   TVar (Ident str) ->
-    case Map.lookup str tcxt of
-      Just _ -> Ok ""
+    case Map.lookup str cxt of
+      Just _  -> Ok ""
       Nothing -> Bad $ "not found type variable " ++ str ++ ".\n"
 
 
 checkFunc :: Func -> (Type, Type) -> (Context Type, Context Iso) -> Result
-checkFunc func (tyIn, tyOut) (tcxt, fcxt) = case func of
-  FId -> if tyIn == tyOut
-         then Ok ""
-         else Bad "id function must have same domain and codomain.\n"
+checkFunc f (dom, cod) (tcxt, fcxt) = case f of
+  FId ->
+    if dom == cod
+    then Ok ""
+    else Bad "id function must have same domain and codomain.\n"
 
-  FComp f1 f2 -> case maybeTy of
-    Just _ -> Ok ""
-    Nothing -> Bad "composite function must have same codomain of left side function and domain of right side function.\n"
-    where
-      -- ここでのみsearchOutTypeを使うので，ここでpurifyすれば良い
-      maybeTy = searchOutType (FComp f1 f2) tyIn fcxt
+  FComp f1 f2 ->
+    case searchCodomain (FComp f1 f2) dom fcxt of
+      Just _ -> Ok ""
+      Nothing -> Bad "composite function must have same codomain of left side function and domain of right side function.\n"
 
-  FTensor func1 func2 -> case (tyIn, tyOut) of
-    (TTensor t1 t2, TTensor t1' t2') ->
-      case (res1, res2) of
-        (Ok _, Ok _)     -> Ok ""
-        (Ok _, Bad s2)   -> Bad $ "right side function of tensor is something wrong.\n" ++ s2
-        (Bad s1, Ok _)   -> Bad $ "left side function of tensor is something wrong.\n" ++ s1
-        (Bad s1, Bad s2) -> Bad $ "both side function of tensor is something wrong.\n" ++ s1 ++ s2
-      where
-        res1 = checkFunc func1 (t1, t1') (tcxt, fcxt)
-        res2 = checkFunc func2 (t2, t2') (tcxt, fcxt)
-    _ -> Bad "invalid domain or codomain of tensor function.\n"
+  FTensor f1 f2 ->
+    case (dom, cod) of
+      (TTensor t1 t2, TTensor t1' t2') ->
+        case (res1, res2) of
+          (Ok _, Ok _)     -> Ok ""
+          (Ok _, Bad s2)   -> Bad $ "right side function of tensor is something wrong.\n" ++ s2
+          (Bad s1, Ok _)   -> Bad $ "left side function of tensor is something wrong.\n" ++ s1
+          (Bad s1, Bad s2) -> Bad $ "both side function of tensor is something wrong.\n" ++ s1 ++ s2
+        where
+          res1 = checkFunc f1 (t1, t1') (tcxt, fcxt)
+          res2 = checkFunc f2 (t2, t2') (tcxt, fcxt)
+      _ -> Bad "invalid domain or codomain of tensor function.\n"
 
-  FTensUnit -> case (tyIn, tyOut) of
-    (TTensor TUnit t, t') -> if t == t'
-      then Ok ""
-      else Bad "invalid domain or codomain of unit_*.\n"
-    _ -> Bad "invalid domain or codomain of unit_*.\n"
+  FTensUnit ->
+    case (dom, cod) of
+      (TTensor TUnit t, t') -> if t == t'
+        then Ok ""
+        else Bad "invalid domain or codomain of unit_*.\n"
+      _ -> Bad "invalid domain or codomain of unit_*.\n"
 
-  FTensAssoc -> case (tyIn, tyOut) of
-    (TTensor t1 (TTensor t2 t3), TTensor (TTensor t1' t2') t3') ->
-      if t1 == t1' && t2 == t2' && t3 == t3'
-      then Ok ""
-      else Bad "invalid domain or codomain of assoc_*.\n"
-    _ -> Bad "invalid domain or codomain of assoc_*.\n"
+  FTensAssoc ->
+    case (dom, cod) of
+      (TTensor t1 (TTensor t2 t3), TTensor (TTensor t1' t2') t3') ->
+        if t1 == t1' && t2 == t2' && t3 == t3'
+        then Ok ""
+        else Bad "invalid domain or codomain of assoc_*.\n"
+      _ -> Bad "invalid domain or codomain of assoc_*.\n"
 
-  FTensSym -> case (tyIn, tyOut) of
-    (TTensor t1 t2, TTensor t2' t1') ->
-      if t1 == t1' && t2 == t2'
-      then Ok ""
-      else Bad "invalid domain or codomain of sym_*.\n"
-    _ -> Bad "invalid domain or codomain of sym_*.\n"
+  FTensSym ->
+    case (dom, cod) of
+      (TTensor t1 t2, TTensor t2' t1') ->
+        if t1 == t1' && t2 == t2'
+        then Ok ""
+        else Bad "invalid domain or codomain of sym_*.\n"
+      _ -> Bad "invalid domain or codomain of sym_*.\n"
 
-  FSum func1 func2 -> case (tyIn, tyOut) of
-    (TSum t1 t2, TSum t1' t2') ->
-      case (res1, res2) of
-        (Ok _, Ok _)     -> Ok ""
-        (Ok _, Bad s2)   -> Bad $ "both side function of sum is something wrong.\n" ++ s2
-        (Bad s1, Ok _)   -> Bad $ "both side function of sum is something wrong.\n" ++ s1
-        (Bad s1, Bad s2) -> Bad $ "both side function of sum is something wrong.\n" ++ s1 ++ s2
-      where
-        res1 = checkFunc func1 (t1, t1') (tcxt, fcxt)
-        res2 = checkFunc func2 (t2, t2') (tcxt, fcxt)
-    _ -> Bad "invalid domain or codomain of sum function.\n"
+  FSum f1 f2 ->
+    case (dom, cod) of
+      (TSum t1 t2, TSum t1' t2') ->
+        case (res1, res2) of
+          (Ok _, Ok _)     -> Ok ""
+          (Ok _, Bad s2)   -> Bad $ "both side function of sum is something wrong.\n" ++ s2
+          (Bad s1, Ok _)   -> Bad $ "both side function of sum is something wrong.\n" ++ s1
+          (Bad s1, Bad s2) -> Bad $ "both side function of sum is something wrong.\n" ++ s1 ++ s2
+        where
+          res1 = checkFunc f1 (t1, t1') (tcxt, fcxt)
+          res2 = checkFunc f2 (t2, t2') (tcxt, fcxt)
+      _ -> Bad "invalid domain or codomain of sum function.\n"
 
-  FSumAssoc -> case (tyIn, tyOut) of
-    (TSum t1 (TSum t2 t3), TSum (TSum t1' t2') t3') ->
-      if t1 == t1' && t2 == t2' && t3 == t3'
-      then Ok ""
-      else Bad "invalid domain or codomain of assoc_+.\n"
-    _ -> Bad "invalid domain or codomain of assoc_+.\n"
+  FSumAssoc ->
+    case (dom, cod) of
+      (TSum t1 (TSum t2 t3), TSum (TSum t1' t2') t3') ->
+        if t1 == t1' && t2 == t2' && t3 == t3'
+        then Ok ""
+        else Bad "invalid domain or codomain of assoc_+.\n"
+      _ -> Bad "invalid domain or codomain of assoc_+.\n"
 
-  FSumSym -> case (tyIn, tyOut) of
-    (TSum t1 t2, TSum t2' t1') ->
-      if t1 == t1' && t2 == t2'
-      then Ok ""
-      else Bad "invalid domain or codomain of sym_+.\n"
-    _ -> Bad "invalid domain or codomain of sym_+.\n"
+  FSumSym ->
+    case (dom, cod) of
+      (TSum t1 t2, TSum t2' t1') ->
+        if t1 == t1' && t2 == t2'
+        then Ok ""
+        else Bad "invalid domain or codomain of sym_+.\n"
+      _ -> Bad "invalid domain or codomain of sym_+.\n"
 
-  FDistrib -> case (tyIn, tyOut) of
-    (TTensor (TSum t1 t2) t3, TSum (TTensor t1' t3') (TTensor t2' t3'')) ->
-      if t1 == t1' && t2 == t2' && t3 == t3' && t3' == t3''
-      then Ok ""
-      else Bad "invalid domain or codomain of distrib.\n"
-    _ -> Bad "invalid domain or codomain of distrib.\n"
+  FDistrib ->
+    case (dom, cod) of
+      (TTensor (TSum t1 t2) t3, TSum (TTensor t1' t3') (TTensor t2' t3'')) ->
+        if t1 == t1' && t2 == t2' && t3 == t3' && t3' == t3''
+        then Ok ""
+        else Bad "invalid domain or codomain of distrib.\n"
+      _ -> Bad "invalid domain or codomain of distrib.\n"
 
   FEval t ->
     case purify t tcxt of
       Just t' ->
-        case (tyIn, tyOut) of
+        case (dom, cod) of
           (TTensor t'' (TStar t'''), TUnit) ->
             if t' == t'' && t'' == t'''
             then Ok ""
             else Bad "invalid domain or codomain of eval.\n"
-          _ -> Bad "invalid domain or codomain of eval.\n"
-      Nothing -> Bad $ "type" ++ show t ++ "not found."
+          _ ->
+            Bad "invalid domain or codomain of eval.\n"
+      Nothing ->
+        Bad $ "type" ++ show t ++ "not found."
 
-  FDagger f -> checkFunc f (tyOut, tyIn) (tcxt, fcxt)
+  FDagger f ->
+    checkFunc f (cod, dom) (tcxt, fcxt)
 
   FVar (Ident str) ->
     case Map.lookup str fcxt of
-      Just _ -> Ok ""
+      Just _  -> Ok ""
       Nothing -> Bad $ "not found type variable " ++ str ++ ".\n"
 
-  FShift _ -> Ok ""
+  FShift _ ->
+    Ok ""
 
 
-searchOutType :: Func -> Type -> Context Iso -> Maybe Type
-searchOutType func inType cxt = case (func, inType) of
+searchCodomain :: Func -> Type -> Context Iso -> Maybe Type
+searchCodomain func domain cxt = case (func, domain) of
   (FId, t) ->
     Just t
 
   (FComp f1 f2, t1) ->
-    case maybe2 of
-      Just t2 -> searchOutType f2 t2 cxt
+    case searchCodomain f1 t1 cxt of
+      Just t2 -> searchCodomain f2 t2 cxt
       Nothing -> Nothing
-    where
-      maybe2 = searchOutType f1 t1 cxt
 
   (FTensor f1 f2, TTensor t1 t2) ->
     case (maybe1, maybe2) of
-      (Just t1', Just t2') -> Just (TTensor t1' t2')
-      _ -> Nothing
+      (Just t1', Just t2') ->
+        Just (TTensor t1' t2')
+      _ ->
+        Nothing
     where
-      maybe1 = searchOutType f1 t1 cxt
-      maybe2 = searchOutType f2 t2 cxt
+      maybe1 = searchCodomain f1 t1 cxt
+      maybe2 = searchCodomain f2 t2 cxt
 
   (FTensUnit, TTensor TUnit t) ->
     Just t
@@ -215,11 +259,13 @@ searchOutType func inType cxt = case (func, inType) of
 
   (FSum f1 f2, TSum t1 t2) ->
     case (maybe1, maybe2) of
-      (Just t1', Just t2') -> Just (TSum t1' t2')
-      _ -> Nothing
+      (Just t1', Just t2') ->
+        Just (TSum t1' t2')
+      _ ->
+        Nothing
     where
-      maybe1 = searchOutType f1 t1 cxt
-      maybe2 = searchOutType f2 t2 cxt
+      maybe1 = searchCodomain f1 t1 cxt
+      maybe2 = searchCodomain f2 t2 cxt
 
   (FSumAssoc, TSum t1 (TSum t2 t3)) ->
     Just (TSum (TSum t1 t2) t3)
@@ -236,40 +282,43 @@ searchOutType func inType cxt = case (func, inType) of
     else Nothing
 
   (FDagger f, t) ->
-    searchInType f t cxt
+    searchDomain f t cxt
 
   (FVar (Ident str), t) ->
     case Map.lookup str cxt of
-      Just (_, tyIn, tyOut) ->
-        if t == tyIn
-        then Just tyOut
+      Just (_, dom, cod) ->
+        if t == dom
+        then Just cod
         else Nothing
-      Nothing -> Nothing
+      Nothing ->
+        Nothing
 
   (FShift _, t) ->
     Just t
 
-  _ -> Nothing
+  _ ->
+    Nothing
 
-searchInType :: Func -> Type -> Context Iso -> Maybe Type
-searchInType func outType cxt = case (func, outType) of
+
+searchDomain :: Func -> Type -> Context Iso -> Maybe Type
+searchDomain func codomain cxt = case (func, codomain) of
   (FId, t) ->
     Just t
 
   (FComp f1 f2, t3) ->
-    case maybe2 of
-      Just t2 -> searchInType f1 t2 cxt
+    case searchDomain f2 t3 cxt of
+      Just t2 -> searchDomain f1 t2 cxt
       Nothing -> Nothing
-    where
-      maybe2 = searchInType f2 t3 cxt
 
   (FTensor f1 f2, TTensor t1 t2) ->
     case (maybe1, maybe2) of
-      (Just t1', Just t2') -> Just (TTensor t1' t2')
-      _ -> Nothing
+      (Just t1', Just t2') ->
+        Just (TTensor t1' t2')
+      _ ->
+        Nothing
     where
-      maybe1 = searchInType f1 t1 cxt
-      maybe2 = searchInType f2 t2 cxt
+      maybe1 = searchDomain f1 t1 cxt
+      maybe2 = searchDomain f2 t2 cxt
 
   (FTensUnit, t) ->
     Just (TTensor TUnit t)
@@ -282,11 +331,13 @@ searchInType func outType cxt = case (func, outType) of
 
   (FSum f1 f2, TSum t1 t2) ->
     case (maybe1, maybe2) of
-      (Just t1', Just t2') -> Just (TSum t1' t2')
-      _ -> Nothing
+      (Just t1', Just t2') ->
+        Just (TSum t1' t2')
+      _ ->
+        Nothing
     where
-      maybe1 = searchInType f1 t1 cxt
-      maybe2 = searchInType f2 t2 cxt
+      maybe1 = searchDomain f1 t1 cxt
+      maybe2 = searchDomain f2 t2 cxt
 
   (FSumAssoc, TSum (TSum t1 t2) t3) ->
     Just (TSum t1 (TSum t2 t3))
@@ -303,39 +354,19 @@ searchInType func outType cxt = case (func, outType) of
     Just (TTensor t (TStar t))
 
   (FDagger f, t) ->
-    searchOutType f t cxt
+    searchCodomain f t cxt
 
   (FVar (Ident str), t) ->
     case Map.lookup str cxt of
-      Just (_, tyIn, tyOut) ->
-        if t == tyOut
-        then Just tyIn
+      Just (_, dom, cod) ->
+        if t == cod
+        then Just dom
         else Nothing
-      Nothing -> Nothing
+      Nothing ->
+        Nothing
 
   (FShift _, t) ->
     Just t
 
-  _ -> Nothing
-
-
--- |The `purify` function replace type variables.
-purify :: Type -> Context Type -> Maybe Type
-purify ty ctxt =
-  case ty of
-    TUnit -> Just TUnit
-    TTensor t1 t2 ->
-      case (purify t1 ctxt, purify t2 ctxt) of
-        (Just t1', Just t2') -> Just $ TTensor t1' t2'
-        _ -> Nothing
-    TSum t1 t2 ->
-      case (purify t1 ctxt, purify t2 ctxt) of
-        (Just t1', Just t2') -> Just $ TSum t1' t2'
-        _ -> Nothing
-    TStar t ->
-      case purify t ctxt of
-        Just t' -> Just $ TStar t'
-    TVar (Ident str) ->
-      case Map.lookup str ctxt of
-        Just t -> purify t ctxt
-        Nothing -> Nothing
+  _ ->
+    Nothing
