@@ -92,6 +92,7 @@ Func4 : 'id' { AbsOmnirev.FId }
       | 'eval' Type { AbsOmnirev.FEval $2 }
       | '^' Func4 { AbsOmnirev.FDagger $2 }
       | Ident { AbsOmnirev.FVar $1 }
+      | 'shift' Integer { AbsOmnirev.FShift $2 }
       | '(' Func ')' { $2 }
 Func1 :: { Func }
 Func1 : Func1 ';' Func2 { AbsOmnirev.FComp $1 $3 } | Func2 { $1 }
@@ -99,8 +100,6 @@ Func3 :: { Func }
 Func3 : Func3 '*' Func4 { AbsOmnirev.FTensor $1 $3 } | Func4 { $1 }
 Func2 :: { Func }
 Func2 : Func2 '+' Func3 { AbsOmnirev.FSum $1 $3 } | Func3 { $1 }
-Func5 :: { Func }
-Func5 : 'shift' Integer { AbsOmnirev.FShift $2 }
 Func :: { Func }
 Func : Func1 { $1 }
 {

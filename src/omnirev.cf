@@ -44,5 +44,5 @@ FEval      . Func4 ::= "eval" Type ;
 --FStar      . Func4 ::= "~" Func4 ;
 FDagger    . Func4 ::= "^" Func4 ;
 FVar       . Func4 ::= Ident ;
-FShift     . Func5 ::= "shift" Integer ;
+FShift     . Func4 ::= "shift" Integer ;
 coercions Func 4 ;
