@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \= | \: | \< \- \> | \* | \+ | \~ | \( | \) | \; | "unit" \_ \* | "assoc" \_ \* | "sym" \_ \* | "assoc" \_ \+ | "sym" \_ \+ | \^
+   \= | \: | \< \- \> | \( \) | \* | \, | \~ | \( | \) | \+ | \; | "unit" \_ \* | "assoc" \_ \* | "sym" \_ \* | "assoc" \_ \+ | "sym" \_ \+ | \^
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -59,10 +59,12 @@ data Token =
  | Err Posn
   deriving (Eq,Show,Ord)
 
+printPosn :: Posn -> String
+printPosn (Pn _ l c) = "line " ++ show l ++ ", column " ++ show c
+
 tokenPos :: [Token] -> String
-tokenPos (PT (Pn _ l _) _ :_) = "line " ++ show l
-tokenPos (Err (Pn _ l _) :_) = "line " ++ show l
-tokenPos _ = "end of file"
+tokenPos (t:_) = printPosn (tokenPosn t)
+tokenPos [] = "end of file"
 
 tokenPosn :: Token -> Posn
 tokenPosn (PT p _) = p
@@ -85,6 +87,7 @@ prToken t = case t of
   PT _ (TV s)   -> s
   PT _ (TD s)   -> s
   PT _ (TC s)   -> s
+  Err _         -> "#error"
 
 
 data BTree = N | B String Tok BTree BTree deriving (Show)
@@ -98,7 +101,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "distrib" 12 (b ";" 6 (b "*" 3 (b ")" 2 (b "(" 1 N N) N) (b ":" 5 (b "+" 4 N N) N)) (b "^" 9 (b "=" 8 (b "<->" 7 N N) N) (b "assoc_+" 11 (b "assoc_*" 10 N N) N))) (b "sym_+" 18 (b "id" 15 (b "func" 14 (b "eval" 13 N N) N) (b "sym_*" 17 (b "shift" 16 N N) N)) (b "unit_*" 21 (b "unit" 20 (b "type" 19 N N) N) (b "~" 22 N N)))
+resWords = b "distrib" 14 (b ":" 7 (b "*" 4 (b "()" 2 (b "(" 1 N N) (b ")" 3 N N)) (b "," 6 (b "+" 5 N N) N)) (b "^" 11 (b "<->" 9 (b ";" 8 N N) (b "=" 10 N N)) (b "assoc_+" 13 (b "assoc_*" 12 N N) N))) (b "sym_*" 21 (b "id" 18 (b "expr" 16 (b "eval" 15 N N) (b "func" 17 N N)) (b "shift" 20 (b "measure" 19 N N) N)) (b "unit" 24 (b "type" 23 (b "sym_+" 22 N N) N) (b "~" 26 (b "unit_*" 25 N N) N)))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

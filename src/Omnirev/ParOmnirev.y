@@ -14,27 +14,31 @@ import Omnirev.ErrM
 %tokentype {Token}
 %token
   '(' { PT _ (TS _ 1) }
-  ')' { PT _ (TS _ 2) }
-  '*' { PT _ (TS _ 3) }
-  '+' { PT _ (TS _ 4) }
-  ':' { PT _ (TS _ 5) }
-  ';' { PT _ (TS _ 6) }
-  '<->' { PT _ (TS _ 7) }
-  '=' { PT _ (TS _ 8) }
-  '^' { PT _ (TS _ 9) }
-  'assoc_*' { PT _ (TS _ 10) }
-  'assoc_+' { PT _ (TS _ 11) }
-  'distrib' { PT _ (TS _ 12) }
-  'eval' { PT _ (TS _ 13) }
-  'func' { PT _ (TS _ 14) }
-  'id' { PT _ (TS _ 15) }
-  'shift' { PT _ (TS _ 16) }
-  'sym_*' { PT _ (TS _ 17) }
-  'sym_+' { PT _ (TS _ 18) }
-  'type' { PT _ (TS _ 19) }
-  'unit' { PT _ (TS _ 20) }
-  'unit_*' { PT _ (TS _ 21) }
-  '~' { PT _ (TS _ 22) }
+  '()' { PT _ (TS _ 2) }
+  ')' { PT _ (TS _ 3) }
+  '*' { PT _ (TS _ 4) }
+  '+' { PT _ (TS _ 5) }
+  ',' { PT _ (TS _ 6) }
+  ':' { PT _ (TS _ 7) }
+  ';' { PT _ (TS _ 8) }
+  '<->' { PT _ (TS _ 9) }
+  '=' { PT _ (TS _ 10) }
+  '^' { PT _ (TS _ 11) }
+  'assoc_*' { PT _ (TS _ 12) }
+  'assoc_+' { PT _ (TS _ 13) }
+  'distrib' { PT _ (TS _ 14) }
+  'eval' { PT _ (TS _ 15) }
+  'expr' { PT _ (TS _ 16) }
+  'func' { PT _ (TS _ 17) }
+  'id' { PT _ (TS _ 18) }
+  'measure' { PT _ (TS _ 19) }
+  'shift' { PT _ (TS _ 20) }
+  'sym_*' { PT _ (TS _ 21) }
+  'sym_+' { PT _ (TS _ 22) }
+  'type' { PT _ (TS _ 23) }
+  'unit' { PT _ (TS _ 24) }
+  'unit_*' { PT _ (TS _ 25) }
+  '~' { PT _ (TS _ 26) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -50,20 +54,35 @@ Program : ListDef { AbsOmnirev.Prog $1 }
 Def :: { Def }
 Def : 'type' Ident '=' Type { AbsOmnirev.DType $2 $4 }
     | 'func' Ident ':' Type '<->' Type '=' Func { AbsOmnirev.DFunc $2 $4 $6 $8 }
+    | 'expr' Ident ':' Type '=' Expr { AbsOmnirev.DExpr $2 $4 $6 }
 ListDef :: { [Def] }
 ListDef : Def { (:[]) $1 } | Def ListDef { (:) $1 $2 }
-Type4 :: { Type }
-Type4 : 'unit' { AbsOmnirev.TUnit }
+Expr3 :: { Expr }
+Expr3 : '()' { AbsOmnirev.EUnit }
+      | '~' Expr3 { AbsOmnirev.EStar $2 }
+      | Ident { AbsOmnirev.EVar $1 }
+      | Func Expr3 { AbsOmnirev.EApp $1 $2 }
+      | 'measure' Expr3 { AbsOmnirev.EProj $2 }
+      | '(' Expr ')' { $2 }
+Expr2 :: { Expr }
+Expr2 : Expr2 '*' Expr3 { AbsOmnirev.ETensor $1 $3 } | Expr3 { $1 }
+Expr1 :: { Expr }
+Expr1 : Expr1 ',' Expr2 { AbsOmnirev.ESum $1 $3 } | Expr2 { $1 }
+Expr :: { Expr }
+Expr : Expr1 { $1 }
+Type3 :: { Type }
+Type3 : 'unit' { AbsOmnirev.TUnit }
+      | '~' Type3 { AbsOmnirev.TStar $2 }
       | Ident { AbsOmnirev.TVar $1 }
       | '(' Type ')' { $2 }
 Type2 :: { Type }
 Type2 : Type2 '*' Type3 { AbsOmnirev.TTensor $1 $3 } | Type3 { $1 }
+Type1 :: { Type }
+Type1 : Type1 '+' Type2 { AbsOmnirev.TSum $1 $3 } | Type2 { $1 }
 Type :: { Type }
-Type : Type '+' Type2 { AbsOmnirev.TSum $1 $3 } | Type2 { $1 }
-Type3 :: { Type }
-Type3 : '~' Type4 { AbsOmnirev.TStar $2 } | Type4 { $1 }
-Func5 :: { Func }
-Func5 : 'id' { AbsOmnirev.FId }
+Type : Type1 { $1 }
+Func4 :: { Func }
+Func4 : 'id' { AbsOmnirev.FId }
       | 'unit_*' { AbsOmnirev.FTensUnit }
       | 'assoc_*' { AbsOmnirev.FTensAssoc }
       | 'sym_*' { AbsOmnirev.FTensSym }
@@ -71,17 +90,19 @@ Func5 : 'id' { AbsOmnirev.FId }
       | 'sym_+' { AbsOmnirev.FSumSym }
       | 'distrib' { AbsOmnirev.FDistrib }
       | 'eval' Type { AbsOmnirev.FEval $2 }
+      | '^' Func4 { AbsOmnirev.FDagger $2 }
       | Ident { AbsOmnirev.FVar $1 }
       | '(' Func ')' { $2 }
-      | 'shift' Integer { AbsOmnirev.FShift $2 }
-Func :: { Func }
-Func : Func ';' Func2 { AbsOmnirev.FComp $1 $3 } | Func2 { $1 }
+Func1 :: { Func }
+Func1 : Func1 ';' Func2 { AbsOmnirev.FComp $1 $3 } | Func2 { $1 }
 Func3 :: { Func }
 Func3 : Func3 '*' Func4 { AbsOmnirev.FTensor $1 $3 } | Func4 { $1 }
 Func2 :: { Func }
 Func2 : Func2 '+' Func3 { AbsOmnirev.FSum $1 $3 } | Func3 { $1 }
-Func4 :: { Func }
-Func4 : '^' Func5 { AbsOmnirev.FDagger $2 } | Func5 { $1 }
+Func5 :: { Func }
+Func5 : 'shift' Integer { AbsOmnirev.FShift $2 }
+Func :: { Func }
+Func : Func1 { $1 }
 {
 
 returnM :: a -> Err a
@@ -96,7 +117,7 @@ happyError ts =
   case ts of
     [] -> []
     [Err _] -> " due to lexer error"
-    _ -> " before " ++ unwords (map (id . prToken) (take 4 ts))
+    t:_ -> " before `" ++ id(prToken t) ++ "'"
 
 myLexer = tokens
 }

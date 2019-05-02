@@ -11,7 +11,20 @@ newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 data Program = Prog [Def]
   deriving (Eq, Ord, Show, Read)
 
-data Def = DType Ident Type | DFunc Ident Type Type Func
+data Def
+    = DType Ident Type
+    | DFunc Ident Type Type Func
+    | DExpr Ident Type Expr
+  deriving (Eq, Ord, Show, Read)
+
+data Expr
+    = EUnit
+    | ETensor Expr Expr
+    | ESum Expr Expr
+    | EStar Expr
+    | EVar Ident
+    | EApp Func Expr
+    | EProj Expr
   deriving (Eq, Ord, Show, Read)
 
 data Type

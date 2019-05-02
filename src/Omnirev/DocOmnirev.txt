@@ -27,14 +27,16 @@ Integer literals //Integer// are nonempty sequences of digits.
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in omnirev are the following:
-  | ``distrib`` | ``eval`` | ``func`` | ``id``
-  | ``shift`` | ``type`` | ``unit`` | 
+  | ``distrib`` | ``eval`` | ``expr`` | ``func``
+  | ``id`` | ``measure`` | ``shift`` | ``type``
+  | ``unit`` |  |  | 
 
 The symbols used in omnirev are the following:
-  | = | : | <-> | *
-  | + | ~ | ( | )
-  | ; | unit_* | assoc_* | sym_*
-  | assoc_+ | sym_+ | ^ | 
+  | = | : | <-> | ()
+  | * | , | ~ | (
+  | ) | + | ; | unit_*
+  | assoc_* | sym_* | assoc_+ | sym_+
+  | ^ |  |  | 
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -48,18 +50,30 @@ All other symbols are terminals.
   | //Program// | -> | //[Def]// 
   | //Def// | -> | ``type`` //Ident// ``=`` //Type// 
   |  |  **|**  | ``func`` //Ident// ``:`` //Type// ``<->`` //Type// ``=`` //Func// 
+  |  |  **|**  | ``expr`` //Ident// ``:`` //Type// ``=`` //Expr// 
   | //[Def]// | -> | //Def// 
   |  |  **|**  | //Def// //[Def]// 
-  | //Type4// | -> | ``unit`` 
+  | //Expr3// | -> | ``()`` 
+  |  |  **|**  | ``~`` //Expr3// 
+  |  |  **|**  | //Ident// 
+  |  |  **|**  | //Func// //Expr3// 
+  |  |  **|**  | ``measure`` //Expr3// 
+  |  |  **|**  | ``(`` //Expr// ``)`` 
+  | //Expr2// | -> | //Expr2// ``*`` //Expr3// 
+  |  |  **|**  | //Expr3// 
+  | //Expr1// | -> | //Expr1// ``,`` //Expr2// 
+  |  |  **|**  | //Expr2// 
+  | //Expr// | -> | //Expr1// 
+  | //Type3// | -> | ``unit`` 
+  |  |  **|**  | ``~`` //Type3// 
   |  |  **|**  | //Ident// 
   |  |  **|**  | ``(`` //Type// ``)`` 
   | //Type2// | -> | //Type2// ``*`` //Type3// 
   |  |  **|**  | //Type3// 
-  | //Type// | -> | //Type// ``+`` //Type2// 
+  | //Type1// | -> | //Type1// ``+`` //Type2// 
   |  |  **|**  | //Type2// 
-  | //Type3// | -> | ``~`` //Type4// 
-  |  |  **|**  | //Type4// 
-  | //Func5// | -> | ``id`` 
+  | //Type// | -> | //Type1// 
+  | //Func4// | -> | ``id`` 
   |  |  **|**  | ``unit_*`` 
   |  |  **|**  | ``assoc_*`` 
   |  |  **|**  | ``sym_*`` 
@@ -67,16 +81,16 @@ All other symbols are terminals.
   |  |  **|**  | ``sym_+`` 
   |  |  **|**  | ``distrib`` 
   |  |  **|**  | ``eval`` //Type// 
+  |  |  **|**  | ``^`` //Func4// 
   |  |  **|**  | //Ident// 
   |  |  **|**  | ``(`` //Func// ``)`` 
-  |  |  **|**  | ``shift`` //Integer// 
-  | //Func// | -> | //Func// ``;`` //Func2// 
+  | //Func1// | -> | //Func1// ``;`` //Func2// 
   |  |  **|**  | //Func2// 
   | //Func3// | -> | //Func3// ``*`` //Func4// 
   |  |  **|**  | //Func4// 
   | //Func2// | -> | //Func2// ``+`` //Func3// 
   |  |  **|**  | //Func3// 
-  | //Func4// | -> | ``^`` //Func5// 
-  |  |  **|**  | //Func5// 
+  | //Func5// | -> | ``shift`` //Integer// 
+  | //Func// | -> | //Func1// 
 
 
