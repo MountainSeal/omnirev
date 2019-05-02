@@ -5,8 +5,19 @@ entrypoints Program ;
 --Definition
 DType . Def ::= "type" Ident "=" Type ;
 DFunc . Def ::= "func" Ident ":" Type "<->" Type "=" Func ;
+DExpr . Def ::= "expr" Ident ":" Type "=" Expr ;
 (:[]) . [Def] ::= Def ;
 (:)   . [Def] ::= Def [Def] ;
+
+--Expression
+EUnit   . Expr ::= "()" ;
+ETensor . Expr ::= Expr "*" Expr ;
+ESum    . Expr ::= Expr "," Expr ;
+EStar   . Expr ::= "~" Expr ;
+EVar    . Expr ::= Ident ;
+EApp    . Expr ::= Func Expr ;
+EProj   . Expr ::= "measure" Expr ;
+coercions Expr 3 ;
 
 --Type
 TUnit   . Type4 ::= "unit" ;
