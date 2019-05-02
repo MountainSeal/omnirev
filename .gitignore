@@ -4,3 +4,4 @@ pdf/*.log
 pdf/*.aux
 pdf/*.dvi
 *~
+.DS_Store
