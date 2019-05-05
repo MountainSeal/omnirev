@@ -26,6 +26,7 @@ dependencies:
 - base >= 4.7 && < 5
 - array
 - containers
+- mtl
 
 library:
   source-dirs: src

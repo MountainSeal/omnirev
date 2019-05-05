@@ -1,13 +1,33 @@
--- |与えられたomnirevの構文の型が正しく型付けできているか検査するためのモジュール群
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Omnirev.TypeChecker where
 
-import Omnirev.AbsOmnirev
-import Omnirev.ErrM
+import Control.Monad.Identity
+import Control.Monad.Except
+import Control.Monad.State
+
+
 import Data.Map as Map
 
-type Result = Err String
+import Omnirev.AbsOmnirev
+--import Omnirev.ErrM
+
+--type Result = Err String
 type Context a = Map String a
+
+--
 type Iso = (Func, Type, Type)
+type Term = (Expr, Type)
+
+-- https://qiita.com/HirotoShioi/items/8a6107434337b30ce457 を参考
+newtype Eval a = Eval (StateT (Context Type) (StateT (Context Iso) (ExceptT String Identity)) a)
+  deriving (Functor
+          , Applicative
+          , Monad
+          , MonadState (Context Type)
+          , MonadState (Context Iso)
+          , MonadError String
+  )
 
 
 -- |Entrypoint of type checking 
@@ -17,8 +37,8 @@ check p = case checkProg p of
   Bad s -> s
 
 -- |Syntax sugar for type checking failure
-failure :: Show a => a -> Result
-failure x = Bad $ "type check error: " ++ show x
+--failure :: Show a => a -> Result
+--failure x = Bad $ "type check error: " ++ show x
 
 
 -- |The `purify` function replace type variables.
