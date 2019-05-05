@@ -305,13 +305,14 @@
   \begin{bprooftree}
     \AxiomC{$v_1 \quad f \quad v'_1$}
     \AxiomC{$v_2 \quad g \quad v'_2$}
-    \BinaryInfC{$\langle{v_1,v_2}\rangle \quad f\times{g} \quad \langle{v'_1,v'_2}\rangle$}
+    %\BinaryInfC{$\langle{v_1,v_2}\rangle \quad f\times{g} \quad \langle{v'_1,v'_2}\rangle$}
+    \BinaryInfC{$(v_1*v_2) \quad f*g \quad (v'_1*v'_2)$}
   \end{bprooftree} &
   \vcenteredhbox{
     \begin{tikzpicture}
       \draw[middlearrow={>}{above}{$T_1$}] (0,0)--(1,0);
       \draw[middlearrow={>}{above}{$T_2$}] (0,-1)--(1,-1);
-      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5, align=center]{$f$ \\\smallskip\\ $\times$ \\\smallskip\\ $g$};
+      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5, align=center]{$f$ \\\smallskip\\ $*$ \\\smallskip\\ $g$};
       \fill (1,0.5) rectangle (1.25,0.25);
       \draw[middlearrow={>}{above}{$T'_1$}] (2,0)--(3,0);
       \draw[middlearrow={>}{above}{$T'_2$}] (2,-1)--(3,-1);
@@ -321,7 +322,7 @@
   Unitor${}_\otimes$ &
   \begin{bprooftree}
     \AxiomC{}
-    \UnaryInfC{$\langle{\langle\rangle,v}\rangle \quad unit_\otimes \quad v$}
+    \UnaryInfC{$(()*v) \quad unit_\otimes \quad v$}
   \end{bprooftree} &
   \vcenteredhbox{
     \begin{tikzpicture}
@@ -336,7 +337,7 @@
   Associator${}_\otimes$ &
   \begin{bprooftree}
     \AxiomC{}
-    \UnaryInfC{$\langle{v_1,\langle{v_2,v_3}\rangle}\rangle \quad assoc_\otimes \quad \langle{\langle{v_1,v_2}\rangle,v_3}\rangle$}
+    \UnaryInfC{$(v_1*(v_2*v_3)) \quad assoc_\otimes \quad ((v_1*v_2)*v_3)$}
   \end{bprooftree} &
   \vcenteredhbox{
     \begin{tikzpicture}
@@ -354,7 +355,7 @@
   Symmetric${}_\otimes$ &
   \begin{bprooftree}
     \AxiomC{}
-    \UnaryInfC{$\langle{v_1,v_2}\rangle \quad sym_\otimes \quad \langle{v_2,v_1}\rangle$}
+    \UnaryInfC{$(v_1*v_2) \quad sym_\otimes \quad (v_2*v_1)$}
   \end{bprooftree} &
   \vcenteredhbox{
     \begin{tikzpicture}
@@ -370,7 +371,7 @@
   Evaluation${}_\otimes$ &
   \begin{bprooftree}
     \AxiomC{}
-    \UnaryInfC{$\langle{v,\langle\rangle/v}\rangle \quad eval \quad \langle\rangle$}
+    \UnaryInfC{$(v*()/v) \quad eval \quad ()$}
   \end{bprooftree} &
   \vcenteredhbox{
     \begin{tikzpicture}
@@ -385,12 +386,9 @@
   Sum &
   \begin{tabular}{c}
     \begin{bprooftree}
-      \AxiomC{$v \quad f \quad v'$}
-      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad f+g \quad \langle{\text{left}\;v'}\rangle$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{$v \quad g \quad v'$}
-      \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad f+g \quad \langle{\text{right}\;v'}\rangle$}
+      \AxiomC{$v_1 \quad f \quad v_1'$}
+      \AxiomC{$v_2 \quad g \quad v_2'$}
+      \BinaryInfC{$(v_1+v_2) \quad f+g \quad (v_1'+v_2')$}
     \end{bprooftree}
   \end{tabular} &
   \vcenteredhbox{
@@ -404,34 +402,11 @@
     \end{tikzpicture}
   } \\ \\
 
-%  Unitor${}_\oplus$ &
-%  \begin{bprooftree}
-%    \AxiomC{}
-%    \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad unit_\oplus \quad v$}
-%  \end{bprooftree} &
-%  \vcenteredhbox{
-%    \begin{tikzpicture}
-%      \draw[middlearrow={>}{above}{$O$}] (0,0)--(1,0);
-%      \draw[middlearrow={>}{above}{$T$}] (0,-1)--(1,-1);
-%      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$unit_\oplus$};
-%      \fill (1,0.5) rectangle (1.25,0.25);
-%      \draw[middlearrow={>}{above}{$T$}] (2,-1)--(3,-1);
-%    \end{tikzpicture}
-%  } \\ \\
-
   Associator${}_\oplus$ &
   \begin{tabular}{c}
     \begin{bprooftree}
       \AxiomC{}
-      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad assoc_\oplus \quad \langle{\text{left}\;\langle{\text{left}\;v}\rangle}\rangle$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{}
-      \UnaryInfC{$\langle{\text{right}\;\langle{\text{left}\;v}\rangle}\rangle \quad assoc_\oplus \quad \langle{\text{left}\;\langle{\text{right}\;v}\rangle}\rangle$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{}
-      \UnaryInfC{$\langle{\text{right}\;\langle{\text{right}\;v}\rangle}\rangle \quad assoc_\oplus \quad \langle{\text{right}\;v}\rangle$}
+      \UnaryInfC{$(v_1+(v_2+v_3)) \quad assoc_\otimes \quad ((v_1+v_2)+v_3)$}
     \end{bprooftree}
   \end{tabular} &
   \vcenteredhbox{
@@ -451,11 +426,7 @@
   \begin{tabular}{c}
     \begin{bprooftree}
       \AxiomC{}
-      \UnaryInfC{$\langle{\text{left}\;v}\rangle \quad sym_\oplus \quad \langle{\text{right}\;v}\rangle$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{}
-      \UnaryInfC{$\langle{\text{right}\;v}\rangle \quad sym_\oplus \quad \langle{\text{left}\;v}\rangle$}
+      \UnaryInfC{$(v_1+v_2) \quad sym_\oplus \quad (v_1+v_2)$}
     \end{bprooftree}
   \end{tabular} &
   \vcenteredhbox{
@@ -469,44 +440,11 @@
     \end{tikzpicture}
   } \\ \\
 
-  Trace${}_\oplus$ &
-  \begin{tabular}{c}
-    \begin{bprooftree}
-      \AxiomC{$\langle{\text{right}\;v_1}\rangle \quad f;loop\;f \quad \langle{\text{right}\;v_3}\rangle$}
-      \UnaryInfC{$v_1 \quad trace\;f \quad v_3$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{$\langle{\text{left}\;v_2}\rangle \quad f;loop\;f \quad v$}
-      \UnaryInfC{$\langle{\text{left}\;v_2}\rangle \quad loop\;f \quad v$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{}
-      \UnaryInfC{$\langle{\text{right}\;v_3}\rangle \quad loop\;f \quad \langle{\text{right}\;v_3}\rangle$}
-    \end{bprooftree}
-  \end{tabular} &
-  \vcenteredhbox{
-    \begin{tikzpicture}
-      \draw (0,0.75)--(3,0.75);
-      \draw (0,0.75) to[bend right=90] (0,0);
-      \draw (3,0.75) to[bend left=90] (3,0);
-      \draw[middlearrow={>}{above}{$T_2$}] (0,0)--(1,0);
-      \draw[middlearrow={>}{above}{$T_1$}] (-1,-1)--(1,-1);
-      \draw (1,0.5) rectangle (2,-1.5) node[pos=.5]{$f$};
-      \fill (1,0.5) rectangle (1.25,0.25);
-      \draw[middlearrow={>}{above}{$T_2$}] (2,0)--(3,0);
-      \draw[middlearrow={>}{above}{$T_3$}] (2,-1)--(4,-1);
-    \end{tikzpicture}
-  } \\ \\
-  
   Distribution &
   \begin{tabular}{c}
     \begin{bprooftree}
       \AxiomC{}
-      \UnaryInfC{$\langle{\langle{\text{left}\;v_1}\rangle,v_3}\rangle \quad distrib \quad \langle{\text{left}\;\langle{v_1,v_3}\rangle}\rangle$}
-    \end{bprooftree} \\ \\
-    \begin{bprooftree}
-      \AxiomC{}
-      \UnaryInfC{$\langle{\langle{\text{right}\;v_2}\rangle,v_3}\rangle \quad distrib \quad \langle{\text{right}\;\langle{v_2,v_3}\rangle}\rangle$}
+      \UnaryInfC{$((v_1+v_2)*v_3) \quad distrib \quad ((v_1*v_3)+(v_2*v_3))$}
     \end{bprooftree}
   \end{tabular} &
   \vcenteredhbox{
