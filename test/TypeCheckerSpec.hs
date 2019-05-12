@@ -75,9 +75,10 @@ spec = do
                   ,DFunc (Ident "test") (TVar (Ident "qubit")) (TSum TUnit TUnit) FId
                   ])
       `shouldBe` "Success!"
-  describe "purify" $
-    it "type" $ do
-      purify (TVar (Ident "qubit")) (Map.fromList [("qubit", TSum TUnit TUnit)])
-        `shouldBe` Just (TSum TUnit TUnit)
-      purify (TTensor TUnit (TVar (Ident "qubit"))) (Map.fromList [("qubit", TSum TUnit TUnit)])
-        `shouldBe` Just (TTensor TUnit (TSum TUnit TUnit))
+  describe "purify" $ do
+    it "simple" $
+      runEval (purify (TVar (Ident "qubit"))) (Map.fromList [("qubit", (VType (TSum TUnit TUnit)))])
+        `shouldBe` Right (TSum TUnit TUnit)
+    it "nested" $
+      runEval (purify (TTensor TUnit (TVar (Ident "qubit")))) (Map.fromList [("qubit", (VType (TSum TUnit TUnit)))])
+        `shouldBe` Right (TTensor TUnit (TSum TUnit TUnit))
