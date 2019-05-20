@@ -152,6 +152,10 @@ checkExpr (EVar (Ident s)) t = do
         else invalidTypeError s
     Just v -> dupVarError v s
     Nothing -> unknownVarError s
+checkExpr (EApp f e) t = do
+  d <- searchCodomain f t
+  checkExpr e d
+checkExpr (EProj e) t = checkExpr e t
 
 checkFunc :: Func -> Domain -> Codomain -> Eval String
 checkFunc FId t t' =
