@@ -80,22 +80,23 @@ checkDef (DType (Ident s) t) = do
       modify (Map.insert s (VType t))
       pure ""
     Just v -> dupVarError v s
-checkDef (DFunc (Ident s) dom cod f) = do
+checkDef (DFunc (Ident s) d c f) = do
   cxt <- get
   case Map.lookup s cxt of
     Nothing -> do
-      d <- purify dom
-      c <- purify cod
-      checkFunc f d c
-      modify (Map.insert s (VFunc f d c))
+      d' <- purify d
+      c' <- purify c
+      checkFunc f d' c'
+      modify $ Map.insert s (VFunc f d c)
       pure ""
     Just v -> dupVarError v s
 checkDef (DExpr (Ident s) t e) = do
   cxt <- get
   case Map.lookup s cxt of
     Nothing -> do
-      checkExpr e t
-      modify (Map.insert s (VExpr e t))
+      t' <- purify t
+      checkExpr e t'
+      modify $ Map.insert s (VExpr e t)
       pure ""
     Just v -> dupVarError v s
 
@@ -105,14 +106,14 @@ purify TUnit            = pure TUnit
 purify (TTensor t1 t2)  = do
   t1' <- purify t1
   t2' <- purify t2
-  pure (TTensor t1' t2')
+  pure $ TTensor t1' t2'
 purify (TSum t1 t2)     = do
   t1' <- purify t1
   t2' <- purify t2
-  pure (TSum t1' t2')
+  pure $ TSum t1' t2'
 purify (TStar t)        = do
   t' <- purify t
-  pure (TStar t')
+  pure $ TStar t'
 purify (TVar (Ident s)) = do
   cxt <- get
   case Map.lookup s cxt of
@@ -153,16 +154,16 @@ checkExpr (EVar (Ident s)) t = do
     Nothing -> unknownVarError s
 
 checkFunc :: Func -> Domain -> Codomain -> Eval String
-checkFunc FId dom cod =
-  if dom == cod
+checkFunc FId t t' =
+  if t == t'
     then pure ""
     else throwError "id function must have same domain and codomain"
-checkFunc (FComp f1 f2) d1 c2 = do
-  c1 <- searchCodomain f1 d1
-  c1' <- searchDomain f2 c2
-  if c1 == c1'
+checkFunc (FComp f1 f2) t1 t3 = do
+  t2 <- searchCodomain f1 t1
+  t2' <- searchDomain f2 t3
+  if t2 == t2'
     then pure ""
-    else throwError $ "composite function must have same codomain of left side function and domain of right side function: " ++ show c1 ++ "\n" ++ show c1'
+    else throwError $ "composite function must have same codomain of left side function and domain of right side function: " ++ show t2 ++ "\n" ++ show t2'
 checkFunc (FTensor f1 f2) (TTensor t1 t2) (TTensor t3 t4) =
   checkFunc f1 t1 t3 >> checkFunc f2 t2 t4
 checkFunc FTensor{} _ _ = throwError "tensor function must have tensor type in domain and codomain"
@@ -222,17 +223,17 @@ searchCodomain (FComp f1 f2) d1 = do
 searchCodomain (FTensor f1 f2) (TTensor d1 d2) = do
   c1 <- searchCodomain f1 d1
   c2 <- searchCodomain f2 d2
-  pure (TTensor c1 c2)
+  pure $ TTensor c1 c2
 searchCodomain FTensUnit (TTensor TUnit d) = pure d
-searchCodomain FTensAssoc (TTensor d1 (TTensor d2 d3)) = pure (TTensor (TTensor d1 d2) d3)
-searchCodomain FTensSym (TTensor d1 d2) = pure (TTensor d2 d1)
+searchCodomain FTensAssoc (TTensor d1 (TTensor d2 d3)) = pure $ TTensor (TTensor d1 d2) d3
+searchCodomain FTensSym (TTensor d1 d2) = pure $ TTensor d2 d1
 searchCodomain (FSum f1 f2) (TSum d1 d2) = do
   c1 <- searchCodomain f1 d1
   c2 <- searchCodomain f2 d2
-  pure (TSum c1 c2)
-searchCodomain FSumAssoc (TSum d1 (TSum d2 d3)) = pure (TSum (TSum d1 d2) d3)
-searchCodomain FSumSym (TSum d1 d2) = pure (TSum d2 d1)
-searchCodomain FDistrib (TTensor (TSum d1 d2) d3) = pure (TSum (TTensor d1 d3) (TTensor d2 d3))
+  pure $ TSum c1 c2
+searchCodomain FSumAssoc (TSum d1 (TSum d2 d3)) = pure $ TSum (TSum d1 d2) d3
+searchCodomain FSumSym (TSum d1 d2) = pure $ TSum d2 d1
+searchCodomain FDistrib (TTensor (TSum d1 d2) d3) = pure $ TSum (TTensor d1 d3) (TTensor d2 d3)
 searchCodomain (FEval t) (TTensor d (TStar d')) = do
   t' <- purify t
   if t' == d && d == d'
@@ -259,23 +260,23 @@ searchDomain (FComp f1 f2) c3 = do
 searchDomain (FTensor f1 f2) (TTensor c1 c2) = do
   d1 <- searchDomain f1 c1
   d2 <- searchDomain f2 c2
-  pure (TTensor d1 d2)
-searchDomain FTensUnit c = pure (TTensor TUnit c)
-searchDomain FTensAssoc (TTensor (TTensor c1 c2) c3) = pure (TTensor c1 (TTensor c2 c3))
-searchDomain FTensSym (TTensor c1 c2) = pure (TTensor c2 c1)
+  pure $ TTensor d1 d2
+searchDomain FTensUnit c = pure $ TTensor TUnit c
+searchDomain FTensAssoc (TTensor (TTensor c1 c2) c3) = pure $ TTensor c1 (TTensor c2 c3)
+searchDomain FTensSym (TTensor c1 c2) = pure $ TTensor c2 c1
 searchDomain (FSum f1 f2) (TSum c1 c2) = do
   d1 <- searchDomain f1 c1
   d2 <- searchDomain f2 c2
-  pure (TSum d1 d2)
-searchDomain FSumAssoc (TSum (TSum c1 c2) c3) = pure (TSum c1 (TSum c2 c3))
-searchDomain FSumSym (TSum c1 c2) = pure (TSum c2 c1)
+  pure $ TSum d1 d2
+searchDomain FSumAssoc (TSum (TSum c1 c2) c3) = pure $ TSum c1 (TSum c2 c3)
+searchDomain FSumSym (TSum c1 c2) = pure $ TSum c2 c1
 searchDomain FDistrib (TSum (TTensor c1 c3) (TTensor c2 c3')) =
   if c3 == c3'
-    then pure (TTensor (TSum c1 c2) c3)
+    then pure $ TTensor (TSum c1 c2) c3
     else invalidFunctionError "distrib"
 searchDomain (FEval t) TUnit = do
   t' <- purify t
-  pure (TTensor t' (TStar t'))
+  pure $ TTensor t' (TStar t')
 searchDomain (FDagger f) c = searchDomain f c
 searchDomain (FVar (Ident s)) c = do
   cxt <- get
