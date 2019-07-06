@@ -21,8 +21,11 @@ data Expr
     = EUnit
     | ETensor Expr Expr
     | ESum Expr Expr
+    | ELeft Expr
+    | ERight Expr
     | EStar Expr
     | EVar Ident
+    | ERec Expr
     | EApp Func Expr
     | EProj Expr
   deriving (Eq, Ord, Show, Read)
@@ -33,6 +36,7 @@ data Type
     | TSum Type Type
     | TStar Type
     | TVar Ident
+    | TRec Ident Type
   deriving (Eq, Ord, Show, Read)
 
 data Func
@@ -49,6 +53,5 @@ data Func
     | FEval Type
     | FDagger Func
     | FVar Ident
-    | FShift Integer
   deriving (Eq, Ord, Show, Read)
 

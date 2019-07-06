@@ -45,6 +45,6 @@ FSumAssoc  . Func4 ::= "assoc+" ;
 FSumSym    . Func4 ::= "sym+" ;
 FDistrib   . Func4 ::= "distrib" ;     
 FEval      . Func4 ::= "eval" Type ;
-FDagger    . Func4 ::= "†" Func4 ;
+FDagger    . Func4 ::= "^" Func4 ;
 FVar       . Func4 ::= Ident ;
 coercions Func 4 ;

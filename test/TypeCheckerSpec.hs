@@ -57,7 +57,6 @@ spec = do
                     (TSum (TTensor TUnit (TVar (Ident "octet"))) (TTensor (TVar (Ident "octet")) (TVar (Ident "qubit"))))
                     (TTensor (TSum TUnit (TVar (Ident "qubit"))) (TVar (Ident "octet")))
                    (FDagger (FComp FDistrib (FSum FId FTensSym)))
-                  ,DFunc (Ident "fshft") (TVar (Ident "qubit")) (TVar (Ident "qubit")) (FShift 45)
                   ])
       `shouldBe` "Success!"
     it "type not found error" $

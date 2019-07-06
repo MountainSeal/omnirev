@@ -174,26 +174,26 @@ checkFunc FTensor{} _ _ = throwError "tensor function must have tensor type in d
 checkFunc FTensUnit (TTensor TUnit t) t' =
   if t == t'
     then pure ""
-    else invalidFunctionError "unit_*"
+    else invalidFunctionError "unit*"
 checkFunc FTensAssoc (TTensor t1 (TTensor t2 t3)) (TTensor (TTensor t1' t2') t3') =
   if t1 == t1' && t2 == t2' && t3 == t3'
     then pure ""
-    else invalidFunctionError "assoc_*"
+    else invalidFunctionError "assoc*"
 checkFunc FTensSym (TTensor t1 t2) (TTensor t2' t1') =
   if t1 == t1' && t2 == t2'
     then pure ""
-    else invalidFunctionError "sym_*"
+    else invalidFunctionError "sym*"
 checkFunc (FSum f1 f2) (TSum t1 t2) (TSum t3 t4) =
   checkFunc f1 t1 t3 >> checkFunc f2 t2 t4
 checkFunc FSum{} _ _ = throwError "sum function must have sum type in domain and codomain"
 checkFunc FSumAssoc (TSum t1 (TSum t2 t3)) (TSum (TSum t1' t2') t3') =
   if t1 == t1' && t2 == t2' && t3 == t3'
     then pure ""
-    else invalidFunctionError "assoc_+"
+    else invalidFunctionError "assoc+"
 checkFunc FSumSym (TSum t1 t2) (TSum t2' t1') =
   if t1 == t1' && t2 == t2'
     then pure ""
-    else invalidFunctionError "sym_+"
+    else invalidFunctionError "sym+"
 checkFunc FDistrib (TTensor (TSum t1 t2) t3) (TSum (TTensor t1' t3') (TTensor t2' t3'')) =
   if t1 == t1' && t2 == t2' && t3 == t3' && t3' == t3''
     then pure ""
@@ -213,10 +213,6 @@ checkFunc (FVar (Ident s)) dom cod = do
         else invalidFunctionError s
     Just v -> dupVarError v s
     Nothing        -> unknownVarError s
-checkFunc FShift{} dom cod =
-  if dom == cod
-    then pure ""
-    else throwError "shift function must have same domain and codomain"
 checkFunc _ _ _ = throwError "Invalid domain or codomain"
 
 searchCodomain :: Func -> Domain -> Eval Codomain
@@ -253,7 +249,6 @@ searchCodomain (FVar (Ident s)) d = do
         else invalidFunctionError s
     Just v -> dupVarError v s
     Nothing -> unknownVarError s
-searchCodomain FShift{} d = pure d
 searchCodomain _ _ = throwError "Invalid domain or codomain"
 
 searchDomain :: Func -> Codomain -> Eval Domain
@@ -291,5 +286,4 @@ searchDomain (FVar (Ident s)) c = do
         else invalidFunctionError s
     Just v -> dupVarError v s
     Nothing -> unknownVarError s
-searchDomain FShift{} c = pure c
 searchDomain _ _ = throwError "Invalid domain or codomain"

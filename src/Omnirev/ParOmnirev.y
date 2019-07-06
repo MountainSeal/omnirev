@@ -18,36 +18,38 @@ import Omnirev.ErrM
   ')' { PT _ (TS _ 3) }
   '*' { PT _ (TS _ 4) }
   '+' { PT _ (TS _ 5) }
-  ',' { PT _ (TS _ 6) }
+  '.' { PT _ (TS _ 6) }
   ':' { PT _ (TS _ 7) }
   ';' { PT _ (TS _ 8) }
-  '<->' { PT _ (TS _ 9) }
-  '=' { PT _ (TS _ 10) }
-  '^' { PT _ (TS _ 11) }
-  'assoc_*' { PT _ (TS _ 12) }
-  'assoc_+' { PT _ (TS _ 13) }
-  'distrib' { PT _ (TS _ 14) }
-  'eval' { PT _ (TS _ 15) }
-  'expr' { PT _ (TS _ 16) }
-  'func' { PT _ (TS _ 17) }
-  'id' { PT _ (TS _ 18) }
-  'measure' { PT _ (TS _ 19) }
-  'shift' { PT _ (TS _ 20) }
-  'sym_*' { PT _ (TS _ 21) }
-  'sym_+' { PT _ (TS _ 22) }
-  'type' { PT _ (TS _ 23) }
-  'unit' { PT _ (TS _ 24) }
-  'unit_*' { PT _ (TS _ 25) }
-  '~' { PT _ (TS _ 26) }
+  '<' { PT _ (TS _ 9) }
+  '<->' { PT _ (TS _ 10) }
+  '=' { PT _ (TS _ 11) }
+  '>' { PT _ (TS _ 12) }
+  '^' { PT _ (TS _ 13) }
+  'assoc*' { PT _ (TS _ 14) }
+  'assoc+' { PT _ (TS _ 15) }
+  'distrib' { PT _ (TS _ 16) }
+  'eval' { PT _ (TS _ 17) }
+  'expr' { PT _ (TS _ 18) }
+  'func' { PT _ (TS _ 19) }
+  'id' { PT _ (TS _ 20) }
+  'left' { PT _ (TS _ 21) }
+  'measure' { PT _ (TS _ 22) }
+  'right' { PT _ (TS _ 23) }
+  'sym*' { PT _ (TS _ 24) }
+  'sym+' { PT _ (TS _ 25) }
+  'type' { PT _ (TS _ 26) }
+  'unit' { PT _ (TS _ 27) }
+  'unit*' { PT _ (TS _ 28) }
+  '¬' { PT _ (TS _ 29) }
+  'µ' { PT _ (TS _ 30) }
 
 L_ident  { PT _ (TV $$) }
-L_integ  { PT _ (TI $$) }
 
 
 %%
 
 Ident   :: { Ident }   : L_ident  { Ident $1 }
-Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
 
 Program :: { Program }
 Program : ListDef { AbsOmnirev.Prog $1 }
@@ -59,21 +61,25 @@ ListDef :: { [Def] }
 ListDef : Def { (:[]) $1 } | Def ListDef { (:) $1 $2 }
 Expr3 :: { Expr }
 Expr3 : '()' { AbsOmnirev.EUnit }
-      | '~' Expr3 { AbsOmnirev.EStar $2 }
+      | 'left' Expr3 { AbsOmnirev.ELeft $2 }
+      | 'right' Expr3 { AbsOmnirev.ERight $2 }
+      | '¬' Expr3 { AbsOmnirev.EStar $2 }
       | Ident { AbsOmnirev.EVar $1 }
+      | '<' Expr3 '>' { AbsOmnirev.ERec $2 }
       | Func Expr3 { AbsOmnirev.EApp $1 $2 }
       | 'measure' Expr3 { AbsOmnirev.EProj $2 }
       | '(' Expr ')' { $2 }
 Expr2 :: { Expr }
 Expr2 : Expr2 '*' Expr3 { AbsOmnirev.ETensor $1 $3 } | Expr3 { $1 }
 Expr1 :: { Expr }
-Expr1 : Expr1 ',' Expr2 { AbsOmnirev.ESum $1 $3 } | Expr2 { $1 }
+Expr1 : Expr1 '+' Expr2 { AbsOmnirev.ESum $1 $3 } | Expr2 { $1 }
 Expr :: { Expr }
 Expr : Expr1 { $1 }
 Type3 :: { Type }
 Type3 : 'unit' { AbsOmnirev.TUnit }
-      | '~' Type3 { AbsOmnirev.TStar $2 }
+      | '¬' Type3 { AbsOmnirev.TStar $2 }
       | Ident { AbsOmnirev.TVar $1 }
+      | 'µ' Ident '.' Type { AbsOmnirev.TRec $2 $4 }
       | '(' Type ')' { $2 }
 Type2 :: { Type }
 Type2 : Type2 '*' Type3 { AbsOmnirev.TTensor $1 $3 } | Type3 { $1 }
@@ -83,16 +89,15 @@ Type :: { Type }
 Type : Type1 { $1 }
 Func4 :: { Func }
 Func4 : 'id' { AbsOmnirev.FId }
-      | 'unit_*' { AbsOmnirev.FTensUnit }
-      | 'assoc_*' { AbsOmnirev.FTensAssoc }
-      | 'sym_*' { AbsOmnirev.FTensSym }
-      | 'assoc_+' { AbsOmnirev.FSumAssoc }
-      | 'sym_+' { AbsOmnirev.FSumSym }
+      | 'unit*' { AbsOmnirev.FTensUnit }
+      | 'assoc*' { AbsOmnirev.FTensAssoc }
+      | 'sym*' { AbsOmnirev.FTensSym }
+      | 'assoc+' { AbsOmnirev.FSumAssoc }
+      | 'sym+' { AbsOmnirev.FSumSym }
       | 'distrib' { AbsOmnirev.FDistrib }
       | 'eval' Type { AbsOmnirev.FEval $2 }
       | '^' Func4 { AbsOmnirev.FDagger $2 }
       | Ident { AbsOmnirev.FVar $1 }
-      | 'shift' Integer { AbsOmnirev.FShift $2 }
       | '(' Func ')' { $2 }
 Func1 :: { Func }
 Func1 : Func1 ';' Func2 { AbsOmnirev.FComp $1 $3 } | Func2 { $1 }

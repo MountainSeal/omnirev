@@ -18,9 +18,6 @@ reserved words excluded.
 
 ===Literals===
 
-Integer literals //Integer// are nonempty sequences of digits.
-
-
 
 
 ===Reserved words and symbols===
@@ -28,15 +25,15 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in omnirev are the following:
   | ``distrib`` | ``eval`` | ``expr`` | ``func``
-  | ``id`` | ``measure`` | ``shift`` | ``type``
-  | ``unit`` |  |  | 
+  | ``id`` | ``left`` | ``measure`` | ``right``
+  | ``type`` | ``unit`` | ``µ`` | 
 
 The symbols used in omnirev are the following:
   | = | : | <-> | ()
-  | * | , | ~ | (
-  | ) | + | ; | unit_*
-  | assoc_* | sym_* | assoc_+ | sym_+
-  | ^ |  |  | 
+  | * | + | ¬ | <
+  | > | ( | ) | .
+  | ; | unit* | assoc* | sym*
+  | assoc+ | sym+ | ^ | 
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -54,19 +51,23 @@ All other symbols are terminals.
   | //[Def]// | -> | //Def// 
   |  |  **|**  | //Def// //[Def]// 
   | //Expr3// | -> | ``()`` 
-  |  |  **|**  | ``~`` //Expr3// 
+  |  |  **|**  | ``left`` //Expr3// 
+  |  |  **|**  | ``right`` //Expr3// 
+  |  |  **|**  | ``¬`` //Expr3// 
   |  |  **|**  | //Ident// 
+  |  |  **|**  | ``<`` //Expr3// ``>`` 
   |  |  **|**  | //Func// //Expr3// 
   |  |  **|**  | ``measure`` //Expr3// 
   |  |  **|**  | ``(`` //Expr// ``)`` 
   | //Expr2// | -> | //Expr2// ``*`` //Expr3// 
   |  |  **|**  | //Expr3// 
-  | //Expr1// | -> | //Expr1// ``,`` //Expr2// 
+  | //Expr1// | -> | //Expr1// ``+`` //Expr2// 
   |  |  **|**  | //Expr2// 
   | //Expr// | -> | //Expr1// 
   | //Type3// | -> | ``unit`` 
-  |  |  **|**  | ``~`` //Type3// 
+  |  |  **|**  | ``¬`` //Type3// 
   |  |  **|**  | //Ident// 
+  |  |  **|**  | ``µ`` //Ident// ``.`` //Type// 
   |  |  **|**  | ``(`` //Type// ``)`` 
   | //Type2// | -> | //Type2// ``*`` //Type3// 
   |  |  **|**  | //Type3// 
@@ -74,16 +75,15 @@ All other symbols are terminals.
   |  |  **|**  | //Type2// 
   | //Type// | -> | //Type1// 
   | //Func4// | -> | ``id`` 
-  |  |  **|**  | ``unit_*`` 
-  |  |  **|**  | ``assoc_*`` 
-  |  |  **|**  | ``sym_*`` 
-  |  |  **|**  | ``assoc_+`` 
-  |  |  **|**  | ``sym_+`` 
+  |  |  **|**  | ``unit*`` 
+  |  |  **|**  | ``assoc*`` 
+  |  |  **|**  | ``sym*`` 
+  |  |  **|**  | ``assoc+`` 
+  |  |  **|**  | ``sym+`` 
   |  |  **|**  | ``distrib`` 
   |  |  **|**  | ``eval`` //Type// 
   |  |  **|**  | ``^`` //Func4// 
   |  |  **|**  | //Ident// 
-  |  |  **|**  | ``shift`` //Integer// 
   |  |  **|**  | ``(`` //Func// ``)`` 
   | //Func1// | -> | //Func1// ``;`` //Func2// 
   |  |  **|**  | //Func2// 
