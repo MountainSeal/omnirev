@@ -38,36 +38,37 @@
 \begin{document}
 \begin{itembox}[c]{Formation rules for Types}
   \begin{center}
+    \BottomAlignProof
     \begin{bprooftree}
       \AxiomC{}
-      \RightLabel{$var$}
+      %\RightLabel{$var$}
       \UnaryInfC{$X \vdash X$}
     \end{bprooftree}
     \begin{bprooftree}
     \AxiomC{}
-      \RightLabel{$I$}
+      %\RightLabel{$I$}
       \UnaryInfC{$\Gamma \vdash I$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\Gamma \vdash T_1$}
       \AxiomC{$\Gamma \vdash T_2$}
-      \RightLabel{$\otimes$}
-      \BinaryInfC{$\Gamma \vdash T_1\otimes{}T_2$}
+      %\RightLabel{$\otimes$}
+      \BinaryInfC{$\Gamma \vdash T_1\oplus{}T_2$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\Gamma \vdash T_1$}
       \AxiomC{$\Gamma \vdash T_2$}
-      \RightLabel{$\oplus$}
-      \BinaryInfC{$\Gamma \vdash T_1\oplus{}T_2$}
+      %\RightLabel{$\oplus$}
+      \BinaryInfC{$\Gamma \vdash T_1\otimes{}T_2$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\Gamma \vdash T$}
-      \RightLabel{$\star$}
+      %\RightLabel{$\star$}
       \UnaryInfC{$\Gamma \vdash T^\star$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$X \vdash T$}
-      \RightLabel{$\mu$}
+      %\RightLabel{$\mu$}
       \UnaryInfC{$\Gamma \vdash \mu{X}.T$}
     \end{bprooftree}
   \end{center}
@@ -77,325 +78,55 @@
   \begin{center}
     \begin{bprooftree}
       \AxiomC{}
-      \RightLabel{$var$}
-      \UnaryInfC{$x:X \vdash x:X$}
+      %\RightLabel{$\ast$}
+      \UnaryInfC{$\vdash e^{i\theta}:I$}
     \end{bprooftree}
     \begin{bprooftree}
-    \AxiomC{}
-      \RightLabel{$I$}
-      \UnaryInfC{$\Gamma \vdash \ast:I$}
+      \AxiomC{$\vdash v_1:T_1$}
+      \AxiomC{$\vdash v_2:T_2$}
+      %\RightLabel{$\times$}
+      \BinaryInfC{$\vdash v_1\times{}v_2:T_1\otimes{}T_2$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash v:T$}
-      \RightLabel{$\star$}
-      \UnaryInfC{$\Gamma \vdash v^\star:T^\star$}
+      \AxiomC{$\vdash v:T_1$}
+      %\RightLabel{$inl$}
+      \UnaryInfC{$\vdash inl\;v:T_1\oplus{}T_2$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$x:X \vdash v:T$}
-      \RightLabel{$\mu$}
-      \UnaryInfC{$\Gamma \vdash \mu{x}.v:\mu{X}.T$}
-    \end{bprooftree}
-  \end{center}
-  \begin{prooftree}
-    \AxiomC{$\Gamma \vdash v_1:T_1$}
-    \AxiomC{$\Gamma \vdash v_2:T_2$}
-    \RightLabel{$\otimes$}
-    \BinaryInfC{$\Gamma \vdash v_1\times{}v_2:T_1\otimes{}T_2$}
-  \end{prooftree}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash v_1:T_1$}
-      \RightLabel{$\oplus_l$}
-      \UnaryInfC{$\Gamma \vdash inl\;v_1:T_1\oplus{}T_2$}
-    \end{bprooftree}
-      \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash v_1:T_1$}
-      \AxiomC{$\Gamma \vdash v_2:T_2$}
-      \RightLabel{$\oplus$}
-      \BinaryInfC{$\Gamma \vdash v_1+v_2:T_1\oplus{}T_2$}
+      \AxiomC{$\vdash v:T_2$}
+      %\RightLabel{$\inr$}
+      \UnaryInfC{$\vdash inr\;v:T_1\oplus{}T_2$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash v_2:T_2$}
-      \RightLabel{$\oplus_r$}
-      \UnaryInfC{$\Gamma \vdash inr\;v_2:T_1\oplus{}T_2$}
-    \end{bprooftree}
-  \end{center}
-\end{itembox}
-
-\begin{itembox}[c]{Formation rules for Functions}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$id$}
-      \UnaryInfC{$\vdash id:T\leftrightarrow{}T$}
+      \AxiomC{$\vdash v:T$}
+      %\RightLabel{$\star$}
+      \UnaryInfC{$\vdash \overline{v}:T^\star$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash f_1:T_1\leftrightarrow{}T_2$}
-      \AxiomC{$\vdash f_2:T_2\leftrightarrow{}T_3$}
-      \RightLabel{$\fcmp$}
-      \BinaryInfC{$\vdash f_1\fcmp{}f_2:T_1\leftrightarrow{}T_3$}
+      \AxiomC{$\vdash v:T[\mu{X}.T/X]$}
+      %\RightLabel{$fold$}
+      \UnaryInfC{$\vdash fold\;v:\mu{X}.T$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\vdash f_1:T_1\leftrightarrow{}T_3$}
-      \AxiomC{$\vdash f_2:T_2\leftrightarrow{}T_4$}
-      \RightLabel{$\otimes$}
-      \BinaryInfC{$\vdash f_1\times{}f_2:T_1\otimes{}T_2\leftrightarrow{}T_3\otimes{}T_4$}
+      \AxiomC{$\vdash v_1:T$}
+      \AxiomC{$\vdash v_2:T$}
+      %\RightLabel{$+$}
+      \BinaryInfC{$\vdash v_1+v_2:T$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash f_1:T_1\leftrightarrow{}T_3$}
-      \AxiomC{$\vdash f_2:T_2\leftrightarrow{}T_4$}
-      \RightLabel{$\oplus$}
-      \BinaryInfC{$\vdash f_1+f_2:T_1\oplus{}T_2\leftrightarrow{}T_3\oplus{}T_4$}
+      \AxiomC{$\vdash v_1:T_1^\star\otimes{}T_2$}
+      \AxiomC{$\vdash v_2:T_2^\star\otimes{}T_3$}
+      %\RightLabel{$\fcmp$}
+      \BinaryInfC{$\vdash v_1\fcmp{}v_2:T_1^\star\otimes{}T_3$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\vdash v_1:T^\star$}
+      \AxiomC{$\vdash v_2:T$}
+      %\RightLabel{$,$}
+      \BinaryInfC{$\vdash v_1,v_2:T^\star\otimes{}T$}
     \end{bprooftree}
   \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f:T_1\leftrightarrow{}T_2$}
-      \RightLabel{$\star$}
-      \UnaryInfC{$\vdash f^\star:T_2^\star\leftrightarrow{}T_1^\star$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f:T_1\leftrightarrow{}T_2$}
-      \RightLabel{$\dagger$}
-      \UnaryInfC{$\vdash f^\dagger:T_2\leftrightarrow{}T_1$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_\otimes$}
-      \UnaryInfC{$\vdash assoc_\otimes:T_1\otimes(T_2\otimes{}T_3)\leftrightarrow(T_1\otimes{}T_2)\otimes{}T_3$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_\oplus$}
-      \UnaryInfC{$\vdash assoc_\oplus:T_1\oplus(T_2\oplus{}T_3)\leftrightarrow(T_1\oplus{}T_2)\oplus{}T_3$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_\otimes$}
-      \UnaryInfC{$\vdash sym_\otimes:T_1\otimes{}T_2\leftrightarrow{}T_2\otimes{}T_1$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_\oplus$}
-      \UnaryInfC{$\vdash sym_\oplus:T_1\oplus{}T_2\leftrightarrow{}T_2\oplus{}T_1$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$unit_\otimes$}
-      \UnaryInfC{$\vdash unit_\otimes:I\otimes{}T\leftrightarrow{}T$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$distrib$}
-      \UnaryInfC{$\vdash distrib:(T_1\oplus{}T_2)\otimes{}T_3\leftrightarrow(T_1\otimes{}T_3)\oplus(T_2\otimes{}T_3)$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$eval$}
-      \UnaryInfC{$\vdash eval:T\otimes{}T^\star\leftrightarrow{}I$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$unfold$}
-      \UnaryInfC{$\vdash unfold:\mu{X}.T\leftrightarrow{}T[\mu{X}.T/X]$}
-    \end{bprooftree}
-  \end{center}
-\end{itembox}
-
-\begin{itembox}[c]{Transformation rules}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$id$}
-      \UnaryInfC{$\vdash id:v\leftrightarrow{}v$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f_1:v_1\leftrightarrow{}v_2$}
-      \AxiomC{$\vdash f_2:v_2\leftrightarrow{}v_3$}
-      \RightLabel{$\fcmp$}
-      \BinaryInfC{$\vdash f_1\fcmp{}f_2:v_1\leftrightarrow{}v_3$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f_1:v_1\leftrightarrow{}v_3$}
-      \AxiomC{$\vdash f_2:v_2\leftrightarrow{}v_4$}
-      \RightLabel{$\otimes$}
-      \BinaryInfC{$\vdash f_1\otimes{}f_2:v_1\times{}v_2\leftrightarrow{}v_3\times{}v_4$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f_1:v_1\leftrightarrow{}v_3$}
-      \AxiomC{$\vdash f_2:v_2\leftrightarrow{}v_4$}
-      \RightLabel{$\oplus$}
-      \BinaryInfC{$\vdash f_1+f_2:v_1+v_2\leftrightarrow{}v_3+v_4$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f_1:v_1\leftrightarrow{}v_3$}
-      \RightLabel{$\oplus_l$}
-      \UnaryInfC{$\vdash f_1+f_2:inl\;v_1\leftrightarrow{}inl\;v_3$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f_2:v_2\leftrightarrow{}v_4$}
-      \RightLabel{$\oplus_r$}
-      \UnaryInfC{$\vdash f_1+f_2:inr\;v_2\leftrightarrow{}inr\;v_4$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f:v_1\leftrightarrow{}v_2$}
-      \RightLabel{$\star$}
-      \UnaryInfC{$\vdash f^\star:v_2^\star\leftrightarrow{}v_1^\star$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash f:v_1\leftrightarrow{}v_2$}
-      \RightLabel{$\dagger$}
-      \UnaryInfC{$\vdash f^\dagger:v_2\leftrightarrow{}v_1$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_\otimes$}
-      \UnaryInfC{$\vdash assoc_\otimes:v_1\times(v_2\times{}v_3)\leftrightarrow(v_1\times{}v_2)\times{}v_3$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_\oplus$}
-      \UnaryInfC{$\vdash assoc_\oplus:v_1+(v_2+v_3)\leftrightarrow{}(v_1+v_2)+v_3$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{1}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:inl\;v_1\leftrightarrow{}inl\;(inl\;v_1)$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{23}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:inr\;(v_2+v_3)\leftrightarrow{}(inr\;v_2)+v_3$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{2}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:inr\;(inl\;v_2)\leftrightarrow{}inl\;(inr\;v_2)$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{13}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:v_1+(inr\;v_3)\leftrightarrow{}(inr\;v_1)+v_3$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{3}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:inr\;(inr\;v_3)\leftrightarrow{}inr\;v_3$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$assoc_{\oplus_{12}}$}
-      \UnaryInfC{$\vdash assoc_\oplus:v_1+(inl\;v_2)\leftrightarrow{}inl\;(v_1+v_2)$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_\otimes$}
-      \UnaryInfC{$\vdash sym_\otimes:v_1\times{}v_2\leftrightarrow{}v_2\times{}v_1$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_\oplus$}
-      \UnaryInfC{$\vdash sym_\oplus:v_1+v_2\leftrightarrow{}v_2+v_1$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_{\oplus_l}$}
-      \UnaryInfC{$\vdash sym_\oplus:inl\;v_1\leftrightarrow{}inr\;v_1$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$sym_{\oplus_r}$}
-      \UnaryInfC{$\vdash sym_\oplus:inr\;v_2\leftrightarrow{}inl\;v_2$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$unit_\otimes$}
-      \UnaryInfC{$\vdash unit_\otimes:unit\times{}v\leftrightarrow{}v$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$distrib$}
-      \UnaryInfC{$\vdash distrib:(v_1+v_2)\times{}v_3\leftrightarrow{}(v_1\times{}v_3)+(v_2\times{}v_3)$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$distrib_l$}
-      \UnaryInfC{$\vdash distrib:(inl\;v_1)\times{}v_3\leftrightarrow{}inl\;(v_1\times{}v_3)$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$distrib_r$}
-      \UnaryInfC{$\vdash distrib:(inr\;v_2)\times{}v_3\leftrightarrow{}inr\;(v_2\times{}v_3)$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$eval$}
-      \UnaryInfC{$\vdash eval:v\otimes{}v^\star\leftrightarrow{}unit$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{}
-      \RightLabel{$unfold$}
-      \UnaryInfC{$\vdash unfold:\mu{x}.v\leftrightarrow{}v[\mu{x}.v/x]$}
-    \end{bprooftree}
-  \end{center}
-\end{itembox}
-
-\begin{itembox}[c]{Substitution rules}
-  \begin{minipage}{0.5\hsize}
-    \begin{align*}
-      X[S/X] &= S \\
-      I[S/X] &= I \\
-      T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
-      T_1\oplus{}T_2[S/X] &= T_1[S/X]\oplus{}T_2[S/X] \\
-      T^\star[S/X] &= T[S/X]^\star \\
-      \mu{Y}.T[S/X] &= \mu{Y}.(T[S/X])
-    \end{align*}
-  \end{minipage}
-  \begin{minipage}{0.5\hsize}
-    \begin{align*}
-    x[u/x] &= u \\
-    unit[u/x] &= unit \\
-    v_1\times{}v_2[u/x] &= v_1[u/x]\times{}v_2[u/x] \\
-    v_1+v_2[u/x] &= v_1[u/x]+v_2[u/x] \\
-    inl\;v_1[u/x] &= inl\;(v_1[u/x]) \\
-    inr\;v_2[u/x] &= inr\;(v_2[u/x]) \\
-    v^\star[u/x] &= v[u/x] \\
-    \mu{y}.v[u/x] &= \mu{y}.(v[u/x])
-    \end{align*}
-  \end{minipage}
 \end{itembox}
 \end{document}
