@@ -38,7 +38,6 @@
 \begin{document}
 \begin{itembox}[c]{Formation rules for Types}
   \begin{center}
-    \BottomAlignProof
     \begin{bprooftree}
       \AxiomC{}
       %\RightLabel{$var$}
@@ -116,16 +115,22 @@
       \BinaryInfC{$\vdash v_1+v_2:T$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T_1^\star\otimes{}T_2$}
-      \AxiomC{$\vdash v_2:T_2^\star\otimes{}T_3$}
-      %\RightLabel{$\fcmp$}
-      \BinaryInfC{$\vdash v_1\fcmp{}v_2:T_1^\star\otimes{}T_3$}
-    \end{bprooftree}
-    \begin{bprooftree}
       \AxiomC{$\vdash v_1:T^\star$}
       \AxiomC{$\vdash v_2:T$}
       %\RightLabel{$,$}
       \BinaryInfC{$\vdash v_1,v_2:T^\star\otimes{}T$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\vdash v_1:T_1$}
+      \AxiomC{$\vdash v_2:T_1^\star\otimes{}T_2$}
+      %\RightLabel{$Application$}
+      \BinaryInfC{$\vdash v_1\;v_2:T_2$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\vdash v_1:T_1^\star\otimes{}T_2$}
+      \AxiomC{$\vdash v_2:T_2^\star\otimes{}T_3$}
+      %\RightLabel{$\fcmp$}
+      \BinaryInfC{$\vdash v_1\fcmp{}v_2:T_1^\star\otimes{}T_3$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
