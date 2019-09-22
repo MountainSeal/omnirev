@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \= | \: | \< \- \> | \( \) | \* | \+ | \¬ | \< | \> | \( | \) | \. | \; | "unit" \* | "assoc" \* | "sym" \* | "assoc" \+ | "sym" \+ | \^
+   \= | \: | \* | \~ | \, | \; | \+ | \( | \) | \! | \( \+ \) | \( \* \) | \.
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -34,7 +34,7 @@ $l $i*   { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 
 
 
-
+$d+ \. $d+ (e (\-)? $d+)? { tok (\p s -> PT p (TD $ share s)) }
 
 {
 
@@ -101,7 +101,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "distrib" 16 (b ";" 8 (b "*" 4 (b "()" 2 (b "(" 1 N N) (b ")" 3 N N)) (b "." 6 (b "+" 5 N N) (b ":" 7 N N))) (b ">" 12 (b "<->" 10 (b "<" 9 N N) (b "=" 11 N N)) (b "assoc*" 14 (b "^" 13 N N) (b "assoc+" 15 N N)))) (b "sym*" 24 (b "id" 20 (b "expr" 18 (b "eval" 17 N N) (b "func" 19 N N)) (b "measure" 22 (b "left" 21 N N) (b "right" 23 N N))) (b "unit*" 28 (b "type" 26 (b "sym+" 25 N N) (b "unit" 27 N N)) (b "\181" 30 (b "\172" 29 N N) N)))
+resWords = b "fix" 17 (b "." 9 (b ")" 5 (b "(*)" 3 (b "(" 2 (b "!" 1 N N) N) (b "(+)" 4 N N)) (b "+" 7 (b "*" 6 N N) (b "," 8 N N))) (b "I" 13 (b ";" 11 (b ":" 10 N N) (b "=" 12 N N)) (b "case" 15 (b "be" 14 N N) (b "cis" 16 N N)))) (b "pi" 26 (b "inr" 22 (b "in" 20 (b "fst" 19 (b "fold" 18 N N) N) (b "inl" 21 N N)) (b "measure" 24 (b "let" 23 N N) (b "of" 25 N N))) (b "term" 30 (b "skip" 28 (b "rec" 27 N N) (b "snd" 29 N N)) (b "type" 32 (b "to" 31 N N) (b "~" 33 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

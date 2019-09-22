@@ -18,22 +18,29 @@ reserved words excluded.
 
 ===Literals===
 
+Double-precision float literals //Double// have the structure
+indicated by the regular expression ``digit+ '.' digit+ ('e' ('-')? digit+)?`` i.e.\
+two sequences of digits separated by a decimal point, optionally
+followed by an unsigned or negative exponent.
+
+
 
 
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in omnirev are the following:
-  | ``distrib`` | ``eval`` | ``expr`` | ``func``
-  | ``id`` | ``left`` | ``measure`` | ``right``
-  | ``type`` | ``unit`` | ``µ`` | 
+  | ``I`` | ``be`` | ``case`` | ``cis``
+  | ``fix`` | ``fold`` | ``fst`` | ``in``
+  | ``inl`` | ``inr`` | ``let`` | ``measure``
+  | ``of`` | ``pi`` | ``rec`` | ``skip``
+  | ``snd`` | ``term`` | ``to`` | ``type``
 
 The symbols used in omnirev are the following:
-  | = | : | <-> | ()
-  | * | + | ¬ | <
-  | > | ( | ) | .
-  | ; | unit* | assoc* | sym*
-  | assoc+ | sym+ | ^ | 
+  | = | : | * | ~
+  | , | ; | + | (
+  | ) | ! | (+) | (*)
+  | . |  |  | 
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -46,51 +53,44 @@ All other symbols are terminals.
 
   | //Program// | -> | //[Def]// 
   | //Def// | -> | ``type`` //Ident// ``=`` //Type// 
-  |  |  **|**  | ``func`` //Ident// ``:`` //Type// ``<->`` //Type// ``=`` //Func// 
-  |  |  **|**  | ``expr`` //Ident// ``:`` //Type// ``=`` //Expr// 
+  |  |  **|**  | ``term`` //Ident// ``:`` //Type// ``=`` //Term// 
   | //[Def]// | -> | //Def// 
   |  |  **|**  | //Def// //[Def]// 
-  | //Expr3// | -> | ``()`` 
-  |  |  **|**  | ``left`` //Expr3// 
-  |  |  **|**  | ``right`` //Expr3// 
-  |  |  **|**  | ``¬`` //Expr3// 
+  | //Value6// | -> | ``cis`` //Double// ``pi`` 
+  |  |  **|**  | ``inl`` //Value6// 
+  |  |  **|**  | ``inr`` //Value6// 
+  |  |  **|**  | ``~`` //Value6// 
+  |  |  **|**  | ``fold`` //Value6// 
+  | //Value5// | -> | //Value5// ``*`` //Value6// 
+  |  |  **|**  | ``(`` //Value// ``)`` 
+  | //Value1// | -> | //Value1// ``,`` //Value2// 
+  |  |  **|**  | //Value2// 
+  | //Value2// | -> | //Value2// //Value3// 
+  |  |  **|**  | //Value3// 
+  | //Value3// | -> | //Value3// ``;`` //Value4// 
+  |  |  **|**  | //Value4// 
+  | //Value4// | -> | //Value4// ``+`` //Value5// 
+  |  |  **|**  | //Value5// 
+  | //Value// | -> | //Value1// 
+  | //Term// | -> | //Ident// 
+  |  |  **|**  | //Value// 
+  |  |  **|**  | ``!`` //Value// 
+  |  |  **|**  | ``measure`` //Value// 
+  |  |  **|**  | ``skip`` 
+  |  |  **|**  | ``case`` //Term// ``of`` ``inl`` //Ident// ``to`` //Term// ``inr`` //Ident// ``to`` //Term// 
+  |  |  **|**  | ``fst`` //Term// 
+  |  |  **|**  | ``snd`` //Term// 
+  |  |  **|**  | ``let`` //Ident// ``be`` //Term// ``in`` //Term// 
+  |  |  **|**  | ``rec`` //Ident// ``be`` //Term// 
+  | //Type3// | -> | ``I`` 
+  |  |  **|**  | ``~`` //Type3// 
+  |  |  **|**  | ``fix`` //Ident// ``.`` //Type// 
   |  |  **|**  | //Ident// 
-  |  |  **|**  | ``<`` //Expr3// ``>`` 
-  |  |  **|**  | //Func// //Expr3// 
-  |  |  **|**  | ``measure`` //Expr3// 
-  |  |  **|**  | ``(`` //Expr// ``)`` 
-  | //Expr2// | -> | //Expr2// ``*`` //Expr3// 
-  |  |  **|**  | //Expr3// 
-  | //Expr1// | -> | //Expr1// ``+`` //Expr2// 
-  |  |  **|**  | //Expr2// 
-  | //Expr// | -> | //Expr1// 
-  | //Type3// | -> | ``unit`` 
-  |  |  **|**  | ``¬`` //Type3// 
-  |  |  **|**  | //Ident// 
-  |  |  **|**  | ``µ`` //Ident// ``.`` //Type// 
   |  |  **|**  | ``(`` //Type// ``)`` 
-  | //Type2// | -> | //Type2// ``*`` //Type3// 
-  |  |  **|**  | //Type3// 
-  | //Type1// | -> | //Type1// ``+`` //Type2// 
+  | //Type1// | -> | //Type1// ``(+)`` //Type2// 
   |  |  **|**  | //Type2// 
+  | //Type2// | -> | //Type2// ``(*)`` //Type3// 
+  |  |  **|**  | //Type3// 
   | //Type// | -> | //Type1// 
-  | //Func4// | -> | ``id`` 
-  |  |  **|**  | ``unit*`` 
-  |  |  **|**  | ``assoc*`` 
-  |  |  **|**  | ``sym*`` 
-  |  |  **|**  | ``assoc+`` 
-  |  |  **|**  | ``sym+`` 
-  |  |  **|**  | ``distrib`` 
-  |  |  **|**  | ``eval`` //Type// 
-  |  |  **|**  | ``^`` //Func4// 
-  |  |  **|**  | //Ident// 
-  |  |  **|**  | ``(`` //Func// ``)`` 
-  | //Func1// | -> | //Func1// ``;`` //Func2// 
-  |  |  **|**  | //Func2// 
-  | //Func3// | -> | //Func3// ``*`` //Func4// 
-  |  |  **|**  | //Func4// 
-  | //Func2// | -> | //Func2// ``+`` //Func3// 
-  |  |  **|**  | //Func3// 
-  | //Func// | -> | //Func1// 
 
 

@@ -11,7 +11,7 @@ DTerm . Def ::= "term" Ident ":" Type "=" Term ;
 (:)   . [Def] ::= Def [Def] ;
 
 --(Quantum) Value
-VUnit   . Value6 ::= "cis" Double "π" ;
+VUnit   . Value6 ::= "cis" Double "pi" ;
 VLeft   . Value6 ::= "inl" Value6 ;
 VRight  . Value6 ::= "inr" Value6 ;
 VTensor . Value5 ::= Value5 "*" Value6 ;
@@ -32,8 +32,10 @@ CSkip  . Term ::= "skip" ;
 CCase  . Term ::= "case" Term "of" "inl" Ident "to" Term "inr" Ident "to" Term ;
 CFst   . Term ::= "fst" Term ;
 CSnd   . Term ::= "snd" Term ;
-CLet   . Term ::= "let" Ident "be" Term "in" Term ; - letで定義した変数に束縛される値は再利用可能とする
-CRec   . Term ::= "rec" Ident "be" Term ; - 定義されたTermは束縛している変数を使える
+CLet   . Term ::= "let" Ident "be" Term "in" Term ;
+-- letで定義した変数に束縛される値は再利用可能とする
+CRec   . Term ::= "rec" Ident "be" Term ;
+-- 定義されたTermは束縛している変数を使える
 
 --Type
 TUnit   . Type3 ::= "I" ;

@@ -94,49 +94,45 @@ instance Print Program where
 instance Print Def where
   prt i e = case e of
     DType id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "="), prt 0 type_])
-    DFunc id type_1 type_2 func -> prPrec i 0 (concatD [doc (showString "func"), prt 0 id, doc (showString ":"), prt 0 type_1, doc (showString "<->"), prt 0 type_2, doc (showString "="), prt 0 func])
-    DExpr id type_ expr -> prPrec i 0 (concatD [doc (showString "expr"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 expr])
+    DTerm id type_ term -> prPrec i 0 (concatD [doc (showString "term"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 term])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
 instance Print [Def] where
   prt = prtList
 
-instance Print Expr where
+instance Print Value where
   prt i e = case e of
-    EUnit -> prPrec i 3 (concatD [doc (showString "()")])
-    ETensor expr1 expr2 -> prPrec i 2 (concatD [prt 2 expr1, doc (showString "*"), prt 3 expr2])
-    ESum expr1 expr2 -> prPrec i 1 (concatD [prt 1 expr1, doc (showString "+"), prt 2 expr2])
-    ELeft expr -> prPrec i 3 (concatD [doc (showString "left"), prt 3 expr])
-    ERight expr -> prPrec i 3 (concatD [doc (showString "right"), prt 3 expr])
-    EStar expr -> prPrec i 3 (concatD [doc (showString "\172"), prt 3 expr])
-    EVar id -> prPrec i 3 (concatD [prt 0 id])
-    ERec expr -> prPrec i 3 (concatD [doc (showString "<"), prt 3 expr, doc (showString ">")])
-    EApp func expr -> prPrec i 3 (concatD [prt 0 func, prt 3 expr])
-    EProj expr -> prPrec i 3 (concatD [doc (showString "measure"), prt 3 expr])
+    VUnit d -> prPrec i 6 (concatD [doc (showString "cis"), prt 0 d, doc (showString "pi")])
+    VLeft value -> prPrec i 6 (concatD [doc (showString "inl"), prt 6 value])
+    VRight value -> prPrec i 6 (concatD [doc (showString "inr"), prt 6 value])
+    VTensor value1 value2 -> prPrec i 5 (concatD [prt 5 value1, doc (showString "*"), prt 6 value2])
+    VDual value -> prPrec i 6 (concatD [doc (showString "~"), prt 6 value])
+    VFold value -> prPrec i 6 (concatD [doc (showString "fold"), prt 6 value])
+    VTrace value1 value2 -> prPrec i 1 (concatD [prt 1 value1, doc (showString ","), prt 2 value2])
+    VApp value1 value2 -> prPrec i 2 (concatD [prt 2 value1, prt 3 value2])
+    VComp value1 value2 -> prPrec i 3 (concatD [prt 3 value1, doc (showString ";"), prt 4 value2])
+    VSum value1 value2 -> prPrec i 4 (concatD [prt 4 value1, doc (showString "+"), prt 5 value2])
+
+instance Print Term where
+  prt i e = case e of
+    CVar id -> prPrec i 0 (concatD [prt 0 id])
+    CValue value -> prPrec i 0 (concatD [prt 0 value])
+    CBang value -> prPrec i 0 (concatD [doc (showString "!"), prt 0 value])
+    CMeas value -> prPrec i 0 (concatD [doc (showString "measure"), prt 0 value])
+    CSkip -> prPrec i 0 (concatD [doc (showString "skip")])
+    CCase term1 id1 term2 id2 term3 -> prPrec i 0 (concatD [doc (showString "case"), prt 0 term1, doc (showString "of"), doc (showString "inl"), prt 0 id1, doc (showString "to"), prt 0 term2, doc (showString "inr"), prt 0 id2, doc (showString "to"), prt 0 term3])
+    CFst term -> prPrec i 0 (concatD [doc (showString "fst"), prt 0 term])
+    CSnd term -> prPrec i 0 (concatD [doc (showString "snd"), prt 0 term])
+    CLet id term1 term2 -> prPrec i 0 (concatD [doc (showString "let"), prt 0 id, doc (showString "be"), prt 0 term1, doc (showString "in"), prt 0 term2])
+    CRec id term -> prPrec i 0 (concatD [doc (showString "rec"), prt 0 id, doc (showString "be"), prt 0 term])
 
 instance Print Type where
   prt i e = case e of
-    TUnit -> prPrec i 3 (concatD [doc (showString "unit")])
-    TTensor type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "*"), prt 3 type_2])
-    TSum type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "+"), prt 2 type_2])
-    TStar type_ -> prPrec i 3 (concatD [doc (showString "\172"), prt 3 type_])
+    TUnit -> prPrec i 3 (concatD [doc (showString "I")])
+    TSum type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "(+)"), prt 2 type_2])
+    TTensor type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "(*)"), prt 3 type_2])
+    TDual type_ -> prPrec i 3 (concatD [doc (showString "~"), prt 3 type_])
+    TInd id type_ -> prPrec i 3 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 0 type_])
     TVar id -> prPrec i 3 (concatD [prt 0 id])
-    TRec id type_ -> prPrec i 3 (concatD [doc (showString "\181"), prt 0 id, doc (showString "."), prt 0 type_])
-
-instance Print Func where
-  prt i e = case e of
-    FId -> prPrec i 4 (concatD [doc (showString "id")])
-    FComp func1 func2 -> prPrec i 1 (concatD [prt 1 func1, doc (showString ";"), prt 2 func2])
-    FTensor func1 func2 -> prPrec i 3 (concatD [prt 3 func1, doc (showString "*"), prt 4 func2])
-    FTensUnit -> prPrec i 4 (concatD [doc (showString "unit*")])
-    FTensAssoc -> prPrec i 4 (concatD [doc (showString "assoc*")])
-    FTensSym -> prPrec i 4 (concatD [doc (showString "sym*")])
-    FSum func1 func2 -> prPrec i 2 (concatD [prt 2 func1, doc (showString "+"), prt 3 func2])
-    FSumAssoc -> prPrec i 4 (concatD [doc (showString "assoc+")])
-    FSumSym -> prPrec i 4 (concatD [doc (showString "sym+")])
-    FDistrib -> prPrec i 4 (concatD [doc (showString "distrib")])
-    FEval type_ -> prPrec i 4 (concatD [doc (showString "eval"), prt 0 type_])
-    FDagger func -> prPrec i 4 (concatD [doc (showString "^"), prt 4 func])
-    FVar id -> prPrec i 4 (concatD [prt 0 id])
 

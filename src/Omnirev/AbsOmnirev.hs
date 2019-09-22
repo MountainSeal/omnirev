@@ -11,47 +11,41 @@ newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 data Program = Prog [Def]
   deriving (Eq, Ord, Show, Read)
 
-data Def
-    = DType Ident Type
-    | DFunc Ident Type Type Func
-    | DExpr Ident Type Expr
+data Def = DType Ident Type | DTerm Ident Type Term
   deriving (Eq, Ord, Show, Read)
 
-data Expr
-    = EUnit
-    | ETensor Expr Expr
-    | ESum Expr Expr
-    | ELeft Expr
-    | ERight Expr
-    | EStar Expr
-    | EVar Ident
-    | ERec Expr
-    | EApp Func Expr
-    | EProj Expr
+data Value
+    = VUnit Double
+    | VLeft Value
+    | VRight Value
+    | VTensor Value Value
+    | VDual Value
+    | VFold Value
+    | VTrace Value Value
+    | VApp Value Value
+    | VComp Value Value
+    | VSum Value Value
+  deriving (Eq, Ord, Show, Read)
+
+data Term
+    = CVar Ident
+    | CValue Value
+    | CBang Value
+    | CMeas Value
+    | CSkip
+    | CCase Term Ident Term Ident Term
+    | CFst Term
+    | CSnd Term
+    | CLet Ident Term Term
+    | CRec Ident Term
   deriving (Eq, Ord, Show, Read)
 
 data Type
     = TUnit
-    | TTensor Type Type
     | TSum Type Type
-    | TStar Type
+    | TTensor Type Type
+    | TDual Type
+    | TInd Ident Type
     | TVar Ident
-    | TRec Ident Type
-  deriving (Eq, Ord, Show, Read)
-
-data Func
-    = FId
-    | FComp Func Func
-    | FTensor Func Func
-    | FTensUnit
-    | FTensAssoc
-    | FTensSym
-    | FSum Func Func
-    | FSumAssoc
-    | FSumSym
-    | FDistrib
-    | FEval Type
-    | FDagger Func
-    | FVar Ident
   deriving (Eq, Ord, Show, Read)
 
