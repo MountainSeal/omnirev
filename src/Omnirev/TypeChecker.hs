@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Omnirev.TypeChecker where
+module Omnirev.TypeChecker(check) where
 
 import Control.Monad.Identity
 import Control.Monad.Except
@@ -11,56 +11,51 @@ import Data.Map as Map
 import Omnirev.AbsOmnirev
 
 
-type Context a = Map String a
-
-type Domain   = Type
-type Codomain = Type
-
-data Var
-  = VType Type
-  | VFunc Func Domain Codomain
-  | VExpr Expr Type
+data GlobalVar
+  = GVType Type
+  | GVTerm Term Type
   deriving (Eq, Ord, Show, Read)
 
+data LocalVar
+  = LVInd Type
+  | LVLet Type Term
+  | LVRec Type Term
+  deriving (Eq, Ord, Show, Read)
+
+type Context = (Map String GlobalVar, Map String LocalVar)
+
 -- https://qiita.com/HirotoShioi/items/8a6107434337b30ce457 を参考
-newtype Eval a = Eval (StateT (Context Var) (ExceptT String Identity) a)
-  deriving (Functor, Applicative, Monad, MonadState (Context Var), MonadError String)
+newtype Eval a = Eval (StateT (Context) (ExceptT String Identity) a)
+  deriving (Functor, Applicative, Monad, MonadState Context, MonadError String)
 
 
 -- Entrypoint of type checking 
 check :: Program -> String
-check p = case runEval (checkProg p) Map.empty of
+check p = case runEval (checkProg p) (Map.empty, Map.empty) of
   Left  x -> x
   Right _ -> "Success!"
 
-runEval :: Eval a -> Context Var -> Either String a
+runEval :: Eval a -> Context -> Either String a
 runEval (Eval m) cxt = runIdentity (runExceptT (evalStateT m cxt))
 
 unknownVarError :: Show a => a -> Eval b
 unknownVarError x = throwError $ "Variable not found: " ++ show x
 
-conflictVarError :: Show a => a -> Eval b
-conflictVarError x = throwError $ "Variable is already exists: " ++ show x
+nestedVarError :: Show a => a -> Eval b
+nestedVarError x = throwError $ "Recursive type variable can not nest: " ++ show x
 
 dupDefTypeError :: Show a => a -> Eval b
 dupDefTypeError x = throwError $ "The variable is already defined as Type: " ++ show x
 
-dupDefFuncError :: Show a => a -> Eval b
-dupDefFuncError x = throwError $ "The variable is already defined as Function: " ++ show x
+dupDefTermError :: Show a => a -> Eval b
+dupDefTermError x = throwError $ "The variable is already defined as Term: " ++ show x
 
-dupDefExprError :: Show a => a -> Eval b
-dupDefExprError x = throwError $ "The variable is already defined as Expression: " ++ show x
-
-dupVarError :: Show a => Var -> a -> Eval b
-dupVarError VType{} = dupDefTypeError
-dupVarError VExpr{} = dupDefExprError
-dupVarError VFunc{} = dupDefFuncError
+dupVarError :: Show a => GlobalVar -> a -> Eval b
+dupVarError GVType{} = dupDefTypeError
+dupVarError GVTerm{} = dupDefTermError
 
 invalidTypeError :: Show a => a -> Eval b
 invalidTypeError x = throwError $ "Invalid Type: " ++ show x
-
-invalidFunctionError :: Show a => a -> Eval b
-invalidFunctionError x = throwError $ "Invalid domain or codomain: " ++ show x
 
 checkProg :: Program -> Eval String
 checkProg (Prog []) = throwError "There is no program"
@@ -72,31 +67,24 @@ checkDefs [d]  = checkDef d
 checkDefs (d:ds) = (++) <$> checkDef d <*> checkDefs ds
 
 checkDef :: Def -> Eval String
-checkDef (DType (Ident s) t) = do
-  cxt <- get
-  case Map.lookup s cxt of
+checkDef (DType (Ident s) ty) = do
+  (gcxt, _) <- get
+  case Map.lookup s gcxt of
     Nothing -> do
-      checkType t
-      modify (Map.insert s (VType t))
+      ty' <- purify ty
+      checkType ty'
+      --ローカルコンテキストはむしろ捨てる必要がある
+      modify $ \(gc, lc) -> (Map.insert s (GVType ty') gc, Map.empty)
       pure ""
     Just v -> dupVarError v s
-checkDef (DFunc (Ident s) d c f) = do
-  cxt <- get
-  case Map.lookup s cxt of
+checkDef (DTerm (Ident s) ty tm) = do
+  (gcxt, _) <- get
+  case Map.lookup s gcxt of
     Nothing -> do
-      d' <- purify d
-      c' <- purify c
-      checkFunc f d' c'
-      modify $ Map.insert s (VFunc f d c)
-      pure ""
-    Just v -> dupVarError v s
-checkDef (DExpr (Ident s) t e) = do
-  cxt <- get
-  case Map.lookup s cxt of
-    Nothing -> do
-      t' <- purify t
-      checkExpr e t'
-      modify $ Map.insert s (VExpr e t)
+      ty' <- purify ty
+      checkTerm tm ty'
+      --ローカルコンテキストはむしろ捨てる必要がある
+      modify $ \(gc, lc) -> (Map.insert s (GVTerm tm ty') gc, Map.empty)
       pure ""
     Just v -> dupVarError v s
 
@@ -111,28 +99,49 @@ purify (TSum t1 t2)     = do
   t1' <- purify t1
   t2' <- purify t2
   pure $ TSum t1' t2'
-purify (TStar t)        = do
+purify (TDual t)        = do
   t' <- purify t
-  pure $ TStar t'
+  pure $ TDual t'
+purify (TInd i t) = do
+  t' <- purify t
+  pure $ TInd i t'
 purify (TVar (Ident s)) = do
-  cxt <- get
-  case Map.lookup s cxt of
-    Just (VType t) -> purify t
+  (gcxt, lcxt) <- get
+  case Map.lookup s gcxt of
+    Just (GVType t) -> purify t
     Just v -> dupVarError v s
-    Nothing        -> unknownVarError s
+    Nothing ->
+      case Map.lookup s lcxt of
+        -- 再帰型の変数ならそのまま返す
+        Just (LVInd t) -> pure (TVar (Ident s))
+        -- 定義通りならここには来ないはずよね・・・
+        Just v -> throwError $ "Sorry, something went wrong."
+        Nothing -> unknownVarError s
 
 checkType :: Type -> Eval String
 checkType TUnit            = pure ""
 checkType (TTensor t1 t2)  = checkType t1 >> checkType t2
 checkType (TSum t1 t2)     = checkType t1 >> checkType t2
-checkType (TStar t)        = checkType t
-checkType (TVar (Ident s)) = do
+checkType (TDual t)        = checkType t
+{-
+checkType (TInd (Ident s) t) do
+  --環境にこの変数を追加する(他の変数と名前が衝突していないか確認)
+  modify (Map.insert s (VType t))
+  --追加した上でcheckTypeを走らせる
   cxt <- get
   case Map.lookup s cxt of
-    Just (VType t) -> pure ""
+  --最後にnestした再帰型を防ぐため環境からこの変数を消す必要あり
+checkType (TVar (Ident s)) = do
+  (gcxt, lcxt) <- get
+  case Map.lookup s gcxt of
+    Just (GVType t) -> pure ""
     Just v -> dupVarError v s
     Nothing        -> unknownVarError s
+-}
 
+checkTerm :: Term -> Type -> Eval String
+checkTerm _ = throwError "under construction."
+{-
 checkExpr :: Expr -> Type -> Eval String
 checkExpr EUnit TUnit = pure ""
 checkExpr EUnit _     = throwError "() must be typed as unit"
@@ -156,7 +165,9 @@ checkExpr (EApp f e) t = do
   d <- searchCodomain f t
   checkExpr e d
 checkExpr (EProj e) t = checkExpr e t
+-}
 
+{-
 checkFunc :: Func -> Domain -> Codomain -> Eval String
 checkFunc FId t t' =
   if t == t'
@@ -214,7 +225,9 @@ checkFunc (FVar (Ident s)) dom cod = do
     Just v -> dupVarError v s
     Nothing        -> unknownVarError s
 checkFunc _ _ _ = throwError "Invalid domain or codomain"
+-}
 
+{-
 searchCodomain :: Func -> Domain -> Eval Codomain
 searchCodomain FId d = pure d
 searchCodomain (FComp f1 f2) d1 = do
@@ -250,7 +263,9 @@ searchCodomain (FVar (Ident s)) d = do
     Just v -> dupVarError v s
     Nothing -> unknownVarError s
 searchCodomain _ _ = throwError "Invalid domain or codomain"
+-}
 
+{-
 searchDomain :: Func -> Codomain -> Eval Domain
 searchDomain FId c = pure c
 searchDomain (FComp f1 f2) c3 = do
@@ -287,3 +302,4 @@ searchDomain (FVar (Ident s)) c = do
     Just v -> dupVarError v s
     Nothing -> unknownVarError s
 searchDomain _ _ = throwError "Invalid domain or codomain"
+-}
