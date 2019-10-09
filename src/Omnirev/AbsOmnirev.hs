@@ -37,7 +37,7 @@ data Term
     | CFst Term
     | CSnd Term
     | CLet Ident Term Term
-    | CRec Ident Term
+    | CRec Ident Term Term
   deriving (Eq, Ord, Show, Read)
 
 data Type

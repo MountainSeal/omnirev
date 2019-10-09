@@ -34,7 +34,7 @@ CFst   . Term ::= "fst" Term ;
 CSnd   . Term ::= "snd" Term ;
 CLet   . Term ::= "let" Ident "be" Term "in" Term ;
 -- letで定義した変数に束縛される値は再利用可能とする
-CRec   . Term ::= "rec" Ident "be" Term ;
+CRec   . Term ::= "rec" Ident "be" Term "in" Term ;
 -- 定義されたTermは束縛している変数を使える
 
 --Type

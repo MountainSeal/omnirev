@@ -81,7 +81,7 @@ All other symbols are terminals.
   |  |  **|**  | ``fst`` //Term// 
   |  |  **|**  | ``snd`` //Term// 
   |  |  **|**  | ``let`` //Ident// ``be`` //Term// ``in`` //Term// 
-  |  |  **|**  | ``rec`` //Ident// ``be`` //Term// 
+  |  |  **|**  | ``rec`` //Ident// ``be`` //Term// ``in`` //Term// 
   | //Type3// | -> | ``I`` 
   |  |  **|**  | ``~`` //Type3// 
   |  |  **|**  | ``fix`` //Ident// ``.`` //Type// 

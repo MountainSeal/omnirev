@@ -95,7 +95,7 @@ Term : Ident { AbsOmnirev.CVar $1 }
      | 'fst' Term { AbsOmnirev.CFst $2 }
      | 'snd' Term { AbsOmnirev.CSnd $2 }
      | 'let' Ident 'be' Term 'in' Term { AbsOmnirev.CLet $2 $4 $6 }
-     | 'rec' Ident 'be' Term { AbsOmnirev.CRec $2 $4 }
+     | 'rec' Ident 'be' Term 'in' Term { AbsOmnirev.CRec $2 $4 $6 }
 Type3 :: { Type }
 Type3 : 'I' { AbsOmnirev.TUnit }
       | '~' Type3 { AbsOmnirev.TDual $2 }
