@@ -134,4 +134,45 @@
     \end{bprooftree}
   \end{center}
 \end{itembox}
+
+\begin{itembox}[c]{Typing rules for Terms}
+    \begin{prooftree}
+      \AxiomC{$x:T \in \Gamma$}
+      \UnaryInfC{$\Gamma \vdash x:T$}
+    \end{prooftree}
+
+    \begin{prooftree}
+      \AxiomC{$\vdash v:T$}
+      \UnaryInfC{$\Gamma \vdash measure\;v:T$}
+    \end{prooftree}
+    
+    \begin{prooftree}
+      \AxiomC{$\Gamma \vdash t:T_1\oplus{}T_2$}
+      \AxiomC{$\Gamma,x:T_1 \vdash u_1:T $}
+      \AxiomC{$\Gamma,y:T_2 \vdash u_2:T $}
+      \TrinaryInfC{$\Gamma \vdash case\;t\;of\;inl\;x\;to\;u_1\;inr\;y\;to\;u_2:T$}
+    \end{prooftree}
+
+    \begin{prooftree}
+      \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
+      \UnaryInfC{$\Gamma \vdash fst\;t:T_1 $}
+    \end{prooftree}
+
+    \begin{prooftree}
+      \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
+      \UnaryInfC{$\Gamma \vdash fst\;t:T_2 $}
+    \end{prooftree}
+
+    \begin{prooftree}
+      \AxiomC{$\Gamma \vdash t:T $}
+      \AxiomC{$\Gamma,x:T \vdash u:U $}
+      \BinaryInfC{$\Gamma \vdash let\;x\;be\;t\;in\;u:U$}
+    \end{prooftree}
+
+    \begin{prooftree}
+      \AxiomC{$\Gamma,x:T \vdash t:T $}
+      \AxiomC{$\Gamma,x:T \vdash u:U$}
+      \BinaryInfC{$\Gamma \vdash rec\;x\;be\;t\;in\;u:U$}
+    \end{prooftree}
+\end{itembox}
 \end{document}
