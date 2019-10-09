@@ -1,5 +1,6 @@
 .stack-work/
 omnirev.cabal
+stack.yaml.lock
 pdf/*.log
 pdf/*.aux
 pdf/*.dvi
