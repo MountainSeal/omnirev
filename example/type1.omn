@@ -1,6 +1,7 @@
 // 型の例
-type alias = unit
-type qubit = unit + unit
-type tens = unit * unit
-type star = ~unit
+type alias = I
+type qubit = I (+) I
+type tens = (I (+) I) (*) (I (+) I)
+type star = ~((I (+) I) (*) (I (+) I)) (*) ((I (+) I) (*) (I (+) I))
+type nat = fix x . (I (+) x)
 type var = qubit
