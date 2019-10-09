@@ -5,6 +5,7 @@ module Omnirev.TypeChecker(check) where
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.State
+import Control.Monad.Reader
 
 import Data.Map as Map
 
@@ -22,21 +23,22 @@ data LocalVar
   | LVRec Type Term
   deriving (Eq, Ord, Show, Read)
 
-type Context = (Map String GlobalVar, Map String LocalVar)
+type Context a = Map String a
+type Env = Context GlobalVar
 
 -- https://qiita.com/HirotoShioi/items/8a6107434337b30ce457 を参考
-newtype Eval a = Eval (StateT (Context) (ExceptT String Identity) a)
-  deriving (Functor, Applicative, Monad, MonadState Context, MonadError String)
+newtype Eval a = Eval (ReaderT (Context LocalVar) (StateT Env (ExceptT String Identity)) a)
+  deriving (Functor, Applicative, Monad, MonadReader (Context LocalVar), MonadState Env, MonadError String)
 
 
 -- Entrypoint of type checking 
 check :: Program -> String
-check p = case runEval (checkProg p) (Map.empty, Map.empty) of
+check p = case runEval (checkProg p) Map.empty of
   Left  x -> x
   Right _ -> "Success!"
 
-runEval :: Eval a -> Context -> Either String a
-runEval (Eval m) cxt = runIdentity (runExceptT (evalStateT m cxt))
+runEval :: Eval a -> Env -> Either String a
+runEval (Eval m) env = runIdentity (runExceptT (evalStateT (runReaderT m Map.empty) env))
 
 unknownVarError :: Show a => a -> Eval b
 unknownVarError x = throwError $ "Variable not found: " ++ show x
@@ -68,23 +70,21 @@ checkDefs (d:ds) = (++) <$> checkDef d <*> checkDefs ds
 
 checkDef :: Def -> Eval String
 checkDef (DType (Ident s) ty) = do
-  (gcxt, _) <- get
-  case Map.lookup s gcxt of
+  env <- get
+  case Map.lookup s env of
     Nothing -> do
       ty' <- purify ty
       checkType ty'
-      --ローカルコンテキストはむしろ捨てる必要がある
-      modify $ \(gc, lc) -> (Map.insert s (GVType ty') gc, Map.empty)
+      modify $ Map.insert s (GVType ty')
       pure ""
     Just v -> dupVarError v s
 checkDef (DTerm (Ident s) ty tm) = do
-  (gcxt, _) <- get
-  case Map.lookup s gcxt of
+  env <- get
+  case Map.lookup s env of
     Nothing -> do
       ty' <- purify ty
       checkTerm tm ty'
-      --ローカルコンテキストはむしろ捨てる必要がある
-      modify $ \(gc, lc) -> (Map.insert s (GVTerm tm ty') gc, Map.empty)
+      modify $ Map.insert s (GVTerm tm ty')
       pure ""
     Just v -> dupVarError v s
 
@@ -102,20 +102,23 @@ purify (TSum t1 t2)     = do
 purify (TDual t)        = do
   t' <- purify t
   pure $ TDual t'
-purify (TInd i t) = do
-  t' <- purify t
-  pure $ TInd i t'
+purify (TInd (Ident s) t) = do
+  t' <- local (Map.insert s (LVInd t)) (purify t)
+  pure $ TInd (Ident s) t'
 purify (TVar (Ident s)) = do
-  (gcxt, lcxt) <- get
-  case Map.lookup s gcxt of
-    Just (GVType t) -> purify t
-    Just v -> dupVarError v s
-    Nothing ->
-      case Map.lookup s lcxt of
-        -- 再帰型の変数ならそのまま返す
-        Just (LVInd t) -> pure (TVar (Ident s))
-        -- 定義通りならここには来ないはずよね・・・
-        Just v -> throwError $ "Sorry, something went wrong."
+  -- 局所変数と大域変数で名前かぶった場合は局所変数として優先的に解釈
+  cxt <- ask
+  case Map.lookup s cxt of
+    -- 局所変数ならそのまま返す
+    Just (LVInd t) -> pure (TVar (Ident s))
+    -- 定義通りならここには来ないはずよね・・・
+    Just v -> throwError $ "Sorry, something went wrong."
+    Nothing -> do
+      env <- get
+      case Map.lookup s env of
+        -- すでに大域変数として宣言されているなら既にpurifyされているから不要?
+        Just (GVType t) -> purify t
+        Just v -> dupVarError v s
         Nothing -> unknownVarError s
 
 checkType :: Type -> Eval String
@@ -123,24 +126,26 @@ checkType TUnit            = pure ""
 checkType (TTensor t1 t2)  = checkType t1 >> checkType t2
 checkType (TSum t1 t2)     = checkType t1 >> checkType t2
 checkType (TDual t)        = checkType t
-{-
-checkType (TInd (Ident s) t) do
-  --環境にこの変数を追加する(他の変数と名前が衝突していないか確認)
-  modify (Map.insert s (VType t))
-  --追加した上でcheckTypeを走らせる
-  cxt <- get
-  case Map.lookup s cxt of
-  --最後にnestした再帰型を防ぐため環境からこの変数を消す必要あり
+checkType (TInd (Ident s) t) = do
+  cxt <- ask
+  -- ロガー的なモナドで他の局所変数を忘却している事を明示したい
+  local (\c -> Map.singleton s (LVInd t)) (checkType t)
 checkType (TVar (Ident s)) = do
-  (gcxt, lcxt) <- get
-  case Map.lookup s gcxt of
-    Just (GVType t) -> pure ""
-    Just v -> dupVarError v s
-    Nothing        -> unknownVarError s
--}
+  -- 局所変数と大域変数で名前かぶった場合は局所変数として優先的に解釈
+  cxt <- ask
+  -- 他の局所変数が残っている場合はエラーで返す
+  case size cxt of
+    0 -> do --大域変数として判定
+      env <- get
+      case Map.lookup s env of
+        Just (GVType t) -> pure ""
+        Just v          -> dupVarError v s
+        Nothing         -> unknownVarError s
+    1 -> pure ""
+    _ -> throwError "local type context must be empty or only one."
 
 checkTerm :: Term -> Type -> Eval String
-checkTerm _ = throwError "under construction."
+checkTerm _ _ = throwError "under construction."
 {-
 checkExpr :: Expr -> Type -> Eval String
 checkExpr EUnit TUnit = pure ""
@@ -152,8 +157,8 @@ checkExpr ESum{} _                  = throwError "sum must typed as sum type"
 checkExpr (EStar e) (TStar t) = checkExpr e t
 checkExpr EStar{} _           = throwError "dual must typed as dual type"
 checkExpr (EVar (Ident s)) t = do
-  cxt <- get
-  case Map.lookup s cxt of
+  env <- get
+  case Map.lookup s env of
     -- 定義した変数の参照回数を線形性のために丁度一回とする場合はここを変更すること
     Just (VExpr e' t') ->
       if t == t'
@@ -216,8 +221,8 @@ checkFunc (FEval t) (TTensor t' (TStar t'')) TUnit = do
     else invalidFunctionError "eval"
 checkFunc (FDagger f) cod dom = checkFunc f dom cod
 checkFunc (FVar (Ident s)) dom cod = do
-  cxt <- get
-  case Map.lookup s cxt of
+  env <- get
+  case Map.lookup s env of
     Just (VFunc f' dom' cod') ->
       if dom == dom' && cod == cod'
         then pure ""
@@ -254,8 +259,8 @@ searchCodomain (FEval t) (TTensor d (TStar d')) = do
     else invalidFunctionError "eval"
 searchCodomain (FDagger f) d = searchDomain f d
 searchCodomain (FVar (Ident s)) d = do
-  cxt <- get
-  case Map.lookup s cxt of
+  env <- get
+  case Map.lookup s env of
     Just (VFunc f d' c) ->
       if d == d'
         then purify c
@@ -293,8 +298,8 @@ searchDomain (FEval t) TUnit = do
   pure $ TTensor t' (TStar t')
 searchDomain (FDagger f) c = searchDomain f c
 searchDomain (FVar (Ident s)) c = do
-  cxt <- get
-  case Map.lookup s cxt of
+  env <- get
+  case Map.lookup s env of
     Just (VFunc f d c') ->
       if c == c'
         then purify d
