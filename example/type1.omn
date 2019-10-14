@@ -3,5 +3,6 @@ type alias = I
 type qubit = I (+) I
 type tens = (I (+) I) (*) (I (+) I)
 type star = ~((I (+) I) (*) (I (+) I)) (*) ((I (+) I) (*) (I (+) I))
-type nat = fix x . (I (+) x)
+type nat = fix x. I (+) x
 type var = qubit
+type natlist = fix x. I (+) nat (*) x

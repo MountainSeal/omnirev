@@ -1,0 +1,1 @@
+type nested = fix x. I (+) (fix y. x (+) y)
