@@ -147,6 +147,39 @@ checkType (TVar (Ident s)) = do
         Nothing -> throwError $ "not exist" ++ s ++ "in the context."
     _ -> throwError "local type context must be empty or only one."
 
+-- checkValue :: Value -> Type -> Eval String
+-- checkValue (VUnit d) TUnit = pure ""
+-- checkValue (VUnit d) _     = throwError $ show (VUnit d) ++ " must be typed as I."
+-- checkValue (VTensor v1 v2) (TTensor t1 t2) = checkValue v1 t1 >> checkValue v2 t2
+-- checkValue (VTensor v1 v2) _               = throwError $ show (VTensor v1 v2) ++ "be must typed as tensor."
+-- checkValue (VLeft v1) (TSum t1 _) = checkValue v1 t1
+-- checkValue (VLeft v1) t           = throwError $ show (VLeft v1) ++ " must be typed as sum."
+-- checkValue (VRight v2) (TSum _ t2) = checkValue v2 t2
+-- checkValue (VRight v2) t           = throwError $ show (VRight v2) ++ " must be typed as sum."
+-- checkValue (VDual v) (TDual t) = checkValue v t
+-- checkValue (VDual v) t         = throwError $ show (VDual v) ++ " must be typed as dual."
+-- checkValue (VFold v) (TInd i t) =
+
+subst :: Type -> Type -> Ident -> Eval Type
+subst TUnit ty i =
+  pure TUnit
+subst (TTensor t1 t2) ty i = do
+  t1' <- subst t1 ty i
+  t2' <- subst t2 ty i
+  pure $ TTensor t1' t2'
+subst (TSum t1 t2) ty i = do
+  t1' <- subst t1 ty i
+  t2' <- subst t2 ty i
+  pure $ TSum t1' t2'
+subst (TDual t) ty i = do
+  t' <- subst t ty i
+  pure $ TDual t'
+-- 入れ子再帰は仕様上型付けさせないので，substではなにもせず返す
+subst (TInd i t) ty i' =
+  pure (TInd i t)
+subst (TVar i) ty i' =
+  pure $ if i == i' then ty else TVar i
+
 checkTerm :: Term -> Type -> Eval String
 checkTerm _ _ = throwError "under construction."
 {-

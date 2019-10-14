@@ -24,19 +24,20 @@ spec = do
             ])
       `shouldNotBe` "Success!"
   
-    it "definition conflict error" $
-      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit),DType (Ident "qubit") (TSum (TSum TUnit TUnit) TUnit)])
-      `shouldNotBe` "Success!"
-    it "type variable" $
-      check (Prog [DType (Ident "qubit") (TSum TUnit TUnit)
-                  ,DFunc (Ident "test") (TVar (Ident "qubit")) (TSum TUnit TUnit) FId
-                  ])
-      `shouldBe` "Success!"
-  describe "purify" $ do
-    it "simple" $
-      runEval (purify (TVar (Ident "qubit"))) (Map.fromList [("qubit", (VType (TSum TUnit TUnit)))])
-        `shouldBe` Right (TSum TUnit TUnit)
-    it "nested" $
-      runEval (purify (TTensor TUnit (TVar (Ident "qubit")))) (Map.fromList [("qubit", (VType (TSum TUnit TUnit)))])
-        `shouldBe` Right (TTensor TUnit (TSum TUnit TUnit))
+  describe "subst" $ do
+    it "整形な再帰型の再帰変数が「正しく」置換えられること" $
+      runEval (subst (TSum TUnit (TVar (Ident "x")))
+                     (TInd (Ident "x") (TSum TUnit (TVar (Ident "x"))))
+                     (Ident "x")
+              )
+              (Map.fromList [("nat", GVType (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))))])
+      `shouldBe` Right (TSum TUnit (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))))
     
+    it "入れ子再帰で同じ再帰変数を使っている場合は内側の再帰型の再帰変数として置換えあられること" $
+      runEval (subst (TSum TUnit (TTensor (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))) (TVar (Ident "x"))))
+                     (TInd (Ident "x") (TSum TUnit (TTensor (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))) (TVar (Ident "x")))))
+                     (Ident "x")
+              )
+              Map.empty
+      `shouldBe`
+              Right (TSum TUnit (TTensor (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))) (TInd (Ident "x") (TSum TUnit (TTensor (TInd (Ident "x") (TSum TUnit (TVar (Ident "x")))) (TVar (Ident "x")))))))

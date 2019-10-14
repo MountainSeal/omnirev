@@ -175,4 +175,21 @@
       \BinaryInfC{$\Gamma \vdash rec\;x\;be\;t\;in\;u:U$}
     \end{prooftree}
 \end{itembox}
+
+\begin{itembox}[c]{Substitution}
+  \begin{align*}
+    Y[S/X] &=
+    \begin{cases}
+      S & \text{if}X = Y \\
+      Y & \text{otherwise}
+    \end{cases} \\
+    I[S/X] &= I \\
+    T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
+    T_1\oplus{}T_2[S/X] &= T_1[S/X]\oplus{}T_2[S/X] \\
+    T^\star[S/X] &= T[S/X]^\star \\
+    \mu{Y}.T[S/X] &= \mu{Y}.(T[S/X])
+    %再帰型の入れ子は型付けで許さないのでここの定義は修正した方がいい鴨
+  \end{align*}
+\end{itembox}
+
 \end{document}
