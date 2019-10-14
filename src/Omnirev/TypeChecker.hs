@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Omnirev.TypeChecker(check) where
+module Omnirev.TypeChecker where
 
 import Control.Monad.Identity
 import Control.Monad.Except
@@ -126,9 +126,9 @@ checkType TUnit            = pure ""
 checkType (TTensor t1 t2)  = checkType t1 >> checkType t2
 checkType (TSum t1 t2)     = checkType t1 >> checkType t2
 checkType (TDual t)        = checkType t
-checkType (TInd (Ident s) t) = do
-  cxt <- ask
+checkType (TInd (Ident s) t) =
   -- ロガー的なモナドで他の局所変数を忘却している事を明示したい
+  -- 新しいコンテキストで型付け（再帰型が入れ子になる場合は既存コンテキストを破棄する）
   local (\c -> Map.singleton s (LVInd t)) (checkType t)
 checkType (TVar (Ident s)) = do
   -- 局所変数と大域変数で名前かぶった場合は局所変数として優先的に解釈
@@ -141,7 +141,10 @@ checkType (TVar (Ident s)) = do
         Just (GVType t) -> pure ""
         Just v          -> dupVarError v s
         Nothing         -> unknownVarError s
-    1 -> pure ""
+    1 ->
+      case Map.lookup s cxt of
+        Just _  -> pure ""
+        Nothing -> throwError $ "not exist" ++ s ++ "in the context."
     _ -> throwError "local type context must be empty or only one."
 
 checkTerm :: Term -> Type -> Eval String
