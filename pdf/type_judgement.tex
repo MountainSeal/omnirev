@@ -21,175 +21,549 @@
                {\leavevmode\hbox\bgroup}
                {\DisplayProof\egroup}
 
-\usetikzlibrary{decorations.markings, shapes}
-\tikzset{middlearrow/.style n args={3}{
-    decoration={
-      markings,
-      mark=at position 0.5 with {\arrow{#1}, \node[#2]{#3};},
-    },
-    postaction={decorate}
-  }
-}
+\newcommand{\sequent}[2]{#1 \vdash #2}
 
 \newcommand*{\vcenteredhbox}[1]{\begingroup
 \setbox0=\hbox{#1}\parbox{\wd0}{\box0}\endgroup}
 
 
 \begin{document}
-\begin{itembox}[c]{Formation rules for Types}
+\begin{itembox}[c]{Type Formation rules}
   \begin{center}
-    \begin{bprooftree}
-      \AxiomC{}
-      %\RightLabel{$var$}
-      \UnaryInfC{$X \vdash X$}
-    \end{bprooftree}
     \begin{bprooftree}
     \AxiomC{}
       %\RightLabel{$I$}
-      \UnaryInfC{$\Gamma \vdash I$}
+      \UnaryInfC{$\sequent{\Gamma}{I}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash T_1$}
-      \AxiomC{$\Gamma \vdash T_2$}
-      %\RightLabel{$\otimes$}
-      \BinaryInfC{$\Gamma \vdash T_1\oplus{}T_2$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash T_1$}
-      \AxiomC{$\Gamma \vdash T_2$}
+      \AxiomC{$\sequent{\Gamma}{T_1}$}
+      \AxiomC{$\sequent{\Gamma}{T_2}$}
       %\RightLabel{$\oplus$}
-      \BinaryInfC{$\Gamma \vdash T_1\otimes{}T_2$}
+      \BinaryInfC{$\sequent{\Gamma}{T_1\oplus{}T_2}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\Gamma \vdash T$}
-      %\RightLabel{$\star$}
-      \UnaryInfC{$\Gamma \vdash T^\star$}
+      \AxiomC{$\sequent{\Gamma}{T_1}$}
+      \AxiomC{$\sequent{\Gamma}{T_2}$}
+      %\RightLabel{$\otimes$}
+      \BinaryInfC{$\sequent{\Gamma}{T_1\otimes{}T_2}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$X \vdash T$}
+      \AxiomC{$\sequent{\Gamma}{T_1}$}
+      \AxiomC{$\sequent{\Gamma}{T_2}$}
+      %\RightLabel{$\invamp$}
+      \BinaryInfC{$\sequent{\Gamma}{T_1\invamp{}T_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma}{T_1}$}
+      \AxiomC{$\sequent{\Gamma}{T_2}$}
+      %\RightLabel{$\multimap$}
+      \BinaryInfC{$\sequent{\Gamma}{T_1\multimap{}T_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{}
+      %\RightLabel{Variable}
+      \UnaryInfC{$\sequent{\Gamma,X}{X}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,X}{T}$}
       %\RightLabel{$\mu$}
-      \UnaryInfC{$\Gamma \vdash \mu{X}.T$}
+      \UnaryInfC{$\sequent{\Gamma}{\mu{X}.T}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
 
-\begin{itembox}[c]{Formation rules for Values}
+\begin{itembox}[c]{Typing rules for Values}
+  \begin{prooftree}
+    \AxiomC{}
+    \RightLabel{Variable}
+    \UnaryInfC{$\sequent{x:T}{x:T}$}
+  \end{prooftree}
   \begin{center}
     \begin{bprooftree}
       \AxiomC{}
-      %\RightLabel{$\ast$}
-      \UnaryInfC{$\vdash e^{i\theta}:I$}
+      \LeftLabel{$I_L$}
+      \UnaryInfC{$\sequent{\Gamma,():I}{\Delta}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T_1$}
-      \AxiomC{$\vdash v_2:T_2$}
-      %\RightLabel{$\times$}
-      \BinaryInfC{$\vdash v_1\times{}v_2:T_1\otimes{}T_2$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash v:T_1$}
-      %\RightLabel{$inl$}
-      \UnaryInfC{$\vdash inl\;v:T_1\oplus{}T_2$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash v:T_2$}
-      %\RightLabel{$\inr$}
-      \UnaryInfC{$\vdash inr\;v:T_1\oplus{}T_2$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash v:T$}
-      %\RightLabel{$\star$}
-      \UnaryInfC{$\vdash \overline{v}:T^\star$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\vdash v:T[\mu{X}.T/X]$}
-      %\RightLabel{$fold$}
-      \UnaryInfC{$\vdash fold\;v:\mu{X}.T$}
+      \AxiomC{}
+      \RightLabel{$I_R$}
+      \UnaryInfC{$\sequent{\Gamma}{():I,\Delta}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T_1\otimes{}T_2$}
-      \AxiomC{$\vdash v_2:T_1\otimes{}T_2$}
-      %\RightLabel{$+$}
-      \BinaryInfC{$\vdash v_1+v_2:T_1\otimes{}T_2$}
+      \AxiomC{$\sequent{\Gamma,v_1:T_1}{\Delta}$}
+      \LeftLabel{$\oplus_{L_l}$}
+      \UnaryInfC{$\sequent{\Gamma,inl\;v_1:T_1\oplus{}T_2}{\Delta}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T^\star$}
-      \AxiomC{$\vdash v_2:T$}
-      %\RightLabel{$,$}
-      \BinaryInfC{$\vdash v_1,v_2:T^\star\otimes{}T$}
+      \AxiomC{$\sequent{\Gamma}{v_1:T_1,\Delta}$}
+      \RightLabel{$\oplus_{R_l}$}
+      \UnaryInfC{$\sequent{\Gamma}{inl\;v_1:T_1\oplus{}T_2,\Delta}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,v_2:T_2}{\Delta}$}
+      \LeftLabel{$\oplus_{L_r}$}
+      \UnaryInfC{$\sequent{\Gamma,inr\;v_2:T_1\oplus{}T_2}{\Delta}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T_1$}
-      \AxiomC{$\vdash v_2:T_1^\star\otimes{}T_2$}
-      %\RightLabel{$Application$}
-      \BinaryInfC{$\vdash v_1\;v_2:T_2$}
+      \AxiomC{$\sequent{\Gamma}{v_2:T_2,\Delta}$}
+      \RightLabel{$\oplus_{R_r}$}
+      \UnaryInfC{$\sequent{\Gamma}{inr\;v_2:T_1\oplus{}T_2,\Delta}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,v_1:T_1,v_2:T_2}{\Delta}$}
+      \LeftLabel{$\otimes_L$}
+      \UnaryInfC{$\sequent{\Gamma,v_1\times{}v_2:T_1\otimes{}T_2}{\Delta}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\vdash v_1:T_1^\star\otimes{}T_2$}
-      \AxiomC{$\vdash v_2:T_2^\star\otimes{}T_3$}
-      %\RightLabel{$\fcmp$}
-      \BinaryInfC{$\vdash v_1\fcmp{}v_2:T_1^\star\otimes{}T_3$}
+      \AxiomC{$\sequent{\Gamma_1}{v_1:T_1,\Delta_1}$}
+      \AxiomC{$\sequent{\Gamma_2}{v_2:T_2,\Delta_2}$}
+      \RightLabel{$\otimes_R$}
+      \BinaryInfC{$\sequent{\Gamma_1;\Gamma_2}{v_1\times{}v_2:T_1\otimes{}T_2,\Delta_1;\Delta_2}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma_1,v_1:T_1}{\Delta_1}$}
+      \AxiomC{$\sequent{\Gamma_2,v_2:T_2}{\Delta_2}$}
+      \LeftLabel{$\invamp_L$}
+      \BinaryInfC{$\sequent{\Gamma_1;\Gamma_2,v_1\parallel{}v_2:T_1\invamp{}T_2}{\Delta_1;\Delta_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma}{v_1:T_1,v_2:T_2,\Delta}$}
+      \RightLabel{$\invamp_R$}
+      \UnaryInfC{$\sequent{\Gamma}{v_1\parallel{}v_2:T_1\invamp{}T_2,\Delta}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma_1}{v_1:T_1,\Delta_1}$}
+      \AxiomC{$\sequent{\Gamma_2,v_2:T_2}{\Delta_2}$}
+      \LeftLabel{$\multimap_L$}
+      \BinaryInfC{$\sequent{\Gamma_1;\Gamma_2,v_1\mapsto{}v_2:T_1\multimap{}T_2}{\Delta_1;\Delta_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,v_1:T_1}{v_2:T_2,\Delta}$}
+      \RightLabel{$\multimap_R$}
+      \UnaryInfC{$\sequent{\Gamma}{v_1\mapsto{}v_2:T_1\multimap{}T_2,\Delta}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,v:T[\mu{X}.T/X]}{\Delta}$}
+      \LeftLabel{$\mu_L$}
+      \UnaryInfC{$\sequent{\Gamma,fold\;v:\mu{X}.T}{\Delta}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma}{v:T[\mu{X}.T/X],\Delta}$}
+      \RightLabel{$\mu_R$}
+      \UnaryInfC{$\sequent{\Gamma}{fold\;v:\mu{X}.T,\Delta}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
 
 \begin{itembox}[c]{Typing rules for Terms}
-    \begin{prooftree}
-      \AxiomC{$x:T \in \Gamma$}
-      \UnaryInfC{$\Gamma \vdash x:T$}
-    \end{prooftree}
-
-    \begin{prooftree}
-      \AxiomC{$\vdash v:T$}
-      \UnaryInfC{$\Gamma \vdash measure\;v:T$}
-    \end{prooftree}
-    
-    \begin{prooftree}
-      \AxiomC{$\Gamma \vdash t:T_1\oplus{}T_2$}
-      \AxiomC{$\Gamma,x:T_1 \vdash u_1:T $}
-      \AxiomC{$\Gamma,y:T_2 \vdash u_2:T $}
-      \TrinaryInfC{$\Gamma \vdash case\;t\;of\;inl\;x\;to\;u_1\;inr\;y\;to\;u_2:T$}
-    \end{prooftree}
-
-    \begin{prooftree}
-      \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
-      \UnaryInfC{$\Gamma \vdash fst\;t:T_1 $}
-    \end{prooftree}
-
-    \begin{prooftree}
-      \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
-      \UnaryInfC{$\Gamma \vdash fst\;t:T_2 $}
-    \end{prooftree}
-
-    \begin{prooftree}
-      \AxiomC{$\Gamma \vdash t:T $}
-      \AxiomC{$\Gamma,x:T \vdash u:U $}
-      \BinaryInfC{$\Gamma \vdash let\;x\;be\;t\;in\;u:U$}
-    \end{prooftree}
-
-    \begin{prooftree}
-      \AxiomC{$\Gamma,x:T \vdash t:T $}
-      \AxiomC{$\Gamma,x:T \vdash u:U$}
-      \BinaryInfC{$\Gamma \vdash rec\;x\;be\;t\;in\;u:U$}
-    \end{prooftree}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{v_2:T_1\multimap{}T_2}$}
+      \AxiomC{$\sequent{}{v_1:T_1}$}
+      \LeftLabel{Application}
+      \BinaryInfC{$\sequent{}{v_2\;v_1:T_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{v_1:T_1\multimap{}T_2}$}
+      \AxiomC{$\sequent{}{v_2:T_2\multimap{}T_3}$}
+      \RightLabel{Composition}
+      \BinaryInfC{$\sequent{}{v_1\fcmp{}v_2:T_1\multimap{}T_3}$}
+    \end{bprooftree}
+  \begin{center}
+  \end{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{v:T_2\multimap{}T_1}$}
+      \LeftLabel{Transpose}
+      \UnaryInfC{$\sequent{}{v^\dagger{}:T_1\multimap{}T_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{v:T_1\invamp{}T_2}$}
+      \RightLabel{Measurement}
+      \UnaryInfC{$\sequent{}{measure\;v:T_1\oplus{}T_2}$}
+    \end{bprooftree}
+  \end{center}
 \end{itembox}
 
 \begin{itembox}[c]{Substitution}
   \begin{align*}
     Y[S/X] &=
     \begin{cases}
-      S & \text{if}X = Y \\
+      S & \text{if}Y = X \\
       Y & \text{otherwise}
     \end{cases} \\
     I[S/X] &= I \\
-    T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
     T_1\oplus{}T_2[S/X] &= T_1[S/X]\oplus{}T_2[S/X] \\
-    T^\star[S/X] &= T[S/X]^\star \\
+    T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
+    T_1\invamp{}T_2[S/X] &= T_1[S/X]\invamp{}T_2[S/X] \\
+    T_1\multimap{}T_2[S/X] &= T_1[S/X]\multimap{}T_2[S/X] \\
     \mu{Y}.T[S/X] &= \mu{Y}.(T[S/X])
     %再帰型の入れ子は型付けで許さないのでここの定義は修正した方がいい鴨
   \end{align*}
 \end{itembox}
+
+
+
+
+
+
+
+
+
+
+
+% \newpage
+% \begin{itembox}[c]{Formation rules for Types}
+%   \begin{center}
+%     \begin{bprooftree}
+%     \AxiomC{}
+%       %\RightLabel{$I$}
+%       \UnaryInfC{$\Gamma \vdash I$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\otimes$}
+%       \BinaryInfC{$\Gamma \vdash T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\oplus$}
+%       \BinaryInfC{$\Gamma \vdash T_1\otimes{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\multimap$}
+%       \BinaryInfC{$\Gamma \vdash T_1\multimap{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{}
+%       %\RightLabel{$var$}
+%       \UnaryInfC{$X \vdash X$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$X \vdash T$}
+%       %\RightLabel{$\mu$}
+%       \UnaryInfC{$\Gamma \vdash \mu{X}.T$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Formation rules for Values}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{}
+%       \UnaryInfC{$x:T \vdash x:T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{}
+%       %\RightLabel{$\ast$}
+%       \UnaryInfC{$\vdash ():I$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T_1$}
+%       %\RightLabel{$inl$}
+%       \UnaryInfC{$\Gamma \vdash inl\;v:T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T_2$}
+%       %\RightLabel{$\inr$}
+%       \UnaryInfC{$\Gamma \vdash inr\;v:T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T_1$}
+%       \AxiomC{$\Delta \vdash v_2:T_2$}
+%       %\RightLabel{$\times$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1\times{}v_2:T_1\otimes{}T_2$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T_1 \rightharpoonup \Xi$}
+%       \AxiomC{$\Delta;\Xi \vdash v_2:T_2$}
+%       %\RightLabel{$\mapsto$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1\mapsto{}v_2:T_1\multimap{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T[\mu{X}.T/X]$}
+%       %\RightLabel{$fold$}
+%       \UnaryInfC{$\Gamma \vdash fold\;v:\mu{X}.T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T$}
+%       \AxiomC{$\Gamma \vdash v_2:T$}
+%       %\RightLabel{$+$}
+%       \BinaryInfC{$\Gamma \vdash v_1+v_2:T$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Pattern matching rules}
+%   \begin{prooftree}
+%     \AxiomC{}
+%     \UnaryInfC{$\vdash x:T \rightharpoonup x:T$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%   \AxiomC{}
+%   \UnaryInfC{$x:T \vdash x:T \rightharpoonup$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{}
+%     \UnaryInfC{$\vdash ():I \rightharpoonup$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{$\Gamma \vdash v_1:T_1 \rightharpoonup \Xi$}
+%     \UnaryInfC{$\Gamma \vdash inl\;v_1:T_1\oplus{}T_2 \rightharpoonup \Xi$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{$\Gamma \vdash v_2:T_2 \rightharpoonup \Xi$}
+%     \UnaryInfC{$\Gamma \vdash inr\;v_2:T_1\oplus{}T_2 \rightharpoonup \Xi$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{$\Gamma \vdash v_1:T_1 \rightharpoonup \Xi_1$}
+%     \AxiomC{$\Delta \vdash v_2:T_2 \rightharpoonup \Xi_2$}
+%     \BinaryInfC{$\Gamma;\Delta \vdash v_1\times{}v_2:T_1\otimes{}T_2 \rightharpoonup \Xi_1;\Xi_2$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{$\Gamma \vdash v_1:T_1 \rightharpoonup \Xi_1$}
+%     \AxiomC{$\Delta;\Xi_1 \vdash v_2:T_2 \rightharpoonup \Xi_2$}
+%     \BinaryInfC{$\Gamma;\Delta \vdash v_1\mapsto{}v_2:T_1\multimap{}T_2 \rightharpoonup \Xi_2$}
+%   \end{prooftree}
+%   \begin{prooftree}
+%     \AxiomC{$\Gamma \vdash v:T[\mu{X}.T/X] \rightharpoonup \Xi$}
+%     \UnaryInfC{$\Gamma \vdash fold\;v:\mu{X}.T \rightharpoonup \Xi$}
+%   \end{prooftree}
+% \end{itembox}
+
+% \begin{itembox}[c]{Typing rules for Terms}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\vdash v_1:T_1\multimap{}T_2$}
+%       \AxiomC{$\vdash v_2:T_2$}
+%       %\RightLabel{$Application$}
+%       \BinaryInfC{$\vdash v_1\;v_2:T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\vdash v_1:T_1\multimap{}T_2$}
+%       \AxiomC{$\vdash v_2:T_2\multimap{}T_3$}
+%       %\RightLabel{$\fcmp$}
+%       \BinaryInfC{$\vdash v_1\fcmp{}v_2:T_1\multimap{}T_3$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%    \begin{bprooftree}
+%       \AxiomC{$x:T \in \Gamma$}
+%       \UnaryInfC{$\Gamma \vdash x:T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\vdash v:T$}
+%       \UnaryInfC{$\Gamma \vdash measure\;v:T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\vdash t:T $}
+%       \AxiomC{$\Gamma,x:T \vdash u:U $}
+%       \BinaryInfC{$\Gamma \vdash let\;x\;be\;t\;in\;u:U$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Substitution}
+%   \begin{align*}
+%     Y[S/X] &=
+%     \begin{cases}
+%       S & \text{if}X = Y \\
+%       Y & \text{otherwise}
+%     \end{cases} \\
+%     I[S/X] &= I \\
+%     T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
+%     T_1\oplus{}T_2[S/X] &= T_1[S/X]\oplus{}T_2[S/X] \\
+%     T_1\multimap{}T_2[S/X] &= T_1[S/X]\multimap{}T_2[S/X] \\
+%     \mu{Y}.T[S/X] &= \mu{Y}.(T[S/X])
+%     %再帰型の入れ子は型付けで許さないのでここの定義は修正した方がいい鴨
+%   \end{align*}
+% \end{itembox}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \newpage
+% ユニット型を複素数体$\mathbb{C}$に拡張する場合・・・
+% \begin{itembox}[c]{Formation rules for Types}
+%   \begin{center}
+%     \begin{bprooftree}
+%     \AxiomC{}
+%       %\RightLabel{$I$}
+%       \UnaryInfC{$\Gamma \vdash I$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\otimes$}
+%       \BinaryInfC{$\Gamma \vdash T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\oplus$}
+%       \BinaryInfC{$\Gamma \vdash T_1\otimes{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash T_1$}
+%       \AxiomC{$\Gamma \vdash T_2$}
+%       %\RightLabel{$\multimap$}
+%       \BinaryInfC{$\Gamma \vdash T_1\multimap{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{}
+%       %\RightLabel{$var$}
+%       \UnaryInfC{$X \vdash X$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$X \vdash T$}
+%       %\RightLabel{$\mu$}
+%       \UnaryInfC{$\Gamma \vdash \mu{X}.T$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Formation rules for Values}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{}
+%       %\RightLabel{$\ast$}
+%       \UnaryInfC{$\vdash e^{i\theta}:I$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T_1$}
+%       %\RightLabel{$inl$}
+%       \UnaryInfC{$\Gamma \vdash inl\;v:T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T_2$}
+%       %\RightLabel{$\inr$}
+%       \UnaryInfC{$\Gamma \vdash inr\;v:T_1\oplus{}T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T_1$}
+%       \AxiomC{$\Delta \vdash v_2:T_2$}
+%       %\RightLabel{$\times$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1\times{}v_2:T_1\otimes{}T_2$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$v_1: \Rightarrow \Xi$}
+%       \AxiomC{$\Gamma;\Xi \vdash v_1:T_1$}
+%       \AxiomC{$\Delta;\Xi \vdash v_2:T_2$}
+%       %\RightLabel{$\mapsto$}
+%       \TrinaryInfC{$\Gamma;\Delta \vdash v_1\mapsto{}v_2:T_1\multimap{}T_2$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v:T[\mu{X}.T/X]$}
+%       %\RightLabel{$fold$}
+%       \UnaryInfC{$\Gamma \vdash fold\;v:\mu{X}.T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T$}
+%       \AxiomC{$\Delta \vdash v_2:T$}
+%       %\RightLabel{$+$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1+v_2:T$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\vdash e^{i\theta}:I$}
+%       \AxiomC{$\Gamma \vdash v:T$}
+%       \BinaryInfC{$\Gamma \vdash e^{i\theta}\cdot{}v:T$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T_1\multimap{}T_2$}
+%       \AxiomC{$\Delta \vdash v_2:T_2$}
+%       %\RightLabel{$Application$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1\;v_2:T_2$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\Gamma \vdash v_1:T_1\multimap{}T_2$}
+%       \AxiomC{$\Delta \vdash v_2:T_2\multimap{}T_3$}
+%       %\RightLabel{$\fcmp$}
+%       \BinaryInfC{$\Gamma;\Delta \vdash v_1\fcmp{}v_2:T_1\multimap{}T_3$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% % \begin{itembox}[c]{Typing rules for Terms}
+% %     \begin{prooftree}
+% %       \AxiomC{$x:T \in \Gamma$}
+% %       \UnaryInfC{$\Gamma \vdash x:T$}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\vdash v:T$}
+% %       \UnaryInfC{$\Gamma \vdash measure\;v:T$}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\Gamma \vdash t:T_1\oplus{}T_2$}
+% %       \AxiomC{$\Gamma,x:T_1 \vdash u_1:T $}
+% %       \AxiomC{$\Gamma,y:T_2 \vdash u_2:T $}
+% %       \TrinaryInfC{$\Gamma \vdash case\;t\;of\;inl\;x\;to\;u_1\;inr\;y\;to\;u_2:T$}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
+% %       \UnaryInfC{$\Gamma \vdash fst\;t:T_1 $}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\Gamma \vdash t:T_1\otimes{}T_2 $}
+% %       \UnaryInfC{$\Gamma \vdash snd\;t:T_2 $}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\Gamma \vdash t:T $}
+% %       \AxiomC{$\Gamma,x:T \vdash u:U $}
+% %       \BinaryInfC{$\Gamma \vdash let\;x\;be\;t\;in\;u:U$}
+% %     \end{prooftree}
+% %     \begin{prooftree}
+% %       \AxiomC{$\Gamma,x:T \vdash t:T $}
+% %       \AxiomC{$\Gamma,x:T \vdash u:U$}
+% %       \BinaryInfC{$\Gamma \vdash rec\;x\;be\;t\;in\;u:U$}
+% %     \end{prooftree}
+% % \end{itembox}
+
+% \begin{itembox}[c]{Substitution}
+%   \begin{align*}
+%     Y[S/X] &=
+%     \begin{cases}
+%       S & \text{if}X = Y \\
+%       Y & \text{otherwise}
+%     \end{cases} \\
+%     I[S/X] &= I \\
+%     T_1\otimes{}T_2[S/X] &= T_1[S/X]\otimes{}T_2[S/X] \\
+%     T_1\oplus{}T_2[S/X] &= T_1[S/X]\oplus{}T_2[S/X] \\
+%     T_1\multimap{}T_2[S/X] &= T_1[S/X]\multimap{}T_2[S/X] \\
+%     \mu{Y}.T[S/X] &= \mu{Y}.(T[S/X])
+%     %再帰型の入れ子は型付けで許さないのでここの定義は修正した方がいい鴨
+%   \end{align*}
+% \end{itembox}
 
 \end{document}
