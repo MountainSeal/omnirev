@@ -1,4 +1,0 @@
-type qubit = unit + unit
-
-func test : unit <-> unit = ^eval(qubit);eval(qubit)
-func test : qubit <-> unit + unit = id

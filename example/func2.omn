@@ -1,5 +1,0 @@
-type qubit = unit + unit
-
-func fdistrib : ((unit + qubit) * octet) <-> (unit * octet) + (qubit * octet) = distrib
-
-func test : qubit <-> unit + unit = id

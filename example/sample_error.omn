@@ -1,3 +1,0 @@
-type qubit = unit + unit
-
-type qubit = unit + unit + unit
