@@ -101,38 +101,31 @@ instance Print Def where
 instance Print [Def] where
   prt = prtList
 
+instance Print Type where
+  prt i e = case e of
+    TVar id -> prPrec i 5 (concatD [prt 0 id])
+    TUnit -> prPrec i 5 (concatD [doc (showString "I")])
+    TSum type_1 type_2 -> prPrec i 3 (concatD [prt 3 type_1, doc (showString "(+)"), prt 4 type_2])
+    TTensor type_1 type_2 -> prPrec i 4 (concatD [prt 4 type_1, doc (showString "(*)"), prt 5 type_2])
+    TPar type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "||"), prt 2 type_2])
+    TFunc type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "~>"), prt 3 type_2])
+    TInd id type_ -> prPrec i 5 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 5 type_])
+
 instance Print Value where
   prt i e = case e of
-    VUnit d -> prPrec i 6 (concatD [doc (showString "cis"), prt 0 d, doc (showString "pi")])
-    VLeft value -> prPrec i 6 (concatD [doc (showString "inl"), prt 6 value])
-    VRight value -> prPrec i 6 (concatD [doc (showString "inr"), prt 6 value])
-    VTensor value1 value2 -> prPrec i 5 (concatD [prt 5 value1, doc (showString "*"), prt 6 value2])
-    VDual value -> prPrec i 6 (concatD [doc (showString "~"), prt 6 value])
-    VFold value -> prPrec i 6 (concatD [doc (showString "fold"), prt 6 value])
-    VTrace value1 value2 -> prPrec i 1 (concatD [prt 1 value1, doc (showString ","), prt 2 value2])
-    VApp value1 value2 -> prPrec i 2 (concatD [prt 2 value1, prt 3 value2])
-    VComp value1 value2 -> prPrec i 3 (concatD [prt 3 value1, doc (showString ";"), prt 4 value2])
-    VSum value1 value2 -> prPrec i 4 (concatD [prt 4 value1, doc (showString "+"), prt 5 value2])
+    VVar id -> prPrec i 4 (concatD [prt 0 id])
+    VUnit -> prPrec i 4 (concatD [doc (showString "()")])
+    VLeft value -> prPrec i 4 (concatD [doc (showString "inl"), prt 4 value])
+    VRight value -> prPrec i 4 (concatD [doc (showString "inr"), prt 4 value])
+    VTensor value1 value2 -> prPrec i 3 (concatD [prt 3 value1, doc (showString "*"), prt 4 value2])
+    VPar value1 value2 -> prPrec i 1 (concatD [prt 1 value1, doc (showString "|"), prt 2 value2])
+    VArrow value1 value2 -> prPrec i 2 (concatD [prt 2 value1, doc (showString "->"), prt 3 value2])
+    VFold value -> prPrec i 4 (concatD [doc (showString "fold"), prt 4 value])
 
 instance Print Term where
   prt i e = case e of
-    CVar id -> prPrec i 0 (concatD [prt 0 id])
-    CValue value -> prPrec i 0 (concatD [prt 0 value])
-    CBang value -> prPrec i 0 (concatD [doc (showString "!"), prt 0 value])
-    CMeas value -> prPrec i 0 (concatD [doc (showString "measure"), prt 0 value])
-    CSkip -> prPrec i 0 (concatD [doc (showString "skip")])
-    CCase term1 id1 term2 id2 term3 -> prPrec i 0 (concatD [doc (showString "case"), prt 0 term1, doc (showString "of"), doc (showString "inl"), prt 0 id1, doc (showString "to"), prt 0 term2, doc (showString "inr"), prt 0 id2, doc (showString "to"), prt 0 term3])
-    CFst term -> prPrec i 0 (concatD [doc (showString "fst"), prt 0 term])
-    CSnd term -> prPrec i 0 (concatD [doc (showString "snd"), prt 0 term])
-    CLet id term1 term2 -> prPrec i 0 (concatD [doc (showString "let"), prt 0 id, doc (showString "be"), prt 0 term1, doc (showString "in"), prt 0 term2])
-    CRec id term1 term2 -> prPrec i 0 (concatD [doc (showString "rec"), prt 0 id, doc (showString "be"), prt 0 term1, doc (showString "in"), prt 0 term2])
-
-instance Print Type where
-  prt i e = case e of
-    TUnit -> prPrec i 3 (concatD [doc (showString "I")])
-    TSum type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "(+)"), prt 2 type_2])
-    TTensor type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "(*)"), prt 3 type_2])
-    TDual type_ -> prPrec i 3 (concatD [doc (showString "~"), prt 3 type_])
-    TInd id type_ -> prPrec i 3 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 0 type_])
-    TVar id -> prPrec i 3 (concatD [prt 0 id])
+    TmApp term1 term2 -> prPrec i 2 (concatD [prt 2 term1, prt 3 term2])
+    TmComp term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString ";"), prt 2 term2])
+    TmTrans term -> prPrec i 3 (concatD [doc (showString "~"), prt 3 term])
+    TmMeas term -> prPrec i 3 (concatD [doc (showString "measure"), prt 3 term])
 

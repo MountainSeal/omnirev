@@ -14,38 +14,28 @@ data Program = Prog [Def]
 data Def = DType Ident Type | DTerm Ident Type Term
   deriving (Eq, Ord, Show, Read)
 
+data Type
+    = TVar Ident
+    | TUnit
+    | TSum Type Type
+    | TTensor Type Type
+    | TPar Type Type
+    | TFunc Type Type
+    | TInd Ident Type
+  deriving (Eq, Ord, Show, Read)
+
 data Value
-    = VUnit Double
+    = VVar Ident
+    | VUnit
     | VLeft Value
     | VRight Value
     | VTensor Value Value
-    | VDual Value
+    | VPar Value Value
+    | VArrow Value Value
     | VFold Value
-    | VTrace Value Value
-    | VApp Value Value
-    | VComp Value Value
-    | VSum Value Value
   deriving (Eq, Ord, Show, Read)
 
 data Term
-    = CVar Ident
-    | CValue Value
-    | CBang Value
-    | CMeas Value
-    | CSkip
-    | CCase Term Ident Term Ident Term
-    | CFst Term
-    | CSnd Term
-    | CLet Ident Term Term
-    | CRec Ident Term Term
-  deriving (Eq, Ord, Show, Read)
-
-data Type
-    = TUnit
-    | TSum Type Type
-    | TTensor Type Type
-    | TDual Type
-    | TInd Ident Type
-    | TVar Ident
+    = TmApp Term Term | TmComp Term Term | TmTrans Term | TmMeas Term
   deriving (Eq, Ord, Show, Read)
 

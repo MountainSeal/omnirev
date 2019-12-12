@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \= | \: | \* | \~ | \, | \; | \+ | \( | \) | \! | \( \+ \) | \( \* \) | \.
+   \= | \: | \( \+ \) | \( \* \) | \| \| | \~ \> | \. | \( | \) | \( \) | \* | \| | \- \> | \; | \~
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -34,7 +34,7 @@ $l $i*   { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 
 
 
-$d+ \. $d+ (e (\-)? $d+)? { tok (\p s -> PT p (TD $ share s)) }
+
 
 {
 
@@ -101,7 +101,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "fix" 17 (b "." 9 (b ")" 5 (b "(*)" 3 (b "(" 2 (b "!" 1 N N) N) (b "(+)" 4 N N)) (b "+" 7 (b "*" 6 N N) (b "," 8 N N))) (b "I" 13 (b ";" 11 (b ":" 10 N N) (b "=" 12 N N)) (b "case" 15 (b "be" 14 N N) (b "cis" 16 N N)))) (b "pi" 26 (b "inr" 22 (b "in" 20 (b "fst" 19 (b "fold" 18 N N) N) (b "inl" 21 N N)) (b "measure" 24 (b "let" 23 N N) (b "of" 25 N N))) (b "term" 30 (b "skip" 28 (b "rec" 27 N N) (b "snd" 29 N N)) (b "type" 32 (b "to" 31 N N) (b "~" 33 N N))))
+resWords = b "I" 12 (b "*" 6 (b "(*)" 3 (b "()" 2 (b "(" 1 N N) N) (b ")" 5 (b "(+)" 4 N N) N)) (b ":" 9 (b "." 8 (b "->" 7 N N) N) (b "=" 11 (b ";" 10 N N) N))) (b "term" 18 (b "inl" 15 (b "fold" 14 (b "fix" 13 N N) N) (b "measure" 17 (b "inr" 16 N N) N)) (b "||" 21 (b "|" 20 (b "type" 19 N N) N) (b "~>" 23 (b "~" 22 N N) N)))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

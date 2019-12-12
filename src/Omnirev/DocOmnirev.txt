@@ -18,29 +18,20 @@ reserved words excluded.
 
 ===Literals===
 
-Double-precision float literals //Double// have the structure
-indicated by the regular expression ``digit+ '.' digit+ ('e' ('-')? digit+)?`` i.e.\
-two sequences of digits separated by a decimal point, optionally
-followed by an unsigned or negative exponent.
-
-
 
 
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in omnirev are the following:
-  | ``I`` | ``be`` | ``case`` | ``cis``
-  | ``fix`` | ``fold`` | ``fst`` | ``in``
-  | ``inl`` | ``inr`` | ``let`` | ``measure``
-  | ``of`` | ``pi`` | ``rec`` | ``skip``
-  | ``snd`` | ``term`` | ``to`` | ``type``
+  | ``I`` | ``fix`` | ``fold`` | ``inl``
+  | ``inr`` | ``measure`` | ``term`` | ``type``
 
 The symbols used in omnirev are the following:
-  | = | : | * | ~
-  | , | ; | + | (
-  | ) | ! | (+) | (*)
-  | . |  |  | 
+  | = | : | (+) | (*)
+  | || | ~> | . | (
+  | ) | () | * | |
+  | -> | ; | ~ | 
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -56,41 +47,39 @@ All other symbols are terminals.
   |  |  **|**  | ``term`` //Ident// ``:`` //Type// ``=`` //Term// 
   | //[Def]// | -> | //Def// 
   |  |  **|**  | //Def// //[Def]// 
-  | //Value6// | -> | ``cis`` //Double// ``pi`` 
-  |  |  **|**  | ``inl`` //Value6// 
-  |  |  **|**  | ``inr`` //Value6// 
-  |  |  **|**  | ``~`` //Value6// 
-  |  |  **|**  | ``fold`` //Value6// 
-  | //Value5// | -> | //Value5// ``*`` //Value6// 
-  |  |  **|**  | ``(`` //Value// ``)`` 
-  | //Value1// | -> | //Value1// ``,`` //Value2// 
-  |  |  **|**  | //Value2// 
-  | //Value2// | -> | //Value2// //Value3// 
-  |  |  **|**  | //Value3// 
-  | //Value3// | -> | //Value3// ``;`` //Value4// 
-  |  |  **|**  | //Value4// 
-  | //Value4// | -> | //Value4// ``+`` //Value5// 
-  |  |  **|**  | //Value5// 
-  | //Value// | -> | //Value1// 
-  | //Term// | -> | //Ident// 
-  |  |  **|**  | //Value// 
-  |  |  **|**  | ``!`` //Value// 
-  |  |  **|**  | ``measure`` //Value// 
-  |  |  **|**  | ``skip`` 
-  |  |  **|**  | ``case`` //Term// ``of`` ``inl`` //Ident// ``to`` //Term// ``inr`` //Ident// ``to`` //Term// 
-  |  |  **|**  | ``fst`` //Term// 
-  |  |  **|**  | ``snd`` //Term// 
-  |  |  **|**  | ``let`` //Ident// ``be`` //Term// ``in`` //Term// 
-  |  |  **|**  | ``rec`` //Ident// ``be`` //Term// ``in`` //Term// 
-  | //Type3// | -> | ``I`` 
-  |  |  **|**  | ``~`` //Type3// 
-  |  |  **|**  | ``fix`` //Ident// ``.`` //Type// 
-  |  |  **|**  | //Ident// 
+  | //Type5// | -> | //Ident// 
+  |  |  **|**  | ``I`` 
+  |  |  **|**  | ``fix`` //Ident// ``.`` //Type5// 
   |  |  **|**  | ``(`` //Type// ``)`` 
-  | //Type1// | -> | //Type1// ``(+)`` //Type2// 
+  | //Type3// | -> | //Type3// ``(+)`` //Type4// 
+  |  |  **|**  | //Type4// 
+  | //Type4// | -> | //Type4// ``(*)`` //Type5// 
+  |  |  **|**  | //Type5// 
+  | //Type1// | -> | //Type1// ``||`` //Type2// 
   |  |  **|**  | //Type2// 
-  | //Type2// | -> | //Type2// ``(*)`` //Type3// 
+  | //Type2// | -> | //Type2// ``~>`` //Type3// 
   |  |  **|**  | //Type3// 
   | //Type// | -> | //Type1// 
+  | //Value4// | -> | //Ident// 
+  |  |  **|**  | ``()`` 
+  |  |  **|**  | ``inl`` //Value4// 
+  |  |  **|**  | ``inr`` //Value4// 
+  |  |  **|**  | ``fold`` //Value4// 
+  |  |  **|**  | ``(`` //Value// ``)`` 
+  | //Value3// | -> | //Value3// ``*`` //Value4// 
+  |  |  **|**  | //Value4// 
+  | //Value1// | -> | //Value1// ``|`` //Value2// 
+  |  |  **|**  | //Value2// 
+  | //Value2// | -> | //Value2// ``->`` //Value3// 
+  |  |  **|**  | //Value3// 
+  | //Value// | -> | //Value1// 
+  | //Term2// | -> | //Term2// //Term3// 
+  |  |  **|**  | //Term3// 
+  | //Term1// | -> | //Term1// ``;`` //Term2// 
+  |  |  **|**  | //Term2// 
+  | //Term3// | -> | ``~`` //Term3// 
+  |  |  **|**  | ``measure`` //Term3// 
+  |  |  **|**  | ``(`` //Term// ``)`` 
+  | //Term// | -> | //Term1// 
 
 
