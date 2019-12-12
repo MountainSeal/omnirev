@@ -1,13 +1,11 @@
 # omnirev
-可逆型の型検査器
-
-可逆型に基づくプログラミング言語の処理系 ***(予定)***
+線形型に基づく可逆なプログラミング言語 ***(予定)***
 
 # Dependency
-## stack
-## alex
-## happy
-## bnfc(Optional)
+- stack
+- alex
+- happy
+- bnfc
 
 # Setup
 ## install stack
@@ -36,5 +34,7 @@ stack build
 # Licence
 This is released under the MIT License, see LICENSE.
 
-# References
-追加予定
+# ToDo
+1. implements type checker
+2. implements interpreter
+3. どこかのタイミングで披露したい・・・
