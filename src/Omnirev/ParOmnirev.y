@@ -85,14 +85,15 @@ Value2 : Value2 '->' Value3 { AbsOmnirev.VArrow $1 $3 }
        | Value3 { $1 }
 Value :: { Value }
 Value : Value1 { $1 }
+Term3 :: { Term }
+Term3 : Value { AbsOmnirev.TmVal $1 }
+      | '~' Term3 { AbsOmnirev.TmTrans $2 }
+      | 'measure' Term3 { AbsOmnirev.TmMeas $2 }
+      | '(' Term ')' { $2 }
 Term2 :: { Term }
 Term2 : Term2 Term3 { AbsOmnirev.TmApp $1 $2 } | Term3 { $1 }
 Term1 :: { Term }
 Term1 : Term1 ';' Term2 { AbsOmnirev.TmComp $1 $3 } | Term2 { $1 }
-Term3 :: { Term }
-Term3 : '~' Term3 { AbsOmnirev.TmTrans $2 }
-      | 'measure' Term3 { AbsOmnirev.TmMeas $2 }
-      | '(' Term ')' { $2 }
 Term :: { Term }
 Term : Term1 { $1 }
 {

@@ -36,6 +36,10 @@ data Value
   deriving (Eq, Ord, Show, Read)
 
 data Term
-    = TmApp Term Term | TmComp Term Term | TmTrans Term | TmMeas Term
+    = TmVal Value
+    | TmApp Term Term
+    | TmComp Term Term
+    | TmTrans Term
+    | TmMeas Term
   deriving (Eq, Ord, Show, Read)
 

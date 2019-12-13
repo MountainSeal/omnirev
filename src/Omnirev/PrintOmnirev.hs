@@ -124,6 +124,7 @@ instance Print Value where
 
 instance Print Term where
   prt i e = case e of
+    TmVal value -> prPrec i 3 (concatD [prt 0 value])
     TmApp term1 term2 -> prPrec i 2 (concatD [prt 2 term1, prt 3 term2])
     TmComp term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString ";"), prt 2 term2])
     TmTrans term -> prPrec i 3 (concatD [doc (showString "~"), prt 3 term])

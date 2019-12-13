@@ -73,13 +73,14 @@ All other symbols are terminals.
   | //Value2// | -> | //Value2// ``->`` //Value3// 
   |  |  **|**  | //Value3// 
   | //Value// | -> | //Value1// 
+  | //Term3// | -> | //Value// 
+  |  |  **|**  | ``~`` //Term3// 
+  |  |  **|**  | ``measure`` //Term3// 
+  |  |  **|**  | ``(`` //Term// ``)`` 
   | //Term2// | -> | //Term2// //Term3// 
   |  |  **|**  | //Term3// 
   | //Term1// | -> | //Term1// ``;`` //Term2// 
   |  |  **|**  | //Term2// 
-  | //Term3// | -> | ``~`` //Term3// 
-  |  |  **|**  | ``measure`` //Term3// 
-  |  |  **|**  | ``(`` //Term// ``)`` 
   | //Term// | -> | //Term1// 
 
 

@@ -32,6 +32,7 @@ VFold   . Value4 ::= "fold" Value4 ;
 coercions Value 4 ;
 
 --Term
+TmVal   . Term3 ::= Value ;
 TmApp   . Term2 ::= Term2 Term3 ;
 TmComp  . Term1 ::= Term1 ";" Term2 ;
 TmTrans . Term3 ::= "~" Term3 ;
