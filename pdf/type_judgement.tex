@@ -15,6 +15,7 @@
 %\usepackage{syntax}
 \usepackage{tikz}
 \usepackage{txfonts}
+\usepackage{url}
 
 \EnableBpAbbreviations
 \newenvironment{bprooftree}
@@ -38,6 +39,7 @@
   \begin{alignat*}{4}
     &\text{Type Variables}  & \quad &X,Y,Z  & \quad &        & \quad & \\
     &\text{Term Variables}  &       &x,y,z  &       &        &       & \\
+    &\text{Trace Labels}    &       &l      &       &        &       & \\
     &\text{Types}           &       &T,S,U  &       &\bnfdef &       & X \\
     &                       &       &       &       &|       &       & I \\
     &                       &       &       &       &|       &       & T \oplus T \\
@@ -52,13 +54,18 @@
     &                       &       &       &       &|       &       & t\mapsto{}t \\
     &                       &       &       &       &|       &       & \text{fold}\;t \\
     &                       &       &       &       &|       &       & t+t \\
+    &                       &       &       &       &|       &       & l\;t \\
     &\text{Type Contexts}   &       &\Theta &       &\bnfdef &       & \\
     &\text{Term Contexts}   &       &       &       &|       &       & \Theta,X \\
     &                       &       &\Gamma &       &\bnfdef &       & \\
     &                       &       &       &       &|       &       & \Gamma,t:T \\
     &\text{Type Judgements} &       &       &       &        &       & \sequent{\Theta}{T} \\
     &\text{Term Judgements} &       &       &       &        &       & \sequent{\Gamma}{t:T} \\
-    &\text{Expressions}     &       &f,e    &       &\bnfdef &       & u\;t
+    &\text{Expressions}     &       &e,f,g  &       &\bnfdef &       & t \\
+    &                       &       &       &       &|       &       & f\;t \\
+    &                       &       &       &       &|       &       & f\fcmp{}f \\
+    &                       &       &       &       &|       &       & f^\dagger \\
+    &                       &       &       &       &|       &       & t\;\text{where}\;l::T
   \end{alignat*}
 \end{itembox}
 
@@ -100,7 +107,19 @@
   \end{center}
 \end{itembox}
 
-\begin{itembox}[c]{Typing rules for Terms}
+\begin{itembox}[c]{Substitution}
+  \begin{align*}
+    X[X/S]                 &= S \\
+    Y[X/S]                 &= Y \\
+    I[X/S]                 &= I \\
+    T_1\oplus{}T_2[X/S]    &= T_1[X/S]\oplus{}T_2[X/S] \\
+    T_1\otimes{}T_2[X/S]   &= T_1[X/S]\otimes{}T_2[X/S] \\
+    T_1\multimap{}T_2[X/S] &= T_1[X/S]\multimap{}T_2[X/S] \\
+    \mu{Y}.T[X/S]          &= \mu{Y}.(T[X/S])
+  \end{align*}
+\end{itembox}
+
+\begin{itembox}[c]{Term Typing rules}
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$　$}
@@ -182,48 +201,66 @@
       \UnaryInfC{$\sequent{\Gamma,\text{fold}\;u:\mu{X}.U}{t:T}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\sequent{\Gamma}{u:U[X/\mu{X}.U]}$}
+      \AxiomC{$\sequent{\Gamma}{t:T[X/\mu{X}.T]}$}
       \RightLabel{$\mu_R$}
-      \UnaryInfC{$\sequent{\Gamma}{\text{fold}\;u:\mu{X}.U}$}
+      \UnaryInfC{$\sequent{\Gamma}{\text{fold}\;t:\mu{X}.T}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\sequent{\Gamma,t_1:T_{12}}{t:T}$}
-      \AxiomC{$\sequent{\Gamma,t_2:T_{12}}{t:T}$}
+      \AxiomC{$\sequent{\Gamma,t_1:U}{t:T}$}
+      \AxiomC{$\sequent{\Gamma,t_2:U}{t:T}$}
       \LeftLabel{$\text{Linearity}_L$}
-      \BinaryInfC{$\sequent{\Gamma,t_1+t_2:T_{12}}{t:T}$}
+      \BinaryInfC{$\sequent{\Gamma,t_1+t_2:U}{t:T}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\sequent{\Gamma}{t_1:T_{12}}$}
-      \AxiomC{$\sequent{\Gamma}{t_2:T_{12}}$}
+      \AxiomC{$\sequent{\Gamma}{t_1:T}$}
+      \AxiomC{$\sequent{\Gamma}{t_2:T}$}
       \RightLabel{$\text{Linearity}_R$}
-      \BinaryInfC{$\sequent{\Gamma}{t_1+t_2:T_{12}}$}
+      \BinaryInfC{$\sequent{\Gamma}{t_1+t_2:T}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{[]\Gamma,u:S}{t:T[\Lambda]}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\sequent{[l:S]\Gamma,l\;u:U}{t:T[\Lambda]}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{[\Lambda]\Gamma}{t:U[]}$}
+      \RightLabel{$\text{Trace}_R$}
+      \UnaryInfC{$\sequent{[\Lambda]\Gamma}{l\;t:T[l:U]}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
 
-\begin{itembox}[c]{Typing rules for Expressions}
-  \begin{prooftree}
-    \AxiomC{$\sequent{}{u:T\multimap{}U}$}
-    \AxiomC{$\sequent{}{t:T}$}
-    \RightLabel{Application}
-    \BinaryInfC{$\sequent{}{u\;t:U}$}
-  \end{prooftree}
-\end{itembox}
-
-\begin{itembox}[c]{Substitution}
-  \begin{align*}
-    Y[X/S]                 &= \begin{cases}
-                                S & \text{if}Y = X \\
-                                Y & \text{otherwise}
-                              \end{cases} \\
-    I[X/S]                 &= I \\
-    T_1\oplus{}T_2[X/S]    &= T_1[X/S]\oplus{}T_2[X/S] \\
-    T_1\otimes{}T_2[X/S]   &= T_1[X/S]\otimes{}T_2[X/S] \\
-    T_1\multimap{}T_2[X/S] &= T_1[X/S]\multimap{}T_2[X/S] \\
-    \mu{Y}.T[X/S]          &= \mu{Y}.(T[X/S])
-  \end{align*}
+\begin{itembox}[c]{Expression Typing rules}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{f:T_1\multimap{}T_2}$}
+      \AxiomC{$\sequent{}{t:T_2}$}
+      \LeftLabel{Application}
+      \BinaryInfC{$\sequent{}{f\;t:T_1}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{f:T_1\multimap{}T_2}$}
+      \AxiomC{$\sequent{}{g:T_2\multimap{}T_3}$}
+      \RightLabel{Composition}
+      \BinaryInfC{$\sequent{}{f\fcmp{}g:T_1\multimap{}T_3}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{f:T\multimap{}U}$}
+      \LeftLabel{Dagger}
+      \UnaryInfC{$\sequent{}{f^\dagger:U\multimap{}T}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{[l:U]}{t:T[l:U]}$}
+      \RightLabel{Trace}
+      \UnaryInfC{$\sequent{}{t\;\text{where}\;l::U:T}$}
+    \end{bprooftree}
+  \end{center}
 \end{itembox}
 
 \begin{itembox}[c]{Operational Semantics}
@@ -370,50 +407,60 @@
 
   \begin{prooftree}
     \AxiomC{$\match{t_1}{t}{[\Xi]}$}
-    \AxiomC{$\subst{[\Xi]}{t}{t'}$}
+    \AxiomC{$\subst{[\Xi]}{t_2}{t'}$}
     \RightLabel{App}
     \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;t}{t'}$}
   \end{prooftree}
 \end{itembox}
 
 \begin{itembox}[c]{Type Interpretation}
-$\bf{V}$ is Symmetric Monoidal Closed Category with Finite Biproduct.\\
-$\Pi_i$ is Projection Functor. \\
-$K_I$ is Constant--$I$--Functor. \\
-$[-,-]$ is internal Hom Functor. \\
+$\bf{V}$ is Compact Closed Category with Finite Biproduct.\\
+$\Pi_i$ is projection functor. \\
+$K_I$ is constant $I$ functor. \\
+$[-,-]$ is internal hom functor. \\
+$(-)^\ast$ is contravariant anafunctor. Using Axiom of Choice, we can define it on strict functor (see \url{https://ncatlab.org/nlab/show/rigid+monoidal+category#remarks}). \\
+$Id$ is identity functor.
   \begin{align*}
-    \semantics{\Theta \vdash T}                 &: \bf{V}^{|\Theta|} \rightarrow \bf{V} \\
+    \semantics{\Theta \vdash T}                 &: {\bf V}^{|\Theta|} {\bf\rightarrow} {\bf V} \\
     \semantics{\Theta \vdash X_i}               &= \Pi_i \\
     \semantics{\Theta \vdash I}                 &= K_I \\
     \semantics{\Theta \vdash T_1\oplus{}T_2}    &= \oplus\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
     \semantics{\Theta \vdash T_1\otimes{}T_2}   &= \otimes\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
-    \semantics{\Theta \vdash T_1\multimap{}T_2} &= [\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}] \\
+    \semantics{\Theta \vdash T_1\multimap{}T_2} &= \otimes\circ[(-)^\ast,Id]\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
     \semantics{\Theta \vdash \mu{X}.T}          &= \semantics{\Theta,X \vdash T}^\sharp
   \end{align*}
 \end{itembox}
 
-\begin{itembox}[c]{Denotational Semantics (No Variable)}
+\begin{itembox}[c]{Denotational Semantics}
+${\bf V}(A,B)$ is morphism which Domain and Codomain are $A \in \text{Obj}({\bf V})$ and $B \in \text{Obj}({\bf V})$, respectively. \\
 $id_T$ is identity morphism of Object $T$. \\
-$0$ is zero morphism. \\
+$0_{A,B}$ is zero morphism of ${\bf V}(A,B)$. \\
 $\iota_i$ is injection morphism. \\
-$pi_i$ is projection morphism. \\
-$\iota_i^{-1} = \pi_i$ \\
+$\pi_i$ is projection morphism. \\
+$\pi_i = \iota_i^{-1}$ \\
 $\pi_i\circ\iota_j = id$ if $i = j$ \\
 $\pi_i\circ\iota_j = 0$ otherwise \\
-$fold^{-1} = unfold$ \\
+$unfold_{\mu{X}.T} = fold^{-1}_{\mu{X}.T}$ \\
 $f \circ (g \oplus h) = (f \circ g) \oplus (f \circ h)$ \\
 $(f \oplus g) \circ h = (f \circ h) \oplus (g \circ h)$ \\
 $id_A \otimes id_B = id_{A \otimes B}$ \\
 $(f \otimes g) \circ (h \otimes k) = (f \circ h) \otimes (g \circ k)$ \\
+$f^{\ast\ast} = f$ \\
+${(f \otimes g)}^\ast = f^\ast \otimes g^\ast$ \\
+$\Delta_T : T \rightarrow T\oplus{}T$ \\
+$\nabla_T : T\oplus{}T \rightarrow T$
   \begin{align*}
-    \semantics{\text{()}}       &:= id_I \\
-    \semantics{\text{inl}\;v}   &:= \iota_1\circ\semantics{v} \\
-    \semantics{\text{inr}\;v}   &:= \iota_2\circ\semantics{v} \\
-    \semantics{v_1\times{}v_2}  &:= \semantics{v_1}\otimes\semantics{v_2} \\
-    \semantics{v_1\mapsto{}v_2} &:= k_\semantics{v_2}\circ\semantics{v_1}^{-1} \\
-    \semantics{\text{fold}\;v}  &:= fold\circ\semantics{v} \\
-    \semantics{v_1 + v_2}       &:= \semantics{v_1}\oplus\semantics{v_2} \\
-    \semantics{v_1\;v_2}        &:= \semantics{v_1}(\semantics{v_2}(\ast))
+    \semantics{t:T}                               &\in {\bf V}(I,T) \\
+    % \semantics{\varnothing:T}                     &:= 0_{I,T} \\
+    \semantics{x:T}                               &:= x_T \\
+    \semantics{\text{()}:T}                       &:= id_I \\
+    \semantics{\text{inl}\;t_1:T_1\oplus{}T_2}    &:= \iota_1\circ\semantics{t_1:T_1} \\
+    \semantics{\text{inr}\;t_2:T_1\oplus{}T_2}    &:= \iota_2\circ\semantics{t_2:T_2} \\
+    \semantics{t_1\times{}t_2:T_1\otimes{}T_2}    &:= \semantics{t_1:T_1}\otimes\semantics{t_2:T_2} \\
+    \semantics{t_1\mapsto{}t_2:T_1\multimap{}T_2} &:= \semantics{t_1:T_1}^\ast\otimes\semantics{t_2:T_2} \\
+    \semantics{\text{fold}\;t:\mu{X}.T}           &:= fold_{\mu{X}.T}\circ\semantics{t:T[X/\mu{X}.T]} \\
+    \semantics{t_1+t_2:T}                         &:= \nabla_T\circ\semantics{t_1:T}\oplus\semantics{t_2:T}\circ\Delta_T \\
+    % \semantics{t_1\;t_2}                          &:= \semantics{v_1}(\ast)(\semantics{v_2}(\ast))
   \end{align*}
 \end{itembox}
 
