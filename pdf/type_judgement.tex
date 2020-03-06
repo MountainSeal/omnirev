@@ -26,7 +26,8 @@
 \newcommand{\match}[3]{#1 = #2 \quad\hookrightarrow\quad #3}
 \newcommand{\subst}[3]{#1 \; #2 \quad\rightsquigarrow\quad #3}
 \newcommand{\semantics}[1]{{\llbracket #1 \rrbracket}}
-\newcommand{\reduction}[2]{#1 \quad\Downarrow\quad #2}
+\newcommand{\reduction}[2]{#1 \quad\Rightarrow\quad #2}
+\newcommand{\flip}[2]{#1 \quad\looparrowright\quad #2}
 \newcommand{\bnfdef}{::=}
 
 \newcommand*{\vcenteredhbox}[1]{\begingroup
@@ -77,7 +78,7 @@
       \UnaryInfC{$\sequent{\Theta,X}{X}$}
     \end{bprooftree}
     \begin{bprooftree}
-    \AxiomC{$　$}
+      \AxiomC{$　$}
       %\RightLabel{$I$}
       \UnaryInfC{$\sequent{\Theta}{I}$}
     \end{bprooftree}
@@ -368,6 +369,19 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
+      \AxiomC{$\match{t}{u}{[\Xi]}$}
+      \LeftLabel{Match--trace}
+      \UnaryInfC{$\match{l\;t}{l\;u}{[\Xi]}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\subst{[\Xi]}{t}{t'}$}
+      \AxiomC{$\reduction{[l,u]u\;t'}{t''}$}
+      \RightLabel{Subst--trace}
+      \BinaryInfC{$\subst{[l,u][\Xi]}{l\;t}{t''}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
       \AxiomC{$\match{t}{u_1}{[\Xi]}$}
       \LeftLabel{Match--lin--l}
       \UnaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
@@ -405,12 +419,67 @@
     \end{bprooftree}
   \end{center}
 
-  \begin{prooftree}
-    \AxiomC{$\match{t_1}{t}{[\Xi]}$}
-    \AxiomC{$\subst{[\Xi]}{t_2}{t'}$}
-    \RightLabel{App}
-    \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;t}{t'}$}
-  \end{prooftree}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{t_1}{t}{[\Xi]}$}
+      \AxiomC{$\subst{[\Xi]}{t_2}{t'}$}
+      \LeftLabel{App--arrow}
+      \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;t}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{f\;t}{t'}$}
+      \AxiomC{$\reduction{g\;t'}{t''}$}
+      \RightLabel{App--comp}
+      \BinaryInfC{$\reduction{(f\fcmp{}g)\;t}{t''}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\flip{f^\dagger}{f'}$}
+      \AxiomC{$\reduction{f'\;t}{t'}$}
+      \LeftLabel{App--dagger}
+      \BinaryInfC{$\reduction{f^\dagger\;t}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{[l,u]u\;t}{t'}$}
+      \RightLabel{App--trace}
+      \UnaryInfC{$\reduction{(u\;\text{where}\;l::U)\;t}{t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \LeftLabel{Flip--arrow}
+      \UnaryInfC{$\flip{(t_1\mapsto{}t_2)^\dagger}{t_2\mapsto{}t_1}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\flip{t_1^\dagger}{t'_1}$}
+      \AxiomC{$\flip{t_2^\dagger}{t'_2}$}
+      \RightLabel{Flip--lin}
+      \BinaryInfC{$\flip{(t_1+t_2)^\dagger}{t'_1+t'_2}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{f\;t}{t'}$}
+      \AxiomC{$\flip{t'^\dagger}{t''}$}
+      \LeftLabel{Flip--app}
+      \BinaryInfC{$\flip{(f\;t)^\dagger}{t''}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\flip{f^\dagger}{f'}$}
+      \AxiomC{$\flip{g^\dagger}{g'}$}
+      \RightLabel{Flip--comp}
+      \BinaryInfC{$\flip{(f\fcmp{}g)^\dagger}{g'\fcmp{}f'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\flip{t^\dagger}{t'}$}
+      \LeftLabel{Flip--trace}
+      \UnaryInfC{$\flip{(t\;\text{where}\;l::T)^\dagger}{t'\;\text{where}\;l::T}$}
+    \end{bprooftree}
+  \end{center}
 \end{itembox}
 
 \begin{itembox}[c]{Type Interpretation}
