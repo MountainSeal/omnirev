@@ -8,3 +8,4 @@ pdf/*.dvi
 .DS_Store
 *.bak
 bin/
+.liquid
