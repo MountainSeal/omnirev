@@ -32,7 +32,7 @@ stack build
 まだそこまで開発してないので…無いです…
 
 # Licence
-This is released under the MIT License, see LICENSE.
+This is released under the GPLv2 License, see LICENSE.
 
 # ToDo
 1. implements type checker
