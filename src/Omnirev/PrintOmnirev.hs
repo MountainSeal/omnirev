@@ -1,4 +1,8 @@
-{-# LANGUAGE FlexibleInstances, OverlappingInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ <= 708
+{-# LANGUAGE OverlappingInstances #-}
+#endif
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
 -- | Pretty-printer for PrintOmnirev.
@@ -6,7 +10,7 @@
 
 module Omnirev.PrintOmnirev where
 
-import Omnirev.AbsOmnirev
+import qualified Omnirev.AbsOmnirev as AbsOmnirev
 import Data.Char
 
 -- | The top-level printing method.
@@ -60,7 +64,7 @@ class Print a where
   prtList :: Int -> [a] -> Doc
   prtList i = concatD . map (prt i)
 
-instance Print a => Print [a] where
+instance {-# OVERLAPPABLE #-} Print a => Print [a] where
   prt = prtList
 
 instance Print Char where
@@ -84,49 +88,49 @@ instance Print Integer where
 instance Print Double where
   prt _ x = doc (shows x)
 
-instance Print Ident where
-  prt _ (Ident i) = doc (showString i)
+instance Print AbsOmnirev.Ident where
+  prt _ (AbsOmnirev.Ident i) = doc (showString i)
 
-instance Print Program where
+instance Print AbsOmnirev.Program where
   prt i e = case e of
-    Prog defs -> prPrec i 0 (concatD [prt 0 defs])
+    AbsOmnirev.Prog defs -> prPrec i 0 (concatD [prt 0 defs])
 
-instance Print Def where
+instance Print AbsOmnirev.Def where
   prt i e = case e of
-    DType id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "="), prt 0 type_])
-    DTerm id type_ term -> prPrec i 0 (concatD [doc (showString "term"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 term])
+    AbsOmnirev.DType id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "="), prt 0 type_])
+    AbsOmnirev.DTerm id type_ expr -> prPrec i 0 (concatD [doc (showString "expr"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 expr])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
-instance Print [Def] where
+instance Print [AbsOmnirev.Def] where
   prt = prtList
 
-instance Print Type where
+instance Print AbsOmnirev.Type where
   prt i e = case e of
-    TVar id -> prPrec i 5 (concatD [prt 0 id])
-    TUnit -> prPrec i 5 (concatD [doc (showString "I")])
-    TSum type_1 type_2 -> prPrec i 3 (concatD [prt 3 type_1, doc (showString "(+)"), prt 4 type_2])
-    TTensor type_1 type_2 -> prPrec i 4 (concatD [prt 4 type_1, doc (showString "(*)"), prt 5 type_2])
-    TPar type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "||"), prt 2 type_2])
-    TFunc type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "~>"), prt 3 type_2])
-    TInd id type_ -> prPrec i 5 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 5 type_])
+    AbsOmnirev.TyVar id -> prPrec i 4 (concatD [prt 0 id])
+    AbsOmnirev.TyUnit -> prPrec i 4 (concatD [doc (showString "I")])
+    AbsOmnirev.TySum type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "+"), prt 3 type_2])
+    AbsOmnirev.TyTensor type_1 type_2 -> prPrec i 3 (concatD [prt 3 type_1, doc (showString "*"), prt 4 type_2])
+    AbsOmnirev.TyFunc type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "->"), prt 2 type_2])
+    AbsOmnirev.TyRec id type_ -> prPrec i 4 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 4 type_])
 
-instance Print Value where
+instance Print AbsOmnirev.Term where
   prt i e = case e of
-    VVar id -> prPrec i 4 (concatD [prt 0 id])
-    VUnit -> prPrec i 4 (concatD [doc (showString "()")])
-    VLeft value -> prPrec i 4 (concatD [doc (showString "inl"), prt 4 value])
-    VRight value -> prPrec i 4 (concatD [doc (showString "inr"), prt 4 value])
-    VTensor value1 value2 -> prPrec i 3 (concatD [prt 3 value1, doc (showString "*"), prt 4 value2])
-    VPar value1 value2 -> prPrec i 1 (concatD [prt 1 value1, doc (showString "|"), prt 2 value2])
-    VArrow value1 value2 -> prPrec i 2 (concatD [prt 2 value1, doc (showString "->"), prt 3 value2])
-    VFold value -> prPrec i 4 (concatD [doc (showString "fold"), prt 4 value])
+    AbsOmnirev.TmVar id -> prPrec i 4 (concatD [prt 0 id])
+    AbsOmnirev.TmUnit -> prPrec i 4 (concatD [doc (showString "unit")])
+    AbsOmnirev.TmLeft term -> prPrec i 4 (concatD [doc (showString "inl"), prt 4 term])
+    AbsOmnirev.TmRight term -> prPrec i 4 (concatD [doc (showString "inr"), prt 4 term])
+    AbsOmnirev.TmTensor term1 term2 -> prPrec i 3 (concatD [prt 3 term1, doc (showString ","), prt 4 term2])
+    AbsOmnirev.TmArrow term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString "=>"), prt 2 term2])
+    AbsOmnirev.TmFold term -> prPrec i 4 (concatD [doc (showString "fold"), prt 4 term])
+    AbsOmnirev.TmLin term1 term2 -> prPrec i 2 (concatD [prt 2 term1, doc (showString "|"), prt 3 term2])
+    AbsOmnirev.TmLabel id term -> prPrec i 4 (concatD [prt 0 id, prt 4 term])
 
-instance Print Term where
+instance Print AbsOmnirev.Expr where
   prt i e = case e of
-    TmVal value -> prPrec i 3 (concatD [prt 0 value])
-    TmApp term1 term2 -> prPrec i 2 (concatD [prt 2 term1, prt 3 term2])
-    TmComp term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString ";"), prt 2 term2])
-    TmTrans term -> prPrec i 3 (concatD [doc (showString "~"), prt 3 term])
-    TmMeas term -> prPrec i 3 (concatD [doc (showString "measure"), prt 3 term])
+    AbsOmnirev.ExTerm term -> prPrec i 2 (concatD [prt 0 term])
+    AbsOmnirev.ExApp expr term -> prPrec i 2 (concatD [prt 2 expr, prt 0 term])
+    AbsOmnirev.ExComp expr1 expr2 -> prPrec i 1 (concatD [prt 1 expr1, doc (showString ";"), prt 2 expr2])
+    AbsOmnirev.ExFlip expr -> prPrec i 2 (concatD [doc (showString "~"), prt 2 expr])
+    AbsOmnirev.ExTrace term id type_ -> prPrec i 2 (concatD [prt 0 term, doc (showString "where"), prt 0 id, doc (showString ":"), prt 0 type_])
 

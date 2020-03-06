@@ -1,7 +1,7 @@
 name:                omnirev
-version:             0.1.0
+version:             0.2.0
 github:              "MountainSeal/omnirev"
-license:             MIT
+license:             GPLv2
 author:              "MountainSeal"
 copyright:           "MountainSeal"
 

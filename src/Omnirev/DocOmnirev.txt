@@ -19,68 +19,66 @@ reserved words excluded.
 ===Literals===
 
 
-
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in omnirev are the following:
-  | ``I`` | ``fix`` | ``fold`` | ``inl``
-  | ``inr`` | ``measure`` | ``term`` | ``type``
+  | ``I`` | ``expr`` | ``fix`` | ``fold``
+  | ``inl`` | ``inr`` | ``type`` | ``unit``
+  | ``where`` |  |  |
 
 The symbols used in omnirev are the following:
-  | = | : | (+) | (*)
-  | || | ~> | . | (
-  | ) | () | * | |
-  | -> | ; | ~ | 
+  | = | : | + | *
+  | -> | . | ( | )
+  | , | => | | | ;
+  | ~ |  |  |
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
 
 ==The syntactic structure of omnirev==
-Non-terminals are enclosed between < and >. 
-The symbols -> (production),  **|**  (union) 
-and **eps** (empty rule) belong to the BNF notation. 
+Non-terminals are enclosed between < and >.
+The symbols -> (production),  **|**  (union)
+and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
-  | //Program// | -> | //[Def]// 
-  | //Def// | -> | ``type`` //Ident// ``=`` //Type// 
-  |  |  **|**  | ``term`` //Ident// ``:`` //Type// ``=`` //Term// 
-  | //[Def]// | -> | //Def// 
-  |  |  **|**  | //Def// //[Def]// 
-  | //Type5// | -> | //Ident// 
-  |  |  **|**  | ``I`` 
-  |  |  **|**  | ``fix`` //Ident// ``.`` //Type5// 
-  |  |  **|**  | ``(`` //Type// ``)`` 
-  | //Type3// | -> | //Type3// ``(+)`` //Type4// 
-  |  |  **|**  | //Type4// 
-  | //Type4// | -> | //Type4// ``(*)`` //Type5// 
-  |  |  **|**  | //Type5// 
-  | //Type1// | -> | //Type1// ``||`` //Type2// 
-  |  |  **|**  | //Type2// 
-  | //Type2// | -> | //Type2// ``~>`` //Type3// 
-  |  |  **|**  | //Type3// 
-  | //Type// | -> | //Type1// 
-  | //Value4// | -> | //Ident// 
-  |  |  **|**  | ``()`` 
-  |  |  **|**  | ``inl`` //Value4// 
-  |  |  **|**  | ``inr`` //Value4// 
-  |  |  **|**  | ``fold`` //Value4// 
-  |  |  **|**  | ``(`` //Value// ``)`` 
-  | //Value3// | -> | //Value3// ``*`` //Value4// 
-  |  |  **|**  | //Value4// 
-  | //Value1// | -> | //Value1// ``|`` //Value2// 
-  |  |  **|**  | //Value2// 
-  | //Value2// | -> | //Value2// ``->`` //Value3// 
-  |  |  **|**  | //Value3// 
-  | //Value// | -> | //Value1// 
-  | //Term3// | -> | //Value// 
-  |  |  **|**  | ``~`` //Term3// 
-  |  |  **|**  | ``measure`` //Term3// 
-  |  |  **|**  | ``(`` //Term// ``)`` 
-  | //Term2// | -> | //Term2// //Term3// 
-  |  |  **|**  | //Term3// 
-  | //Term1// | -> | //Term1// ``;`` //Term2// 
-  |  |  **|**  | //Term2// 
-  | //Term// | -> | //Term1// 
+  | //Program// | -> | //[Def]//
+  | //Def// | -> | ``type`` //Ident// ``=`` //Type//
+  |  |  **|**  | ``expr`` //Ident// ``:`` //Type// ``=`` //Expr//
+  | //[Def]// | -> | //Def//
+  |  |  **|**  | //Def// //[Def]//
+  | //Type4// | -> | //Ident//
+  |  |  **|**  | ``I``
+  |  |  **|**  | ``fix`` //Ident// ``.`` //Type4//
+  |  |  **|**  | ``(`` //Type// ``)``
+  | //Type2// | -> | //Type2// ``+`` //Type3//
+  |  |  **|**  | //Type3//
+  | //Type3// | -> | //Type3// ``*`` //Type4//
+  |  |  **|**  | //Type4//
+  | //Type1// | -> | //Type1// ``->`` //Type2//
+  |  |  **|**  | //Type2//
+  | //Type// | -> | //Type1//
+  | //Term4// | -> | //Ident//
+  |  |  **|**  | ``unit``
+  |  |  **|**  | ``inl`` //Term4//
+  |  |  **|**  | ``inr`` //Term4//
+  |  |  **|**  | ``fold`` //Term4//
+  |  |  **|**  | //Ident// //Term4//
+  |  |  **|**  | ``(`` //Term// ``)``
+  | //Term3// | -> | //Term3// ``,`` //Term4//
+  |  |  **|**  | //Term4//
+  | //Term1// | -> | //Term1// ``=>`` //Term2//
+  |  |  **|**  | //Term2//
+  | //Term2// | -> | //Term2// ``|`` //Term3//
+  |  |  **|**  | //Term3//
+  | //Term// | -> | //Term1//
+  | //Expr2// | -> | //Term//
+  |  |  **|**  | //Expr2// //Term//
+  |  |  **|**  | ``~`` //Expr2//
+  |  |  **|**  | //Term// ``where`` //Ident// ``:`` //Type//
+  |  |  **|**  | ``(`` //Expr// ``)``
+  | //Expr1// | -> | //Expr1// ``;`` //Expr2//
+  |  |  **|**  | //Expr2//
+  | //Expr// | -> | //Expr1//
 
 

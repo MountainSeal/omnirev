@@ -1,1 +1,0 @@
-{"status":"safe","types":{"1":{"1":{"ann":"GHC.Types.Module","ident":"TypeCheckerSpec.$trModule","row":1,"col":1}}},"sptypes":[{"start":{"line":1,"column":1},"ann":"GHC.Types.Module","ident":"TypeCheckerSpec.$trModule","stop":{"line":1,"column":1}}],"errors":[]}
