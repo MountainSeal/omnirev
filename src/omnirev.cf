@@ -6,35 +6,35 @@ comment "/*" "*/" ;
 
 --Definition
 DType . Def ::= "type" Ident "=" Type ;
-DTerm . Def ::= "term" Ident ":" Type "=" Term ;
+DTerm . Def ::= "expr" Ident ":" Type "=" Expr ;
 (:[]) . [Def] ::= Def ;
 (:)   . [Def] ::= Def [Def] ;
 
 --Type
-TVar    . Type5 ::= Ident ;
-TUnit   . Type5 ::= "I" ;
-TSum    . Type3 ::= Type3 "(+)" Type4 ;
-TTensor . Type4 ::= Type4 "(*)" Type5 ;
-TPar    . Type1 ::= Type1 "||" Type2 ;
-TFunc   . Type2 ::= Type2 "~>" Type3 ;
-TInd    . Type5 ::= "fix" Ident "." Type5 ;
-coercions Type 5 ;
-
---Value
-VVar    . Value4 ::= Ident ;
-VUnit   . Value4 ::= "()" ;
-VLeft   . Value4 ::= "inl" Value4 ;
-VRight  . Value4 ::= "inr" Value4 ;
-VTensor . Value3 ::= Value3 "*" Value4 ;
-VPar    . Value1 ::= Value1 "|" Value2 ;
-VArrow  . Value2 ::= Value2 "->" Value3 ;
-VFold   . Value4 ::= "fold" Value4 ;
-coercions Value 4 ;
+TyVar    . Type4 ::= Ident ;
+TyUnit   . Type4 ::= "I" ;
+TySum    . Type2 ::= Type2 "+" Type3 ;
+TyTensor . Type3 ::= Type3 "*" Type4 ;
+TyFunc   . Type1 ::= Type1 "->" Type2 ;
+TyRec    . Type4 ::= "fix" Ident "." Type4 ;
+coercions Type 4 ;
 
 --Term
-TmVal   . Term3 ::= Value ;
-TmApp   . Term2 ::= Term2 Term3 ;
-TmComp  . Term1 ::= Term1 ";" Term2 ;
-TmTrans . Term3 ::= "~" Term3 ;
-TmMeas  . Term3 ::= "measure" Term3 ;
-coercions Term 3 ;
+TmVar    . Term4 ::= Ident ;
+TmUnit   . Term4 ::= "unit" ;
+TmLeft   . Term4 ::= "inl" Term4 ;
+TmRight  . Term4 ::= "inr" Term4 ;
+TmTensor . Term3 ::= Term3 "," Term4 ;
+TmArrow  . Term1 ::= Term1 "=>" Term2 ;
+TmFold   . Term4 ::= "fold" Term4 ;
+TmLin    . Term2 ::= Term2 "|" Term3 ;
+TmLabel  . Term4 ::= Ident Term4 ;
+coercions Term 4 ;
+
+--Expr
+ExTerm  . Expr2 ::= Term ;
+ExApp   . Expr2 ::= Expr2 Term ;
+ExComp  . Expr1 ::= Expr1 ";" Expr2 ;
+ExFlip  . Expr2 ::= "~" Expr2 ;
+ExTrace . Expr2 ::= Term "where" Ident ":" Type ;
+coercions Expr 2 ;
