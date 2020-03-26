@@ -30,6 +30,8 @@
 \newcommand{\flip}[2]{#1 \quad\looparrowright\quad #2}
 \newcommand{\bnfdef}{::=}
 
+\newcommand{\nsequent}[3]{#1 \;\vdash\; #2 \;\triangleright\; #3}
+
 \newcommand*{\vcenteredhbox}[1]{\begingroup
 \setbox0=\hbox{#1}\parbox{\wd0}{\box0}\endgroup}
 
@@ -531,6 +533,121 @@ $\nabla_T : T\oplus{}T \rightarrow T$
     \semantics{t_1+t_2:T}                         &:= \nabla_T\circ\semantics{t_1:T}\oplus\semantics{t_2:T}\circ\Delta_T \\
     % \semantics{t_1\;t_2}                          &:= \semantics{v_1}(\ast)(\semantics{v_2}(\ast))
   \end{align*}
+\end{itembox}
+
+\newpage
+
+\begin{itembox}[c]{Term Typing rules}
+  \begin{center}
+    $\nsequent{\emptyset}{t:T}{\emptyset}$
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\Gamma(x)=T$}
+      \LeftLabel{Variable}
+      \UnaryInfC{$\nsequent{\Gamma}{x:T}{\Gamma\setminus\{x\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t:T}{\Gamma'}$}
+      \LeftLabel{$I_L$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{()}:I}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \RightLabel{$I_R$}
+      \UnaryInfC{$\nsequent{\emptyset}{\text{()}:I}{\emptyset}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1}{t:T}{\Gamma'}$}
+      \LeftLabel{$\oplus_{L_l}$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{inl}\;t_1:T_1\oplus{}T_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \RightLabel{$\oplus_{R_l}$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{inl}\;t_1:T_1\oplus{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_2:T_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\oplus_{L_r}$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{inr}\;t_2:T_1\oplus{}T_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_2:T_2}{\Gamma'}$}
+      \RightLabel{$\oplus_{R_r}$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{inr}\;t_2:T_1\oplus{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1,t_2:T_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\otimes_L$}
+      \UnaryInfC{$\nsequent{\Gamma,t_1\times{}t_2:T_1\otimes{}T_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma'}{t_2:T_2}{\Gamma''}$}
+      \RightLabel{$\otimes_R$}
+      \BinaryInfC{$\nsequent{\Gamma}{t_1\times{}t_2:T_1\otimes{}T_2}{\Gamma''}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma',t_2:T_2}{t:T}{\Gamma''}$}
+      \LeftLabel{$\multimap_L$}
+      \BinaryInfC{$\nsequent{\Gamma,t_1\mapsto{}t_2:T_1\multimap{}T_2}{t:T}{\Gamma''}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1}{t_2:T_2}{\Gamma'}$}
+      \RightLabel{$\multimap_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{t_1\mapsto{}t_2:T_1\multimap{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,u:U[X/\mu{X}.U]}{t:T}{\Gamma'}$}
+      \LeftLabel{$\mu_L$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{fold}\;u:\mu{X}.U}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t:T[X/\mu{X}.T]}{\Gamma'}$}
+      \RightLabel{$\mu_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{fold}\;t:\mu{X}.T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:U}{t:T}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma,t_2:U}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Linearity}_L$}
+      \BinaryInfC{$\nsequent{\Gamma,t_1+t_2:U}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma}{t_2:T}{\Gamma'}$}
+      \RightLabel{$\text{Linearity}_R$}
+      \BinaryInfC{$\nsequent{\Gamma}{t_1+t_2:T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{[l:S]\Gamma,u:S}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\nsequent{[l:S]\Gamma,l\;u:U}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{[l:U]\Gamma}{t:U}{\Gamma'}$}
+      \RightLabel{$\text{Trace}_R$}
+      \UnaryInfC{$\nsequent{[l:U]\Gamma}{l\;t:T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
 \end{itembox}
 
 \end{document}
