@@ -1,0 +1,32 @@
+type nat = fix X. (I + X)
+// Z   = fold inl unit
+// S n = fold inr n
+
+// add (x, y) = (x+y, x)
+expr add : (nat * nat) -> (nat * nat) =
+  (x, y)              => iter (y, Z, x)
+| iter (a, b, Z)      => (a, b)
+| iter (a, b, Succ n) => iter (S a, S b, n)
+  where iter :: nat * nat * nat
+
+
+type natlist = fix Y. (I + nat * Y)
+// []   = fold inl unit
+// n:ls = fold inr (n, ls)
+
+// Z : S Z : S S Z : []  = [0,1,2]
+
+// reverse [0,1,2] = [2,1,0]
+expr reverse : natlist -> natlist =
+| ls => iter (ls,[])
+| iter ([], ls)   => ls
+| iter (n:xs, ys) => iter (xs, n:ys)
+  where iter natlist * natlist
+
+// map_plus [0,1,2] = [1,2,3]
+expr map_plus : natlist -> natlist =
+  []          => iter []
+| (n:ls)      => (S n) : iter ls
+| iter (n:ls) => (S n) : iter ls
+| iter []     => []
+  where iter natlist

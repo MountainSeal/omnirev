@@ -1,0 +1,11 @@
+type qubit = I + I
+
+expr not : qubit -> qubit =
+  inl unit => inr unit
+| inr unit => inl unit
+
+expr cnot : (qubit*qubit) -> (qubit*qubit) =
+  (inl unit, inl unit) => (inl unit, inl unit)
+| (inl unit, inr unit) => (inl unit, inr unit)
+| (inr unit, inl unit) => (inr unit, inr unit)
+| (inr unit, inr unit) => (inr unit, inl unit)
