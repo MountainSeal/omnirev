@@ -70,6 +70,7 @@ checkDef (DType (Ident s) ty) = do
   env <- get
   case Map.lookup s env of
     Nothing -> do
+      -- ty' <- purify [] ty
       checkType [] ty
       modify $ Map.insert s (AType ty)
       pure ""
@@ -78,10 +79,39 @@ checkDef (DTerm (Ident s) ty ex) = do
   env <- get
   case Map.lookup s env of
     Nothing -> do
-      checkExpr ex ty
+      ty' <- purify [] ty
+      checkExpr ex ty'
       modify $ Map.insert s (AExpr ex ty)
       pure ""
     Just v -> dupDefError v s
+
+-- The `purify` function replace type variables.
+purify :: [Ident] -> Type -> Check Type
+purify cxt (TyVar (Ident s)) =
+  if Ident s `elem` cxt
+    then pure (TyVar (Ident s))
+    else do
+      env <- get
+      case Map.lookup s env of
+        Just (AType ty) -> pure ty
+        Just AExpr{}    -> dupDefExprError s
+        Nothing         -> defNotFoundError s
+purify cxt TyUnit =
+  pure TyUnit
+purify cxt (TySum ty1 ty2) = do
+  ty1' <- purify cxt ty1
+  ty2' <- purify cxt ty2
+  pure $ TySum ty1' ty2'
+purify cxt (TyTensor ty1 ty2) = do
+  ty1' <- purify cxt ty1
+  ty2' <- purify cxt ty2
+  pure $ TyTensor ty1' ty2'
+purify cxt (TyFunc ty1 ty2) = do
+  ty1' <- purify cxt ty1
+  ty2' <- purify cxt ty2
+  pure $ TyFunc ty1' ty2'
+purify cxt (TyRec x ty) =
+  purify (x:cxt) ty
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
@@ -112,6 +142,11 @@ subst (TyTensor t1 t2) x s = TyTensor (subst t1 x s) (subst t2 x s)
 subst (TyFunc t1 t2)   x s = TyFunc (subst t1 x s) (subst t2 x s)
 subst (TyRec y t)      x s = TyRec y (subst t x s)
 
+-- Termが変数の場合は後ろに追加，そうでない場合は前に追加
+ext :: (Term, Type) -> Context -> Context
+ext (TmVar i, ty) cxt = cxt ++ [(TmVar i, ty)]
+ext (tm     , ty) cxt = (tm,ty):cxt
+
 type Context = [(Term, Type)]
 checkTerm :: Context -> (Term, Type) -> Check Context
 -- variable
@@ -122,43 +157,64 @@ checkTerm cxt (TmVar i, ty) =
       else typeCheckForTermError "same variable but different type."
     Nothing -> typeCheckForTermError "not found variable."
 -- exchange
-checkTerm ((TmVar i,ty):cxt) (um, uy) =
-  checkTerm (cxt ++ [((TmVar i),ty)]) (um, uy)
+-- checkTerm ((TmVar i,ty):cxt) (um, uy) =
+--   checkTerm (cxt ++ [(TmVar i, ty)]) (um, uy)
 -- unit_l
 checkTerm ((TmUnit, TyUnit):cxt) (tm, ty) =
   checkTerm cxt (tm, ty)
 -- inl_l
 checkTerm ((TmLeft tm1, TySum ty1 ty2):cxt) (tm, ty) =
-  checkTerm ((tm1, ty1):cxt) (tm, ty)
+  -- checkTerm ((tm1, ty1):cxt) (tm, ty)
+  let
+    cxt' = ext (tm1, ty1) cxt
+  in
+    checkTerm cxt' (tm, ty)
   -- inr_l
 checkTerm ((TmRight tm2, TySum ty1 ty2):cxt) (tm, ty) =
-  checkTerm ((tm2, ty2):cxt) (tm, ty)
+  -- checkTerm ((tm2, ty2):cxt) (tm, ty)
+  let
+    cxt' = ext (tm2, ty2) cxt
+  in
+    checkTerm cxt' (tm, ty)
 -- tensor_l
 checkTerm ((TmTensor tm1 tm2, TyTensor ty1 ty2):cxt) (tm, ty) =
-  checkTerm ((tm1,ty1):(tm2,ty2):cxt) (tm, ty)
+  -- checkTerm ((tm1,ty1):(tm2,ty2):cxt) (tm, ty)
+  let
+    cxt' = ext (tm1, ty1) cxt
+    cxt'' = ext (tm2, ty2) cxt'
+  in
+    checkTerm cxt'' (tm, ty)
 -- arrow_l
 checkTerm ((TmArrow tm1 tm2, TyFunc ty1 ty2):cxt) (tm, ty) = do
   cxt' <- checkTerm cxt (tm1, ty1)
-  checkTerm ((tm2, ty2):cxt) (tm, ty)
+  -- checkTerm ((tm2, ty2):cxt) (tm, ty)
+  let cxt'' = ext (tm2, ty2) cxt' in checkTerm cxt'' (tm, ty)
 -- fold_l
 checkTerm ((TmFold um, TyRec x uy):cxt) (tm, ty) =
-  checkTerm ((um, subst uy x (TyRec x uy)):cxt) (tm, ty)
+  -- checkTerm ((um, subst uy x (TyRec x uy)):cxt) (tm, ty)
+  let
+    cxt' = ext (um, subst uy x (TyRec x uy)) cxt
+  in
+    checkTerm cxt' (tm, ty)
 -- lin_l
 checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
-  cxt1 <- checkTerm ((tm1,uy):cxt) (tm, ty)
-  cxt2 <- checkTerm ((tm2,uy):cxt) (tm, ty)
+  -- cxt1 <- checkTerm ((tm1,uy):cxt) (tm, ty)
+  -- cxt2 <- checkTerm ((tm2,uy):cxt) (tm, ty)
+  cxt1 <- checkTerm (ext (tm1,uy) cxt) (tm, ty)
+  cxt2 <- checkTerm (ext (tm2,uy) cxt) (tm, ty)
   if cxt1 == cxt2 --🤔
     then pure cxt1
-    else typeCheckForTermError "remainder contexts between lin are different."
+    else typeCheckForTermError "[L]remainder contexts between lin are different."
 -- label_l
 checkTerm ((TmLabel (Ident s) um, uy):cxt) (tm, ty) = do
   labels <- ask
   case Map.lookup s labels of
-    Just (Label sy) -> checkTerm ((um, sy):cxt) (tm, ty)
+    -- Just (Label sy) -> checkTerm ((um, sy):cxt) (tm, ty)
+    Just (Label sy) -> checkTerm (ext (um, sy) cxt) (tm, ty)
     Nothing -> labelNotFoundError s
 -- unit_r
-checkTerm [] (TmUnit, TyUnit) =
-  pure []
+checkTerm cxt (TmUnit, TyUnit) =
+  pure cxt
 -- inl_r
 checkTerm cxt (TmLeft tm1, TySum ty1 ty2) =
   checkTerm cxt (tm1, ty1)
@@ -171,7 +227,8 @@ checkTerm cxt (TmTensor tm1 tm2, TyTensor ty1 ty2) = do
   checkTerm cxt' (tm2, ty2)
 -- arrow_r
 checkTerm cxt (TmArrow tm1 tm2, TyFunc ty1 ty2) =
-  checkTerm ((tm1, ty1):cxt) (tm2, ty2)
+  -- checkTerm ((tm1, ty1):cxt) (tm2, ty2)
+  checkTerm (ext (tm1, ty1) cxt) (tm2, ty2)
 -- fold_r
 checkTerm cxt (TmFold tm, TyRec x ty) =
   checkTerm cxt (tm, subst ty x (TyRec x ty))
@@ -181,7 +238,7 @@ checkTerm cxt (TmLin tm1 tm2, ty) = do
   cxt2 <- checkTerm cxt (tm2, ty)
   if cxt1 == cxt2 --🤔
     then pure cxt1
-    else typeCheckForTermError "remainder contexts between lin are different."
+    else typeCheckForTermError $ "[R]remainder contexts between lin are different."
 -- label_r
 checkTerm cxt (TmLabel (Ident s) tm, ty) = do
   labels <- ask
@@ -226,5 +283,6 @@ checkExpr (ExComp ex1 ex2) (TyFunc t1 t3) =
   throwError $ "checkExpr: Comp is not implemented yet."
 checkExpr (ExFlip ex) (TyFunc t1 t2) =
   checkExpr ex (TyFunc t2 t1)
-checkExpr (ExTrace tm (Ident s) ty1) ty2 =
-  local (Map.insert s (Label ty1)) (checkExpr (ExTerm tm) ty2)
+checkExpr (ExTrace tm (Ident s) ty1) ty2 = do
+  ty1' <- purify [] ty1 -- purifyを消しては行けない（戒め）
+  local (Map.insert s (Label ty1')) (checkExpr (ExTerm tm) ty2)
