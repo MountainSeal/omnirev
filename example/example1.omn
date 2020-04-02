@@ -1,11 +1,19 @@
 type qubit = I + I
 
 expr not : qubit -> qubit =
-  inl unit => inr unit
-| inr unit => inl unit
+  (inl unit => inr unit)
+| (inr unit => inl unit)
 
 expr cnot : (qubit*qubit) -> (qubit*qubit) =
-  (inl unit, inl unit) => (inl unit, inl unit)
-| (inl unit, inr unit) => (inl unit, inr unit)
-| (inr unit, inl unit) => (inr unit, inr unit)
-| (inr unit, inr unit) => (inr unit, inl unit)
+  ((inl unit, inl unit) => (inl unit, inl unit))
+| ((inl unit, inr unit) => (inl unit, inr unit))
+| ((inr unit, inl unit) => (inr unit, inr unit))
+| ((inr unit, inr unit) => (inr unit, inl unit))
+
+type nat = fix X. (I + X)
+
+expr add : (nat * nat) -> (nat * nat) =
+  ((x, y)                         => (iter (y, (fold inl unit, x))))
+| ((iter (a, (b, fold inl unit))) => (a, b))
+| ((iter (a, (b, fold inr n)))    => (iter (fold inr a, (fold inr b, n))))
+  where iter : nat * (nat * nat)
