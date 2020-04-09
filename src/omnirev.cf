@@ -25,9 +25,9 @@ TmUnit   . Term4 ::= "unit" ;
 TmLeft   . Term4 ::= "inl" Term4 ;
 TmRight  . Term4 ::= "inr" Term4 ;
 TmTensor . Term3 ::= Term3 "," Term4 ;
-TmArrow  . Term1 ::= Term1 "=>" Term2 ;
-TmFold   . Term4 ::= "fold" Term4 ;
-TmLin    . Term2 ::= Term2 "|" Term3 ;
+TmArrow  . Term2 ::= Term2 "=>" Term3 ;
+TmFold   . Term4 ::= "fold" Type Term4 ;
+TmLin    . Term1 ::= Term1 "|" Term2 ;
 TmLabel  . Term4 ::= Ident Term4 ;
 coercions Term 4 ;
 
