@@ -249,27 +249,36 @@ checkTerm cxt (TmLabel (Ident s) tm, ty) = do
 checkTerm cxt (tm, ty) = typeCheckForTermError $ show cxt ++ "|-" ++ show tm ++ ":" ++ show ty
 
 -- Termの中の自由変数のリスト
-fv :: Term -> Check [Ident]
-fv (TmVar x) = pure [x]
-fv TmUnit = pure []
-fv (TmLeft tm1) = fv tm1
-fv (TmRight tm2) = fv tm2
-fv (TmTensor tm1 tm2) = do
-  fv1 <- fv tm1
-  fv2 <- fv tm2
-  pure $ fv1 ++ fv2
-fv (TmArrow tm1 tm2) = do
-  fv1 <- fv tm2
-  fv2 <- fv tm1
-  pure $ fv1 \\ fv2 -- 当然束縛変数は除く
-fv (TmFold tm) = fv tm
-fv (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
-  fv1 <- fv tm1
-  fv2 <- fv tm2
-  if fv1 == fv2
-    then pure fv1
+tmFV :: Term -> Check [Ident]
+tmFV (TmVar x) = pure [x]
+tmFV TmUnit = pure []
+tmFV (TmLeft tm1) = tmFV tm1
+tmFV (TmRight tm2) = tmFV tm2
+tmFV (TmTensor tm1 tm2) = do
+  tmFV1 <- tmFV tm1
+  tmFV2 <- tmFV tm2
+  pure $ tmFV1 ++ tmFV2
+tmFV (TmArrow tm1 tm2) = do
+  tmFV1 <- tmFV tm2
+  tmFV2 <- tmFV tm1
+  pure $ tmFV1 \\ tmFV2 -- 当然束縛変数は除く
+tmFV (TmFold _ tm) = tmFV tm
+tmFV (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
+  tmFV1 <- tmFV tm1
+  tmFV2 <- tmFV tm2
+  if tmFV1 == tmFV2
+    then pure tmFV1
     else throwError ""
-fv (TmLabel _ tm) = fv tm
+tmFV (TmLabel _ tm) = tmFV tm
+
+-- Typeの中の自由変数のリスト
+tyFV :: Type -> [Ident]
+tyFV (TyVar x)          = [x]
+tyFV (TyUnit)           = []
+tyFV (TySum    ty1 ty2) = tyFV ty1 ++ tyFV ty2
+tyFV (TyTensor ty1 ty2) = tyFV ty1 ++ tyFV ty2
+tyFV (TyFunc   ty1 ty2) = tyFV ty1 ++ tyFV ty2
+tyFV (TyRec x ty)       = delete x $ tyFV ty
 
 checkExpr :: Expr -> Type -> Check String
 checkExpr (ExTerm tm) ty = do
