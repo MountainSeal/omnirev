@@ -28,7 +28,7 @@ data Term
     | TmRight Term
     | TmTensor Term Term
     | TmArrow Term Term
-    | TmFold Term
+    | TmFold Type Term
     | TmLin Term Term
     | TmLabel Ident Term
   deriving (Eq, Ord, Show, Read)

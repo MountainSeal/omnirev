@@ -121,9 +121,9 @@ instance Print AbsOmnirev.Term where
     AbsOmnirev.TmLeft term -> prPrec i 4 (concatD [doc (showString "inl"), prt 4 term])
     AbsOmnirev.TmRight term -> prPrec i 4 (concatD [doc (showString "inr"), prt 4 term])
     AbsOmnirev.TmTensor term1 term2 -> prPrec i 3 (concatD [prt 3 term1, doc (showString ","), prt 4 term2])
-    AbsOmnirev.TmArrow term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString "=>"), prt 2 term2])
-    AbsOmnirev.TmFold term -> prPrec i 4 (concatD [doc (showString "fold"), prt 4 term])
-    AbsOmnirev.TmLin term1 term2 -> prPrec i 2 (concatD [prt 2 term1, doc (showString "|"), prt 3 term2])
+    AbsOmnirev.TmArrow term1 term2 -> prPrec i 2 (concatD [prt 2 term1, doc (showString "=>"), prt 3 term2])
+    AbsOmnirev.TmFold type_ term -> prPrec i 4 (concatD [doc (showString "fold"), prt 0 type_, prt 4 term])
+    AbsOmnirev.TmLin term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString "|"), prt 2 term2])
     AbsOmnirev.TmLabel id term -> prPrec i 4 (concatD [prt 0 id, prt 4 term])
 
 instance Print AbsOmnirev.Expr where

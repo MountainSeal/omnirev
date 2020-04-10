@@ -68,17 +68,17 @@ Term4 : Ident { AbsOmnirev.TmVar $1 }
       | 'unit' { AbsOmnirev.TmUnit }
       | 'inl' Term4 { AbsOmnirev.TmLeft $2 }
       | 'inr' Term4 { AbsOmnirev.TmRight $2 }
-      | 'fold' Term4 { AbsOmnirev.TmFold $2 }
+      | 'fold' Type Term4 { AbsOmnirev.TmFold $2 $3 }
       | Ident Term4 { AbsOmnirev.TmLabel $1 $2 }
       | '(' Term ')' { $2 }
 Term3 :: { Term }
 Term3 : Term3 ',' Term4 { AbsOmnirev.TmTensor $1 $3 }
       | Term4 { $1 }
-Term1 :: { Term }
-Term1 : Term1 '=>' Term2 { AbsOmnirev.TmArrow $1 $3 }
-      | Term2 { $1 }
 Term2 :: { Term }
-Term2 : Term2 '|' Term3 { AbsOmnirev.TmLin $1 $3 } | Term3 { $1 }
+Term2 : Term2 '=>' Term3 { AbsOmnirev.TmArrow $1 $3 }
+      | Term3 { $1 }
+Term1 :: { Term }
+Term1 : Term1 '|' Term2 { AbsOmnirev.TmLin $1 $3 } | Term2 { $1 }
 Term :: { Term }
 Term : Term1 { $1 }
 Expr2 :: { Expr }
