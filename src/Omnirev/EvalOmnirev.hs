@@ -132,8 +132,9 @@ checkType cxt (TyTensor t1 t2) =
   checkType cxt t1 >> checkType cxt t2
 checkType cxt (TyFunc t1 t2) =
   checkType cxt t1 >> checkType cxt t2
-checkType cxt (TyRec x t) =
-  checkType (x:cxt) t
+checkType cxt (TyRec x t)
+  | x `elem` cxt = throwError "type variable already bounded."
+  | otherwise    = checkType (x:cxt) t
 
 subst :: Type -> Ident -> Type -> Type
 subst (TyVar y)        x s = if y == x then s else TyVar y
