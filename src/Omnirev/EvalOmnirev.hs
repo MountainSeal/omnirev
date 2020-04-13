@@ -314,7 +314,8 @@ tyFV (TyRec x ty)       = delete x $ tyFV ty
 
 checkExpr :: Expr -> Type -> Check String
 checkExpr (ExTerm tm) ty = do
-  cxt <- checkTerm [] (tm, ty)
+  tm' <- tmPurify tm
+  cxt <- checkTerm [] (tm', ty)
   if null cxt
     then pure ""
     else typeCheckForTermError "Context must be empty after type check."
@@ -326,4 +327,35 @@ checkExpr (ExFlip ex) (TyFunc t1 t2) =
   checkExpr ex (TyFunc t2 t1)
 checkExpr (ExTrace tm (Ident s) ty1) ty2 = do
   ty1' <- purify [] ty1 -- purifyを消しては行けない（戒め）
+  checkType [] ty1' -- この型検査してなかった・・・
   local (Map.insert s (Label ty1')) (checkExpr (ExTerm tm) ty2)
+
+-- TmFoldのTypeからAliasを書き換えるためだけの関数
+tmPurify :: Term -> Check Term
+tmPurify (TmVar x) = pure $ TmVar x
+tmPurify TmUnit = pure TmUnit
+tmPurify (TmLeft tm) = do
+  tm' <- tmPurify tm
+  pure $ TmLeft tm'
+tmPurify (TmRight tm) = do
+  tm' <- tmPurify tm
+  pure $ TmRight tm'
+tmPurify (TmTensor tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmTensor tm1' tm2'
+tmPurify (TmArrow tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmArrow tm1' tm2'
+tmPurify (TmFold ty tm) = do
+  ty' <- purify [] ty -- やりたいことは実際ココ
+  tm' <- tmPurify tm
+  pure $ TmFold ty' tm'
+tmPurify (TmLin tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmLin tm1' tm2'
+tmPurify (TmLabel l tm) = do
+  tm' <- tmPurify tm
+  pure $ TmLabel l tm'
