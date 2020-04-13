@@ -110,8 +110,9 @@ purify cxt (TyFunc ty1 ty2) = do
   ty1' <- purify cxt ty1
   ty2' <- purify cxt ty2
   pure $ TyFunc ty1' ty2'
-purify cxt (TyRec x ty) =
-  purify (x:cxt) ty
+purify cxt (TyRec x ty) = do
+  ty' <- purify (x:cxt) ty
+  pure $ TyRec x ty'
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
