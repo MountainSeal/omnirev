@@ -146,7 +146,7 @@ x ~> ty = \t -> subst t x ty
 --型変数（自由束縛にかかわらず全て）
 tyvars :: Type -> [Ident]
 tyvars (TyVar x) = [x]
-tyvars (TyUnit)  = []
+tyvars  TyUnit   = []
 tyvars (TySum    t1 t2) = tyvars t1 ++ tyvars t2
 tyvars (TyTensor t1 t2) = tyvars t1 ++ tyvars t2
 tyvars (TyFunc   t1 t2) = tyvars t1 ++ tyvars t2
@@ -157,7 +157,7 @@ alphaEquiv :: Type -> Type -> Bool
 alphaEquiv (TyVar x) (TyVar y)
   | x == y     = True
   | otherwise  = False
-alphaEquiv (TyUnit)         (TyUnit)         = True
+alphaEquiv  TyUnit           TyUnit          = True
 alphaEquiv (TySum    s1 s2) (TySum    t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
 alphaEquiv (TyTensor s1 s2) (TyTensor t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
 alphaEquiv (TyFunc   s1 s2) (TyFunc   t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
@@ -188,50 +188,35 @@ checkTerm cxt (TmVar i, ty) =
       then pure $ delete (TmVar i, ty') cxt
       else typeCheckForTermError "same variable but different type."
     Nothing -> typeCheckForTermError "not found variable."
--- exchange
--- checkTerm ((TmVar i,ty):cxt) (um, uy) =
---   checkTerm (cxt ++ [(TmVar i, ty)]) (um, uy)
 -- unit_l
 checkTerm ((TmUnit, TyUnit):cxt) (tm, ty) =
   checkTerm cxt (tm, ty)
 -- inl_l
-checkTerm ((TmLeft tm1, TySum ty1 ty2):cxt) (tm, ty) =
-  -- checkTerm ((tm1, ty1):cxt) (tm, ty)
-  let
-    cxt' = ext (tm1, ty1) cxt
-  in
-    checkTerm cxt' (tm, ty)
+checkTerm ((TmLeft tm1, TySum ty1 ty2):cxt) (tm, ty) = do
+  let cxt' = (tm1, ty1) `ext` cxt
+  checkTerm cxt' (tm, ty)
   -- inr_l
-checkTerm ((TmRight tm2, TySum ty1 ty2):cxt) (tm, ty) =
-  -- checkTerm ((tm2, ty2):cxt) (tm, ty)
-  let
-    cxt' = ext (tm2, ty2) cxt
-  in
-    checkTerm cxt' (tm, ty)
+checkTerm ((TmRight tm2, TySum ty1 ty2):cxt) (tm, ty) = do
+  let cxt' = (tm2, ty2) `ext` cxt
+  checkTerm cxt' (tm, ty)
 -- tensor_l
-checkTerm ((TmTensor tm1 tm2, TyTensor ty1 ty2):cxt) (tm, ty) =
-  -- checkTerm ((tm1,ty1):(tm2,ty2):cxt) (tm, ty)
-  let
-    cxt' = ext (tm1, ty1) cxt
-    cxt'' = ext (tm2, ty2) cxt'
-  in
-    checkTerm cxt'' (tm, ty)
+checkTerm ((TmTensor tm1 tm2, TyTensor ty1 ty2):cxt) (tm, ty) = do
+  let cxt' = (tm2, ty2) `ext` ((tm1, ty1) `ext` cxt)
+  checkTerm cxt' (tm, ty)
 -- arrow_l
 checkTerm ((TmArrow tm1 tm2, TyFunc ty1 ty2):cxt) (tm, ty) = do
   cxt' <- checkTerm cxt (tm1, ty1)
-  -- checkTerm ((tm2, ty2):cxt) (tm, ty)
-  let cxt'' = ext (tm2, ty2) cxt' in checkTerm cxt'' (tm, ty)
+  let cxt'' = (tm2, ty2) `ext` cxt'
+  checkTerm cxt'' (tm, ty)
 -- fold_l
-checkTerm ((TmFold um, TyRec x uy):cxt) (tm, ty) =
-  -- checkTerm ((um, subst uy x (TyRec x uy)):cxt) (tm, ty)
-  let
-    cxt' = ext (um, subst uy x (TyRec x uy)) cxt
-  in
+checkTerm ((TmFold sy um, TyRec x uy):cxt) (tm, ty)
+  | alphaEquiv sy (TyRec x uy) = do
+    let uy'  = (x ~> TyRec x uy) uy
+        cxt' = (um, uy') `ext` cxt
     checkTerm cxt' (tm, ty)
+  | otherwise                  = throwError "not equivalent"
 -- lin_l
 checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
-  -- cxt1 <- checkTerm ((tm1,uy):cxt) (tm, ty)
-  -- cxt2 <- checkTerm ((tm2,uy):cxt) (tm, ty)
   cxt1 <- checkTerm (ext (tm1,uy) cxt) (tm, ty)
   cxt2 <- checkTerm (ext (tm2,uy) cxt) (tm, ty)
   if cxt1 == cxt2 --🤔
@@ -241,7 +226,6 @@ checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
 checkTerm ((TmLabel (Ident s) um, uy):cxt) (tm, ty) = do
   labels <- ask
   case Map.lookup s labels of
-    -- Just (Label sy) -> checkTerm ((um, sy):cxt) (tm, ty)
     Just (Label sy) -> checkTerm (ext (um, sy) cxt) (tm, ty)
     Nothing -> labelNotFoundError s
 -- unit_r
@@ -259,11 +243,13 @@ checkTerm cxt (TmTensor tm1 tm2, TyTensor ty1 ty2) = do
   checkTerm cxt' (tm2, ty2)
 -- arrow_r
 checkTerm cxt (TmArrow tm1 tm2, TyFunc ty1 ty2) =
-  -- checkTerm ((tm1, ty1):cxt) (tm2, ty2)
   checkTerm (ext (tm1, ty1) cxt) (tm2, ty2)
 -- fold_r
-checkTerm cxt (TmFold tm, TyRec x ty) =
-  checkTerm cxt (tm, subst ty x (TyRec x ty))
+checkTerm cxt (TmFold uy tm, TyRec x ty)
+  | alphaEquiv uy (TyRec x ty) = do
+    let ty' = (x ~> TyRec x ty) ty
+    checkTerm cxt (tm, ty')
+  | otherwise                  = throwError "not equivalent"
 -- lin_r
 checkTerm cxt (TmLin tm1 tm2, ty) = do
   cxt1 <- checkTerm cxt (tm1, ty)
@@ -306,7 +292,7 @@ tmFV (TmLabel _ tm) = tmFV tm
 -- Typeの中の自由変数のリスト
 tyFV :: Type -> [Ident]
 tyFV (TyVar x)          = [x]
-tyFV (TyUnit)           = []
+tyFV  TyUnit            = []
 tyFV (TySum    ty1 ty2) = tyFV ty1 ++ tyFV ty2
 tyFV (TyTensor ty1 ty2) = tyFV ty1 ++ tyFV ty2
 tyFV (TyFunc   ty1 ty2) = tyFV ty1 ++ tyFV ty2
