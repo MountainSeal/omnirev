@@ -70,9 +70,9 @@ checkDef (DType (Ident s) ty) = do
   env <- get
   case Map.lookup s env of
     Nothing -> do
-      -- ty' <- purify [] ty
-      checkType [] ty
-      modify $ Map.insert s (AType ty)
+      ty' <- purify [] ty
+      checkType [] ty'
+      modify $ Map.insert s (AType ty')
       pure ""
     Just v -> dupDefError v s
 checkDef (DTerm (Ident s) ty ex) = do
@@ -116,14 +116,9 @@ purify cxt (TyRec x ty) = do
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
-checkType cxt (TyVar (Ident s)) = if Ident s `elem` cxt
-  then pure ""
-  else do -- Aliasのほうの変数だと解釈する
-    env <- get
-    case Map.lookup s env of
-      Just AType{} -> pure "" -- Aliasは検査済なので何もしない
-      Just AExpr{} -> dupDefExprError s
-      Nothing      -> defNotFoundError s
+checkType cxt (TyVar (Ident s))
+  | Ident s `elem` cxt = pure ""
+  | otherwise          = throwError $ "type variable not found." ++ show s
 checkType cxt TyUnit =
   pure ""
 checkType cxt (TySum t1 t2) =
