@@ -80,6 +80,7 @@ checkDef (DTerm (Ident s) ty ex) = do
   case Map.lookup s env of
     Nothing -> do
       ty' <- purify [] ty
+      checkType [] ty'
       checkExpr ex ty'
       modify $ Map.insert s (AExpr ex ty)
       pure ""
