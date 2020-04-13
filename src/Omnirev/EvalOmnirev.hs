@@ -140,7 +140,41 @@ subst (TyTensor t1 t2) x s = TyTensor (subst t1 x s) (subst t2 x s)
 subst (TyFunc t1 t2)   x s = TyFunc (subst t1 x s) (subst t2 x s)
 subst (TyRec y t)      x s = TyRec y (subst t x s)
 
+(~>) :: Ident -> Type -> (Type -> Type)
+x ~> ty = \t -> subst t x ty
+
+--型変数（自由束縛にかかわらず全て）
+tyvars :: Type -> [Ident]
+tyvars (TyVar x) = [x]
+tyvars (TyUnit)  = []
+tyvars (TySum    t1 t2) = tyvars t1 ++ tyvars t2
+tyvars (TyTensor t1 t2) = tyvars t1 ++ tyvars t2
+tyvars (TyFunc   t1 t2) = tyvars t1 ++ tyvars t2
+tyvars (TyRec x t) = let v = tyvars t in if x `elem` v then v else x:v
+
+-- 束縛変数が異なっていても同値であることを判定
+alphaEquiv :: Type -> Type -> Bool
+alphaEquiv (TyVar x) (TyVar y)
+  | x == y     = True
+  | otherwise  = False
+alphaEquiv (TyUnit)         (TyUnit)         = True
+alphaEquiv (TySum    s1 s2) (TySum    t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
+alphaEquiv (TyTensor s1 s2) (TyTensor t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
+alphaEquiv (TyFunc   s1 s2) (TyFunc   t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
+alphaEquiv (TyRec x s) (TyRec y t)
+  | x == y    = alphaEquiv s t
+  | otherwise = alphaEquiv s' t'
+    where
+      svs = tyvars (TyRec x s)
+      tvs = tyvars (TyRec y t)
+      f (Ident s) = s
+      uv = TyVar $ Ident $ unwords $ (map f svs) ++ (map f tvs)
+      s' = (x ~> uv)s
+      t' = (y ~> uv)t
+
 -- Termが変数の場合は後ろに追加，そうでない場合は前に追加
+-- なんでこんなことをするかというと，コンテキスト中の変数を含まない項を必ず処理させるため
+-- 本来の型検査であればコンテキストの順序に依存しないが，型検査のアルゴリズム実装にあたってはコンテキストの順序は代表元だけで処理したいのじゃ
 ext :: (Term, Type) -> Context -> Context
 ext (TmVar i, ty) cxt = cxt ++ [(TmVar i, ty)]
 ext (tm     , ty) cxt = (tm,ty):cxt
