@@ -29,7 +29,7 @@
 \newcommand{\reduction}[2]{#1 \quad\Rightarrow\quad #2}
 \newcommand{\flip}[2]{#1 \quad\looparrowright\quad #2}
 \newcommand{\bnfdef}{::=}
-
+\newcommand{\equi}[2]{#1 \;\equiv\; #2}
 \newcommand{\nsequent}[3]{#1 \;\vdash\; #2 \;\triangleright\; #3}
 
 \newcommand*{\vcenteredhbox}[1]{\begingroup
@@ -42,7 +42,7 @@
   \begin{alignat*}{4}
     &\text{Type Variables}  & \quad &X,Y,Z  & \quad &        & \quad & \\
     &\text{Term Variables}  &       &x,y,z  &       &        &       & \\
-    &\text{Trace Labels}    &       &l      &       &        &       & \\
+    % &\text{Trace Labels}    &       &l      &       &        &       & \\
     &\text{Types}           &       &T,S,U  &       &\bnfdef &       & X \\
     &                       &       &       &       &|       &       & I \\
     &                       &       &       &       &|       &       & T \oplus T \\
@@ -57,7 +57,9 @@
     &                       &       &       &       &|       &       & t\mapsto{}t \\
     &                       &       &       &       &|       &       & \text{fold}\;t \\
     &                       &       &       &       &|       &       & t+t \\
-    &                       &       &       &       &|       &       & l\;t \\
+    &                       &       &       &       &|       &       & -\;t \\
+    % &                       &       &       &       &|       &       & l\;t \\
+    &                       &       &       &       &|       &       & t\;\text{trace}\;T \\
     &\text{Type Contexts}   &       &\Theta &       &\bnfdef &       & \\
     &\text{Term Contexts}   &       &       &       &|       &       & \Theta,X \\
     &                       &       &\Gamma &       &\bnfdef &       & \\
@@ -65,10 +67,9 @@
     &\text{Type Judgements} &       &       &       &        &       & \sequent{\Theta}{T} \\
     &\text{Term Judgements} &       &       &       &        &       & \sequent{\Gamma}{t:T} \\
     &\text{Expressions}     &       &e,f,g  &       &\bnfdef &       & t \\
-    &                       &       &       &       &|       &       & f\;t \\
-    &                       &       &       &       &|       &       & f\fcmp{}f \\
-    &                       &       &       &       &|       &       & f^\dagger \\
-    &                       &       &       &       &|       &       & t\;\text{where}\;l::T
+    &                       &       &       &       &|       &       & f\;\text{@}\;t \\
+    % &                       &       &       &       &|       &       & f\fcmp{}f \\
+    &                       &       &       &       &|       &       & f^\dagger
   \end{alignat*}
 \end{itembox}
 
@@ -225,14 +226,26 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\sequent{[]\Gamma,u:S}{t:T[\Lambda]}$}
-      \LeftLabel{$\text{Trace}_L$}
-      \UnaryInfC{$\sequent{[l:S]\Gamma,l\;u:U}{t:T[\Lambda]}$}
+      \AxiomC{$\sequent{\Gamma,u:U}{t:T}$}
+      \LeftLabel{$\text{Opposition}_L$}
+      \UnaryInfC{$\sequent{\Gamma,-u:U}{t:T}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\sequent{[\Lambda]\Gamma}{t:U[]}$}
+      \AxiomC{$\sequent{\Gamma}{t:T}$}
+      \RightLabel{$\text{Opposition}_R$}
+      \UnaryInfC{$\sequent{\Gamma}{-t:T}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\sequent{\Gamma,u\;\text{trace}\;S:U_1\multimap{}U_2}{t:T}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}$}
       \RightLabel{$\text{Trace}_R$}
-      \UnaryInfC{$\sequent{[\Lambda]\Gamma}{l\;t:T[l:U]}$}
+      \UnaryInfC{$\sequent{\Gamma}{t\;\text{trace}\;U:T_1\multimap{}T_2}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
@@ -255,13 +268,8 @@
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$\sequent{}{f:T\multimap{}U}$}
-      \LeftLabel{Dagger}
+      \RightLabel{Dagger}
       \UnaryInfC{$\sequent{}{f^\dagger:U\multimap{}T}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{[l:U]}{t:T[l:U]}$}
-      \RightLabel{Trace}
-      \UnaryInfC{$\sequent{}{t\;\text{where}\;l::U:T}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
@@ -357,10 +365,10 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\match{t_1}{u}{[\Xi]}$}
-      \AxiomC{$\match{t_2}{u}{[\Xi]}$}
-      \LeftLabel{Match--lin}
-      \BinaryInfC{$\match{t_1+t_2}{u}{[\Xi]}$}
+      \AxiomC{$\match{t}{u_1}{[\Xi]}$}
+      \AxiomC{$\match{t}{u_2}{[\Xi]}$}
+      \LeftLabel{Match--lin1}
+      \BinaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\subst{[\Xi]}{t_1}{t'_1}$}
@@ -371,81 +379,96 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
+      \AxiomC{$\match{t_1}{u}{[\Xi]}$}
+      \AxiomC{$\match{t_2}{u}{[\Xi]}$}
+      \LeftLabel{Match--lin2}
+      \BinaryInfC{$\match{t_1+t_2}{u}{[\Xi]}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{v}{u}{[\Xi]}$}
+      \LeftLabel{Match--opp--c}
+      \UnaryInfC{$\match{-v}{-u}{[\Xi]}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\subst{[\Xi]}{v}{v'}$}
+      \RightLabel{Subst--opp}
+      \UnaryInfC{$\subst{[\Xi]}{-v}{-v'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{v}{-u}{[\Xi]}$}
+      \LeftLabel{Match--opp--l}
+      \UnaryInfC{$\match{-v}{u}{[\Xi]}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{v}{u}{-[\Xi]}$}
+      \LeftLabel{Match--opp--r}
+      \UnaryInfC{$\match{v}{-u}{[\Xi]}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
       \AxiomC{$\match{t}{u}{[\Xi]}$}
       \LeftLabel{Match--trace}
-      \UnaryInfC{$\match{l\;t}{l\;u}{[\Xi]}$}
+      \UnaryInfC{$\match{t\;\text{trace}\;T}{u\;\text{trace}\;T}{[\Xi]}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\subst{[\Xi]}{t}{t'}$}
-      \AxiomC{$\reduction{[l,u]u\;t'}{t''}$}
       \RightLabel{Subst--trace}
-      \BinaryInfC{$\subst{[l,u][\Xi]}{l\;t}{t''}$}
+      \UnaryInfC{$\subst{[\Xi]}{t\;\text{trace}\;T}{t'\;\text{trace}\;T}$}
     \end{bprooftree}
   \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_1}{[\Xi]}$}
-      \LeftLabel{Match--lin--l}
-      \UnaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{t_1\;t}{t_1'}$}
-      \RightLabel{App--lin--l}
-      \UnaryInfC{$\reduction{(t_1+t_2)\;t}{t'_1}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_1}{[\Xi]}$}
-      \AxiomC{$\match{t}{u_2}{[\Xi]}$}
-      \LeftLabel{Match--lin--c}
-      \BinaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{t_1\;t}{t_1'}$}
-      \AxiomC{$\reduction{t_2\;t}{t_2'}$}
-      \RightLabel{App--lin--c}
-      \BinaryInfC{$\reduction{(t_1+t_2)\;t}{t'_1+t'_2}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_2}{[\Xi]}$}
-      \LeftLabel{Match--lin--r}
-      \UnaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
-      \begin{bprooftree}
-      \AxiomC{$\reduction{t_2\;t}{t_2'}$}
-      \RightLabel{App--lin--r}
-      \UnaryInfC{$\reduction{(t_1+t_2)\;t}{t'_2}$}
-    \end{bprooftree}
-  \end{center}
-
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$\match{t_1}{t}{[\Xi]}$}
       \AxiomC{$\subst{[\Xi]}{t_2}{t'}$}
       \LeftLabel{App--arrow}
-      \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;t}{t'}$}
+      \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;\text{@}\;t}{t'}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\reduction{f\;t}{t'}$}
-      \AxiomC{$\reduction{g\;t'}{t''}$}
-      \RightLabel{App--comp}
-      \BinaryInfC{$\reduction{(f\fcmp{}g)\;t}{t''}$}
+      \AxiomC{$\reduction{t_1\;\text{@}\;t}{t_1'}$}
+      \AxiomC{$\reduction{t_2\;\text{@}\;t}{t_2'}$}
+      \RightLabel{App--lin}
+      \BinaryInfC{$\reduction{(t_1+t_2)\;\text{@}\;t}{t'_1+t'_2}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$\flip{f^\dagger}{f'}$}
-      \AxiomC{$\reduction{f'\;t}{t'}$}
-      \LeftLabel{App--dagger}
-      \BinaryInfC{$\reduction{f^\dagger\;t}{t'}$}
+      \AxiomC{$\reduction{f'\;\text{@}\;t}{t'}$}
+      \RightLabel{App--dagger}
+      \BinaryInfC{$\reduction{f^\dagger\;\text{@}\;t}{t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inr}\;u'}$}
+      \LeftLabel{App--trace--nix}
+      \UnaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;u}{u'}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\reduction{[l,u]u\;t}{t'}$}
-      \RightLabel{App--trace}
-      \UnaryInfC{$\reduction{(u\;\text{where}\;l::U)\;t}{t'}$}
+      \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inl}\;u'}$}
+      \AxiomC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+      \RightLabel{App--trace--loop}
+      \BinaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;\text{inl}\;u}{u''}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inl}\;u'}$}
+      \AxiomC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+      \LeftLabel{App--trace--start}
+      \BinaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;u}{u''}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inr}\;u'}$}
+      \RightLabel{App--trace--end}
+      \UnaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;\text{inl}\;u}{u'}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -463,23 +486,15 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\reduction{f\;t}{t'}$}
+      \AxiomC{$\reduction{f\;\text{@}\;t}{t'}$}
       \AxiomC{$\flip{t'^\dagger}{t''}$}
       \LeftLabel{Flip--app}
-      \BinaryInfC{$\flip{(f\;t)^\dagger}{t''}$}
+      \BinaryInfC{$\flip{(f\;\text{@}\;t)^\dagger}{t''}$}
     \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\flip{f^\dagger}{f'}$}
-      \AxiomC{$\flip{g^\dagger}{g'}$}
-      \RightLabel{Flip--comp}
-      \BinaryInfC{$\flip{(f\fcmp{}g)^\dagger}{g'\fcmp{}f'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
     \begin{bprooftree}
       \AxiomC{$\flip{t^\dagger}{t'}$}
-      \LeftLabel{Flip--trace}
-      \UnaryInfC{$\flip{(t\;\text{where}\;l::T)^\dagger}{t'\;\text{where}\;l::T}$}
+      \RightLabel{Flip--trace}
+      \UnaryInfC{$\flip{(t\;\text{trace}\;X)^\dagger}{t'\;\text{trace}\;X}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
@@ -638,14 +653,26 @@ $\nabla_T : T\oplus{}T \rightarrow T$
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\nsequent{[l:S]\Gamma,u:S}{t:T}{\Gamma'}$}
-      \LeftLabel{$\text{Trace}_L$}
-      \UnaryInfC{$\nsequent{[l:S]\Gamma,l\;u:U}{t:T}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma,u:U}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Opposition}_L$}
+      \UnaryInfC{$\nsequent{\Gamma,-u:U}{t:T}{\Gamma'}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\nsequent{[l:U]\Gamma}{t:U}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma}{t:T}{\Gamma'}$}
+      \RightLabel{$\text{Opposition}_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{-t:T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\nsequent{\Gamma,u\;\text{trace}\;S:U_1\multimap{}U_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}{\Gamma'}$}
       \RightLabel{$\text{Trace}_R$}
-      \UnaryInfC{$\nsequent{[l:U]\Gamma}{l\;t:T}{\Gamma'}$}
+      \UnaryInfC{$\nsequent{\Gamma}{t\;\text{trace}\;U:T_1\multimap{}T_2}{\Gamma'}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
