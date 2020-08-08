@@ -6,7 +6,8 @@ comment "/*" "*/" ;
 
 --Definition
 DType . Def ::= "type" Ident "=" Type ;
-DTerm . Def ::= "expr" Ident ":" Type "=" Expr ;
+DExpr . Def ::= "expr" Ident ":" Type "=" Expr ;
+DTerm . Def ::= "term" Ident ":" Type "=" Term ;
 (:[]) . [Def] ::= Def ;
 (:)   . [Def] ::= Def [Def] ;
 
@@ -28,13 +29,14 @@ TmTensor . Term3 ::= Term3 "," Term4 ;
 TmArrow  . Term2 ::= Term2 "=>" Term3 ;
 TmFold   . Term4 ::= "fold" Type Term4 ;
 TmLin    . Term1 ::= Term1 "|" Term2 ;
-TmLabel  . Term4 ::= Ident Term4 ;
+TmOpp    . Term4 ::= "-" Term4 ;
+-- TmLabel  . Term4 ::= Ident Term4 ;
+TmTrace  . Term4 ::= Term4 "trace" Type ;
 coercions Term 4 ;
 
 --Expr
-ExTerm  . Expr2 ::= Term ;
-ExApp   . Expr2 ::= Expr2 Term ;
-ExComp  . Expr1 ::= Expr1 ";" Expr2 ;
-ExFlip  . Expr2 ::= "~" Expr2 ;
-ExTrace . Expr2 ::= Term "where" Ident ":" Type ;
-coercions Expr 2 ;
+ExTerm  . Expr1 ::= Term ;
+ExApp   . Expr1 ::= Expr1 "@" Expr1 ;
+-- ExComp  . Expr1 ::= Expr1 ";" Expr2 ;
+ExFlip  . Expr1 ::= "~" Expr1 ;
+coercions Expr 1 ;

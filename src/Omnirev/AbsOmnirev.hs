@@ -9,7 +9,8 @@ newtype Ident = Ident String
 data Program = Prog [Def]
   deriving (Eq, Ord, Show, Read)
 
-data Def = DType Ident Type | DTerm Ident Type Expr
+data Def
+    = DType Ident Type | DExpr Ident Type Expr | DTerm Ident Type Term
   deriving (Eq, Ord, Show, Read)
 
 data Type
@@ -30,14 +31,10 @@ data Term
     | TmArrow Term Term
     | TmFold Type Term
     | TmLin Term Term
-    | TmLabel Ident Term
+    | TmOpp Term
+    | TmTrace Term Type
   deriving (Eq, Ord, Show, Read)
 
-data Expr
-    = ExTerm Term
-    | ExApp Expr Term
-    | ExComp Expr Expr
-    | ExFlip Expr
-    | ExTrace Term Ident Type
+data Expr = ExTerm Term | ExApp Expr Expr | ExFlip Expr
   deriving (Eq, Ord, Show, Read)
 

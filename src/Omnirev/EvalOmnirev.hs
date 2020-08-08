@@ -15,6 +15,7 @@ import Omnirev.AbsOmnirev
 
 data Alias
   = AType Type
+  | ATerm Term Type
   | AExpr Expr Type
   deriving (Eq, Ord, Show, Read)
 
@@ -43,11 +44,15 @@ defNotFoundError x = throwError $ "The alias not found: " ++ show x
 dupDefTypeError :: Show a => a -> Check b
 dupDefTypeError x = throwError $ "The alias is already defined as Type: " ++ show x
 
+dupDefTermError :: Show a => a -> Check b
+dupDefTermError x = throwError $ "The alias is already defined as Term:" ++ show x
+
 dupDefExprError :: Show a => a -> Check b
 dupDefExprError x = throwError $ "The alias is already defined as Expression: " ++ show x
 
 dupDefError :: Show a => Alias -> a -> Check b
 dupDefError AType{} = dupDefTypeError
+dupDefError ATerm{} = dupDefTermError
 dupDefError AExpr{} = dupDefExprError
 
 typeCheckForTermError :: Show a => a -> Check b
@@ -75,14 +80,26 @@ checkDef (DType (Ident s) ty) = do
       modify $ Map.insert s (AType ty')
       pure ""
     Just v -> dupDefError v s
-checkDef (DTerm (Ident s) ty ex) = do
+checkDef (DTerm (Ident s) ty tm) = do
   env <- get
   case Map.lookup s env of
     Nothing -> do
       ty' <- purify [] ty
       checkType [] ty'
-      checkExpr ex ty'
-      modify $ Map.insert s (AExpr ex ty)
+      tm' <- tmPurify tm
+      checkTerm [] (tm', ty')
+      modify $ Map.insert s (ATerm tm' ty')
+      pure ""
+    Just v -> dupDefError v s
+checkDef (DExpr (Ident s) ty ex) = do
+  env <- get
+  case Map.lookup s env of
+    Nothing -> do
+      ty' <- purify [] ty
+      checkType [] ty'
+      ex' <- exPurify ex
+      checkExpr ex' ty'
+      modify $ Map.insert s (AExpr ex' ty')
       pure ""
     Just v -> dupDefError v s
 
@@ -96,6 +113,7 @@ purify cxt (TyVar (Ident s)) =
       case Map.lookup s env of
         Just (AType ty) -> pure ty
         Just AExpr{}    -> dupDefExprError s
+        Just ATerm{}    -> dupDefTermError s
         Nothing         -> defNotFoundError s
 purify cxt TyUnit =
   pure TyUnit
@@ -114,6 +132,77 @@ purify cxt (TyFunc ty1 ty2) = do
 purify cxt (TyRec x ty) = do
   ty' <- purify (x:cxt) ty
   pure $ TyRec x ty'
+
+-- termのaliasを置き換え，typeのaliasを書き換える関数
+tmPurify :: Term -> Check Term
+tmPurify (TmVar (Ident s)) = do
+    env <- get
+    case Map.lookup s env of
+      Just AType{}      -> dupDefTypeError s
+      Just (ATerm tm _) -> pure tm
+      Just AExpr{}      -> dupDefExprError s
+      Nothing           -> pure $ TmVar $ Ident s
+tmPurify TmUnit = pure TmUnit
+tmPurify (TmLeft tm) = do
+  tm' <- tmPurify tm
+  pure $ TmLeft tm'
+tmPurify (TmRight tm) = do
+  tm' <- tmPurify tm
+  pure $ TmRight tm'
+tmPurify (TmTensor tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmTensor tm1' tm2'
+tmPurify (TmArrow tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmArrow tm1' tm2'
+tmPurify (TmFold ty tm) = do
+  ty' <- purify [] ty -- typeの置き換え
+  tm' <- tmPurify tm
+  pure $ TmFold ty' tm'
+tmPurify (TmLin tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmLin tm1' tm2'
+tmPurify (TmOpp tm) = do
+  tm' <- tmPurify tm
+  pure $ TmOpp tm'
+-- tmPurify (TmLabel l tm) = do
+--   tm' <- tmPurify tm
+--   pure $ TmLabel l tm'
+tmPurify (TmTrace tm ty) = do
+  tm' <- tmPurify tm
+  ty' <- purify [] ty -- typeの置き換え
+  pure $ TmTrace tm' ty'
+
+-- exprのtmPurify
+exPurify :: Expr -> Check Expr
+exPurify (ExTerm (TmVar (Ident s))) = do
+  env <- get
+  case Map.lookup s env of
+    Just AType{}       -> dupDefTypeError s
+    Just ATerm{}       -> dupDefTermError s
+    Just (AExpr ex _)  -> pure ex
+    Nothing            -> defNotFoundError s
+exPurify (ExTerm tm) = do
+  tm' <- tmPurify tm
+  pure $ ExTerm tm'
+exPurify (ExApp ex1 ex2) = do
+  ex1' <- exPurify ex1
+  ex2' <- exPurify ex2
+  pure $ ExApp ex1' ex2'
+-- exPurify (ExComp ex1 ex2) = do
+--   ex1' <- exPurify ex1
+--   ex2' <- exPurify ex2
+--   pure $ ExComp ex1' ex2'
+exPurify (ExFlip ex) = do
+  ex' <- exPurify ex
+  pure $ ExFlip ex'
+-- exPurify (ExTrace tm l ty) = do
+--   tm' <- tmPurify tm
+--   ty' <- purify [] ty
+--   pure $ ExTrace tm' l ty'
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
@@ -187,7 +276,7 @@ checkTerm cxt (TmVar i, ty) =
     Just ty' -> if ty == ty'
       then pure $ delete (TmVar i, ty') cxt
       else typeCheckForTermError "same variable but different type."
-    Nothing -> typeCheckForTermError "not found variable."
+    Nothing -> typeCheckForTermError $ "not found variable." ++ show i
 -- unit_l
 checkTerm ((TmUnit, TyUnit):cxt) (tm, ty) =
   checkTerm cxt (tm, ty)
@@ -222,12 +311,18 @@ checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
   if cxt1 == cxt2 --🤔
     then pure cxt1
     else typeCheckForTermError "[L]remainder contexts between lin are different."
--- label_l
-checkTerm ((TmLabel (Ident s) um, uy):cxt) (tm, ty) = do
-  labels <- ask
-  case Map.lookup s labels of
-    Just (Label sy) -> checkTerm (ext (um, sy) cxt) (tm, ty)
-    Nothing -> labelNotFoundError s
+-- opp_l
+checkTerm ((TmOpp um, uy):cxt) (tm, ty) = do
+  let cxt' = (um, uy) `ext` cxt
+  checkTerm ((um, uy):cxt') (tm, ty)
+-- -- label_l
+-- checkTerm ((TmLabel (Ident s) um, uy):cxt) (tm, ty) = do
+--   labels <- ask
+--   case Map.lookup s labels of
+--     Just (Label sy) -> checkTerm (ext (um, sy) cxt) (tm, ty)
+--     Nothing -> labelNotFoundError s
+-- trace_l
+
 -- unit_r
 checkTerm cxt (TmUnit, TyUnit) =
   pure cxt
@@ -257,12 +352,17 @@ checkTerm cxt (TmLin tm1 tm2, ty) = do
   if cxt1 == cxt2 --🤔
     then pure cxt1
     else typeCheckForTermError $ "[R]remainder contexts between lin are different."
--- label_r
-checkTerm cxt (TmLabel (Ident s) tm, ty) = do
-  labels <- ask
-  case Map.lookup s labels of
-    Just (Label uy) -> checkTerm cxt (tm, uy)
-    Nothing -> labelNotFoundError s
+-- opp_r
+checkTerm cxt (TmOpp tm, ty) =
+  checkTerm cxt (tm, ty)
+-- -- label_r
+-- checkTerm cxt (TmLabel (Ident s) tm, ty) = do
+--   labels <- ask
+--   case Map.lookup s labels of
+--     Just (Label uy) -> checkTerm cxt (tm, uy)
+--     Nothing -> labelNotFoundError s
+-- trace_r
+
 -- otherwise
 checkTerm cxt (tm, ty) = typeCheckForTermError $ show cxt ++ "|-" ++ show tm ++ ":" ++ show ty
 
@@ -287,7 +387,9 @@ tmFV (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
   if tmFV1 == tmFV2
     then pure tmFV1
     else throwError ""
-tmFV (TmLabel _ tm) = tmFV tm
+tmFV (TmOpp tm) = tmFV tm
+-- tmFV (TmLabel _ tm) = tmFV tm
+tmFV (TmTrace tm _) = tmFV tm
 
 -- Typeの中の自由変数のリスト
 tyFV :: Type -> [Ident]
@@ -300,8 +402,7 @@ tyFV (TyRec x ty)       = delete x $ tyFV ty
 
 checkExpr :: Expr -> Type -> Check String
 checkExpr (ExTerm tm) ty = do
-  tm' <- tmPurify tm
-  cxt <- checkTerm [] (tm', ty)
+  cxt <- checkTerm [] (tm, ty)
   if null cxt
     then pure ""
     else typeCheckForTermError "Context must be empty after type check."

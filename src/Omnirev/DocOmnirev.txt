@@ -24,14 +24,14 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in omnirev are the following:
   | ``I`` | ``expr`` | ``fix`` | ``fold``
-  | ``inl`` | ``inr`` | ``type`` | ``unit``
-  | ``where`` |  |  |
+  | ``inl`` | ``inr`` | ``term`` | ``trace``
+  | ``type`` | ``unit`` |  |
 
 The symbols used in omnirev are the following:
   | = | : | + | *
   | -> | . | ( | )
-  | , | => | | | ;
-  | ~ |  |  |
+  | , | => | | | -
+  | @ | ~ |  |
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -45,6 +45,7 @@ All other symbols are terminals.
   | //Program// | -> | //[Def]//
   | //Def// | -> | ``type`` //Ident// ``=`` //Type//
   |  |  **|**  | ``expr`` //Ident// ``:`` //Type// ``=`` //Expr//
+  |  |  **|**  | ``term`` //Ident// ``:`` //Type// ``=`` //Term//
   | //[Def]// | -> | //Def//
   |  |  **|**  | //Def// //[Def]//
   | //Type4// | -> | //Ident//
@@ -63,7 +64,8 @@ All other symbols are terminals.
   |  |  **|**  | ``inl`` //Term4//
   |  |  **|**  | ``inr`` //Term4//
   |  |  **|**  | ``fold`` //Type// //Term4//
-  |  |  **|**  | //Ident// //Term4//
+  |  |  **|**  | ``-`` //Term4//
+  |  |  **|**  | //Term4// ``trace`` //Type//
   |  |  **|**  | ``(`` //Term// ``)``
   | //Term3// | -> | //Term3// ``,`` //Term4//
   |  |  **|**  | //Term4//
@@ -72,13 +74,10 @@ All other symbols are terminals.
   | //Term1// | -> | //Term1// ``|`` //Term2//
   |  |  **|**  | //Term2//
   | //Term// | -> | //Term1//
-  | //Expr2// | -> | //Term//
-  |  |  **|**  | //Expr2// //Term//
-  |  |  **|**  | ``~`` //Expr2//
-  |  |  **|**  | //Term// ``where`` //Ident// ``:`` //Type//
+  | //Expr1// | -> | //Term//
+  |  |  **|**  | //Expr1// ``@`` //Expr1//
+  |  |  **|**  | ``~`` //Expr1//
   |  |  **|**  | ``(`` //Expr// ``)``
-  | //Expr1// | -> | //Expr1// ``;`` //Expr2//
-  |  |  **|**  | //Expr2//
   | //Expr// | -> | //Expr1//
 
 
