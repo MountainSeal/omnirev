@@ -30,9 +30,10 @@ data Term
     | TmTensor Term Term
     | TmArrow Term Term
     | TmFold Type Term
+    | TmTrace Term Type
     | TmLin Term Term
     | TmOpp Term
-    | TmTrace Term Type
+    | TmNull
   deriving (Eq, Ord, Show, Read)
 
 data Expr = ExTerm Term | ExApp Expr Expr | ExFlip Expr

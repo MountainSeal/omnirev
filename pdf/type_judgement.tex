@@ -30,6 +30,7 @@
 \newcommand{\flip}[2]{#1 \quad\looparrowright\quad #2}
 \newcommand{\bnfdef}{::=}
 \newcommand{\equi}[2]{#1 \;\equiv\; #2}
+\newcommand{\precedes}[2]{#1 \;\prec\; #2}
 \newcommand{\nsequent}[3]{#1 \;\vdash\; #2 \;\triangleright\; #3}
 
 \newcommand*{\vcenteredhbox}[1]{\begingroup
@@ -56,10 +57,10 @@
     &                       &       &       &       &|       &       & t\times{}t \\
     &                       &       &       &       &|       &       & t\mapsto{}t \\
     &                       &       &       &       &|       &       & \text{fold}\;t \\
+    &                       &       &       &       &|       &       & t\;\text{trace}_T \\
     &                       &       &       &       &|       &       & t+t \\
     &                       &       &       &       &|       &       & -\;t \\
-    % &                       &       &       &       &|       &       & l\;t \\
-    &                       &       &       &       &|       &       & t\;\text{trace}\;T \\
+    &                       &       &       &       &|       &       & \varnothing \\
     &\text{Type Contexts}   &       &\Theta &       &\bnfdef &       & \\
     &\text{Term Contexts}   &       &       &       &|       &       & \Theta,X \\
     &                       &       &\Gamma &       &\bnfdef &       & \\
@@ -240,12 +241,12 @@
     \begin{bprooftree}
       \AxiomC{$\sequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}$}
       \LeftLabel{$\text{Trace}_L$}
-      \UnaryInfC{$\sequent{\Gamma,u\;\text{trace}\;S:U_1\multimap{}U_2}{t:T}$}
+      \UnaryInfC{$\sequent{\Gamma,u\;\text{trace}_S:U_1\multimap{}U_2}{t:T}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\sequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}$}
       \RightLabel{$\text{Trace}_R$}
-      \UnaryInfC{$\sequent{\Gamma}{t\;\text{trace}\;U:T_1\multimap{}T_2}$}
+      \UnaryInfC{$\sequent{\Gamma}{t\;\text{trace}_U:T_1\multimap{}T_2}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
@@ -415,12 +416,12 @@
     \begin{bprooftree}
       \AxiomC{$\match{t}{u}{[\Xi]}$}
       \LeftLabel{Match--trace}
-      \UnaryInfC{$\match{t\;\text{trace}\;T}{u\;\text{trace}\;T}{[\Xi]}$}
+      \UnaryInfC{$\match{t\;\text{trace}_T}{u\;\text{trace}_T}{[\Xi]}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\subst{[\Xi]}{t}{t'}$}
       \RightLabel{Subst--trace}
-      \UnaryInfC{$\subst{[\Xi]}{t\;\text{trace}\;T}{t'\;\text{trace}\;T}$}
+      \UnaryInfC{$\subst{[\Xi]}{t\;\text{trace}_T}{t'\;\text{trace}_T}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -449,26 +450,26 @@
     \begin{bprooftree}
       \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inr}\;u'}$}
       \LeftLabel{App--trace--nix}
-      \UnaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;u}{u'}$}
+      \UnaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;u}{u'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inl}\;u'}$}
-      \AxiomC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+      \AxiomC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
       \RightLabel{App--trace--loop}
-      \BinaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;\text{inl}\;u}{u''}$}
+      \BinaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;\text{inl}\;u}{u''}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inl}\;u'}$}
-      \AxiomC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+      \AxiomC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
       \LeftLabel{App--trace--start}
-      \BinaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;u}{u''}$}
+      \BinaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;u}{u''}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inr}\;u'}$}
       \RightLabel{App--trace--end}
-      \UnaryInfC{$\reduction{(t\;\text{trace}\;X)\;\text{@}\;\text{inl}\;u}{u'}$}
+      \UnaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;\text{inl}\;u}{u'}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -494,9 +495,182 @@
     \begin{bprooftree}
       \AxiomC{$\flip{t^\dagger}{t'}$}
       \RightLabel{Flip--trace}
-      \UnaryInfC{$\flip{(t\;\text{trace}\;X)^\dagger}{t'\;\text{trace}\;X}$}
+      \UnaryInfC{$\flip{(t\;\text{trace}_X)^\dagger}{t'\;\text{trace}_X}$}
     \end{bprooftree}
   \end{center}
+\end{itembox}
+
+\begin{itembox}[c]{Equivalence relation}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1+t_2}{t_2+t_1}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{(t_1+t_2)+(t_3+t_4)}{(t_1+t_3)+(t_2+t_4)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_2}$}
+      \UnaryInfC{$\equi{t_1+t_2}{t_1}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_2}$}
+      \UnaryInfC{$\equi{t_1+-t_2}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t+\varnothing}{t}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{()}{()}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{x}{x}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{inl}\;t}{\text{inl}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{inr}\;t}{\text{inr}\;t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\times{}t_2}{t_1'\times{}t_2'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{fold}\;t}{\text{fold}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{t\;\text{trace}_T}{t'\;\text{trace}_T}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{-t}{-t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1+\text{inl}\;t_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1+\text{inr}\;t_2}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{(t_1+t_2)\times{}t_3}{(t_1\times{}t_3)+(t_2\times{}t_3)}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\times{}(t_2+t_3)}{(t_1\times{}t_2)+(t_1\times{}t_3)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{(t_1+t_2)\mapsto{}t_3}{(t_1\mapsto{}t_3)+(t_2\mapsto{}t_3)}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{(t_1\mapsto{}t_2)+(t_1\mapsto{}t_3)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{\text{fold}\;t_1+\text{fold}\;t_2}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{(t_1+t_2)\;\text{trace}_T}{(t_1\;\text{trace}_T)+(t_2\;\text{trace}_T)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-(t_1+t_2)}{-t_1+-t_2}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-\text{inl}\;t}{\text{inl}\;(-t)}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-\text{inr}\;t}{\text{inr}\;(-t)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-(t_1\times{}t_2)}{(-t_1)\times{}(-t_2)}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-(t_1\mapsto{}t_2)}{(-t_1)\mapsto{}(-t_2)}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-\text{fold}\;t}{\text{fold}\;(-t)}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-(t\;\text{trace}_T)}{(-t)\;\text{trace}_T}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{-(-t)}{t}$}
+    \end{bprooftree}
+  \end{center}
+\end{itembox}
+
+\begin{itembox}[c]{partial order}
+  \begin{center}
+    $ x \prec () \prec \text{inl}\;t \prec \text{inr}\;t \prec t_1\times{}t_2 \prec t_1\mapsto{}t_2 \prec \text{fold}\;t \prec t\;\text{trace}_T \prec t_1+t_2 \prec -t $
+  \end{center}
+  % \begin{center}
+  %   \begin{bprooftree}
+  %     \AxiomC{$\precedes{t}{t'}$}
+  %     \UnaryInfC{$\precedes{\text{inl}\;t}{\text{inl}\;t'}$}
+  %   \end{bprooftree}
+  %   \begin{bprooftree}
+  %     \AxiomC{$\precedes{t}{t'}$}
+  %     \UnaryInfC{$\precedes{\text{inr}\;t}{\text{inr}\;t'}$}
+  %   \end{bprooftree}
+  % \end{center}
 \end{itembox}
 
 \begin{itembox}[c]{Type Interpretation}
@@ -667,12 +841,12 @@ $\nabla_T : T\oplus{}T \rightarrow T$
     \begin{bprooftree}
       \AxiomC{$\nsequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}{\Gamma'}$}
       \LeftLabel{$\text{Trace}_L$}
-      \UnaryInfC{$\nsequent{\Gamma,u\;\text{trace}\;S:U_1\multimap{}U_2}{t:T}{\Gamma'}$}
+      \UnaryInfC{$\nsequent{\Gamma,u\;\text{trace}_S:U_1\multimap{}U_2}{t:T}{\Gamma'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\nsequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}{\Gamma'}$}
       \RightLabel{$\text{Trace}_R$}
-      \UnaryInfC{$\nsequent{\Gamma}{t\;\text{trace}\;U:T_1\multimap{}T_2}{\Gamma'}$}
+      \UnaryInfC{$\nsequent{\Gamma}{t\;\text{trace}_U:T_1\multimap{}T_2}{\Gamma'}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}

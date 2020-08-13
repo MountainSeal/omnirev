@@ -9,7 +9,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.Map as Map
-import Data.List
+import Data.List as List
 import Omnirev.AbsOmnirev
 
 
@@ -393,37 +393,154 @@ checkExpr (ExComp ex1 ex2) (TyFunc t1 t3) =
   throwError $ "checkExpr: Comp is not implemented yet."
 checkExpr (ExFlip ex) (TyFunc t1 t2) =
   checkExpr ex (TyFunc t2 t1)
-checkExpr (ExTrace tm (Ident s) ty1) ty2 = do
-  ty1' <- purify [] ty1 -- purifyを消しては行けない（戒め）
-  checkType [] ty1' -- この型検査してなかった・・・
-  local (Map.insert s (Label ty1')) (checkExpr (ExTerm tm) ty2)
 
--- TmFoldのTypeからAliasを書き換えるためだけの関数
-tmPurify :: Term -> Check Term
-tmPurify (TmVar x) = pure $ TmVar x
-tmPurify TmUnit = pure TmUnit
-tmPurify (TmLeft tm) = do
-  tm' <- tmPurify tm
-  pure $ TmLeft tm'
-tmPurify (TmRight tm) = do
-  tm' <- tmPurify tm
-  pure $ TmRight tm'
-tmPurify (TmTensor tm1 tm2) = do
-  tm1' <- tmPurify tm1
-  tm2' <- tmPurify tm2
-  pure $ TmTensor tm1' tm2'
-tmPurify (TmArrow tm1 tm2) = do
-  tm1' <- tmPurify tm1
-  tm2' <- tmPurify tm2
-  pure $ TmArrow tm1' tm2'
-tmPurify (TmFold ty tm) = do
-  ty' <- purify [] ty -- やりたいことは実際ココ
-  tm' <- tmPurify tm
-  pure $ TmFold ty' tm'
-tmPurify (TmLin tm1 tm2) = do
-  tm1' <- tmPurify tm1
-  tm2' <- tmPurify tm2
-  pure $ TmLin tm1' tm2'
-tmPurify (TmLabel l tm) = do
-  tm' <- tmPurify tm
-  pure $ TmLabel l tm'
+
+data Sign = Pos | Neg deriving (Eq, Ord, Show, Read)
+-- 符号をできるだけ(unitか変数直下まで)下げる
+downOpp :: Term -> Term
+downOpp tm = force Pos tm
+  where force Pos (TmVar x)          = TmVar x
+        force Neg (TmVar x)          = TmOpp $ TmVar x
+        force Pos TmUnit             = TmUnit
+        force Neg TmUnit             = TmOpp TmUnit
+        force sig (TmLeft  tm)       = TmLeft  $ force sig tm
+        force sig (TmRight tm)       = TmRight $ force sig tm
+        force sig (TmTensor tm1 tm2) = TmTensor (force sig tm1) (force sig tm2)
+        force sig (TmArrow  tm1 tm2) = TmArrow  (force sig tm1) (force sig tm2)
+        force sig (TmFold ty tm)     = TmFold ty $ force sig tm
+        force sig (TmTrace tm ty)    = TmTrace (force sig tm) ty
+        force sig (TmLin tm1 tm2)    = TmLin (force sig tm1) (force sig tm2)
+        force Pos (TmOpp tm)         = force Neg tm
+        force Neg (TmOpp tm)         = force Pos tm
+
+-- 線形結合をできるだけ上げる
+upLin :: Term -> Term
+upLin (TmVar x) =
+  TmVar x
+upLin (TmUnit)  =
+  TmUnit
+upLin (TmLeft tm) =
+  case upLin tm of
+    TmLin tm1 tm2 -> TmLin (TmLeft tm1) (TmLeft tm2)
+    tm'           -> TmLeft tm'
+upLin (TmRight tm) =
+  case upLin tm of
+    TmLin tm1 tm2 -> TmLin (TmRight tm1) (TmRight tm2)
+    tm'           -> TmRight tm'
+upLin (TmTensor tm1 tm2) =
+  case (upLin tm1, upLin tm2) of
+    (TmLin tm11 tm12, TmLin tm21 tm22) -> TmLin (TmLin (TmTensor tm11 tm21) (TmTensor tm11 tm22)) (TmLin (TmTensor tm12 tm21) (TmTensor tm12 tm22))
+    (TmLin tm11 tm12, tm2')            -> TmLin (TmTensor tm11 tm2') (TmTensor tm12 tm2')
+    (tm1', TmLin tm21 tm22)            -> TmLin (TmTensor tm1' tm21) (TmTensor tm1' tm22)
+    (tm1', tm2')                       -> TmTensor tm1' tm2'
+upLin (TmArrow tm1 tm2) =
+  case (upLin tm1, upLin tm2) of
+    (TmLin tm11 tm12, TmLin tm21 tm22) -> TmLin (TmLin (TmArrow tm11 tm21) (TmArrow tm11 tm22)) (TmLin (TmArrow tm12 tm21) (TmArrow tm12 tm22))
+    (TmLin tm11 tm12, tm2')            -> TmLin (TmArrow tm11 tm2') (TmArrow tm12 tm2')
+    (tm1', TmLin tm21 tm22)            -> TmLin (TmArrow tm1' tm21) (TmArrow tm1' tm22)
+    (tm1', tm2')                       -> TmArrow tm1' tm2'
+upLin (TmFold ty tm) =
+  case upLin tm of
+    TmLin tm1 tm2 -> TmLin (TmFold ty tm1) (TmFold ty tm2)
+    tm'           -> TmFold ty tm'
+upLin (TmTrace tm ty) =
+  case (upLin tm) of
+    TmLin tm1 tm2 -> TmLin (TmTrace tm1 ty) (TmTrace tm2 ty)
+    tm'           -> TmTrace tm' ty
+upLin (TmLin tm1 tm2) =
+  TmLin (upLin tm1) (upLin tm2)
+upLin (TmOpp tm) =
+  case (upLin tm) of
+    TmLin tm1 tm2 -> TmLin (TmOpp tm1) (TmOpp tm2)
+    tm'           -> TmOpp tm'
+
+
+-- +に関して再帰的に半順序順にソートする
+-- ソートの実態
+mysort :: [(Int, Term)] -> [(Int, Term)]
+mysort = sortBy compare
+-- mysort = sortBy (\(i1,t1) (i2,t2) -> (i2 `compare` i1) <> (t1 `compare` t2))
+
+-- +に関してリストで列挙する(Intは「+」だけを一番上から数えたときの深さ)
+-- upLinで「+」が全て上に揃っている前提
+enum :: Int -> Term -> [(Int, Term)]
+enum n (TmLin tm1 tm2)    = tms1 ++ tms2
+  where tms1 = mysort $ enum (n+1) tm1
+        tms2 = mysort $ enum (n+1) tm2
+enum n tm = [(n, tm)]
+
+-- enumでLinがバラされた前提
+-- Nothingが融合・相殺不能
+-- TmNullが相殺
+fusion :: Term -> Term -> Maybe Term
+fusion (TmVar x) (TmVar y)
+  | x == y = Just $ TmVar x
+fusion (TmVar x) (TmOpp (TmVar y))
+  | x == y = Just TmNull
+fusion (TmOpp (TmVar x)) (TmVar y)
+  | x == y = Just TmNull
+fusion (TmOpp (TmVar x)) (TmOpp (TmVar y))
+  | x == y = Just $ TmOpp $ TmVar x
+fusion TmUnit TmUnit =
+  Just TmUnit
+fusion TmUnit (TmOpp TmUnit) =
+  Just TmNull
+fusion (TmOpp TmUnit) TmUnit =
+  Just TmNull
+fusion (TmOpp TmUnit) (TmOpp TmUnit) =
+  Just $ TmOpp TmUnit
+fusion (TmLeft tm1) (TmLeft tm2) =
+  case (fusion tm1 tm2) of
+    Nothing -> Nothing
+    Just TmNull -> Just TmNull
+    Just tm -> Just $ TmLeft tm
+fusion (TmRight tm1) (TmRight tm2) =
+  case (fusion tm1 tm2) of
+    Nothing -> Nothing
+    Just TmNull -> Just TmNull
+    Just tm -> Just $ TmRight tm
+fusion (TmTensor tm11 tm12) (TmTensor tm21 tm22) =
+  case (fusion tm11 tm21, fusion tm12 tm22) of
+    (Nothing, _) -> Nothing
+    (_, Nothing) -> Nothing
+    (Just TmNull, Just TmNull) -> Just TmNull
+    (Just TmNull, Just _)      -> Nothing
+    (Just _, Just TmNull)      -> Nothing
+    (Just tm1, Just tm2)       -> Just $ TmTensor tm1 tm2
+fusion (TmArrow tm11 tm12) (TmArrow tm21 tm22) =
+  case (fusion tm11 tm21, fusion tm12 tm22) of
+    (Nothing, _) -> Nothing
+    (_, Nothing) -> Nothing
+    (Just TmNull, Just TmNull) -> Just TmNull
+    (Just TmNull, Just _)      -> Nothing
+    (Just _, Just TmNull)      -> Nothing
+    (Just tm1, Just tm2)       -> Just $ TmArrow tm1 tm2
+fusion (TmFold ty1 tm1) (TmFold ty2 tm2)
+  | ty1 `alphaEquiv` ty2 =
+    case (fusion tm1 tm2) of
+      Nothing -> Nothing
+      Just TmNull -> Just TmNull
+      Just tm -> Just $ TmFold ty1 tm
+  | otherwise = Nothing
+fusion (TmTrace tm1 ty1) (TmTrace tm2 ty2)
+  | ty1 `alphaEquiv` ty2 =
+     case (fusion tm1 tm2) of
+       Nothing -> Nothing
+       Just TmNull -> Just TmNull
+       Just tm -> Just $ TmTrace tm ty1
+fusion _ _ = Nothing
+
+merge ::  [(Int, Term)] -> Term
+merge ts = case fld ts of
+  [(_, tm)] -> tm
+  where fld :: [(Int, Term)] -> [(Int, Term)]
+        fld [(n, t)] = [(n, t)]
+        fld ((n1,t1) : (n2,t2) : ts) = if n1 == n2
+          then
+            case fusion t1 t2 of
+              Just tm' -> fld $ (n1-1, tm'):ts
+              Nothing  -> fld $ (n1-1, TmLin t1 t2):ts
+          else fld $ (n1,t1) : (fld $ (n2,t2):ts)
+
+repr :: Term -> Term
+repr = merge . enum 0 . upLin . downOpp
