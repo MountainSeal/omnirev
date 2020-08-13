@@ -168,9 +168,6 @@ tmPurify (TmLin tm1 tm2) = do
 tmPurify (TmOpp tm) = do
   tm' <- tmPurify tm
   pure $ TmOpp tm'
--- tmPurify (TmLabel l tm) = do
---   tm' <- tmPurify tm
---   pure $ TmLabel l tm'
 tmPurify (TmTrace tm ty) = do
   tm' <- tmPurify tm
   ty' <- purify [] ty -- typeの置き換え
@@ -192,17 +189,9 @@ exPurify (ExApp ex1 ex2) = do
   ex1' <- exPurify ex1
   ex2' <- exPurify ex2
   pure $ ExApp ex1' ex2'
--- exPurify (ExComp ex1 ex2) = do
---   ex1' <- exPurify ex1
---   ex2' <- exPurify ex2
---   pure $ ExComp ex1' ex2'
 exPurify (ExFlip ex) = do
   ex' <- exPurify ex
   pure $ ExFlip ex'
--- exPurify (ExTrace tm l ty) = do
---   tm' <- tmPurify tm
---   ty' <- purify [] ty
---   pure $ ExTrace tm' l ty'
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
@@ -314,14 +303,11 @@ checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
 -- opp_l
 checkTerm ((TmOpp um, uy):cxt) (tm, ty) = do
   let cxt' = (um, uy) `ext` cxt
-  checkTerm ((um, uy):cxt') (tm, ty)
--- -- label_l
--- checkTerm ((TmLabel (Ident s) um, uy):cxt) (tm, ty) = do
---   labels <- ask
---   case Map.lookup s labels of
---     Just (Label sy) -> checkTerm (ext (um, sy) cxt) (tm, ty)
---     Nothing -> labelNotFoundError s
+  checkTerm cxt' (tm, ty)
 -- trace_l
+checkTerm ((TmTrace um sy, TyFunc uy1 uy2):cxt) (tm, ty) = do
+  let cxt' = (um, TyFunc (TySum sy uy1) (TySum sy uy2)) `ext` cxt
+  checkTerm cxt' (tm, ty)
 
 -- unit_r
 checkTerm cxt (TmUnit, TyUnit) =
@@ -355,13 +341,9 @@ checkTerm cxt (TmLin tm1 tm2, ty) = do
 -- opp_r
 checkTerm cxt (TmOpp tm, ty) =
   checkTerm cxt (tm, ty)
--- -- label_r
--- checkTerm cxt (TmLabel (Ident s) tm, ty) = do
---   labels <- ask
---   case Map.lookup s labels of
---     Just (Label uy) -> checkTerm cxt (tm, uy)
---     Nothing -> labelNotFoundError s
 -- trace_r
+checkTerm cxt (TmTrace tm uy, TyFunc ty1 ty2) =
+  checkTerm cxt (tm, TyFunc (TySum uy ty1) (TySum uy ty2))
 
 -- otherwise
 checkTerm cxt (tm, ty) = typeCheckForTermError $ show cxt ++ "|-" ++ show tm ++ ":" ++ show ty
@@ -381,6 +363,7 @@ tmFV (TmArrow tm1 tm2) = do
   tmFV2 <- tmFV tm1
   pure $ tmFV1 \\ tmFV2 -- 当然束縛変数は除く
 tmFV (TmFold _ tm) = tmFV tm
+tmFV (TmTrace tm _) = tmFV tm
 tmFV (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
   tmFV1 <- tmFV tm1
   tmFV2 <- tmFV tm2
@@ -388,8 +371,6 @@ tmFV (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
     then pure tmFV1
     else throwError ""
 tmFV (TmOpp tm) = tmFV tm
--- tmFV (TmLabel _ tm) = tmFV tm
-tmFV (TmTrace tm _) = tmFV tm
 
 -- Typeの中の自由変数のリスト
 tyFV :: Type -> [Ident]
