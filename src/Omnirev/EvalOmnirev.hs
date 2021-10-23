@@ -6,64 +6,132 @@ module Omnirev.EvalOmnirev(check) where
 
 import Control.Monad.Identity
 import Control.Monad.Except
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Control.Monad.Reader
-import qualified Data.Map as Map
-import Data.List as List
+import Control.Monad.Writer.Strict
+import Data.Bifunctor
+import Data.List
+import qualified Data.Map as M
+import qualified Data.Set as S
 import Omnirev.AbsOmnirev
+import Omnirev.PrintOmnirev
 
+import Omnirev.ErrM as ErrM
 
 data Alias
   = AType Type
   | ATerm Term Type
   | AExpr Expr Type
+  | AVar-- 再帰型の束縛変数（フレッシュでない変数名）
   deriving (Eq, Ord, Show, Read)
 
-newtype Label = Label Type
-  deriving (Eq, Ord, Show, Read)
+type Env a = M.Map String a
 
-type Env a = Map.Map String a
+type Logs = [String]
 
 -- https://qiita.com/HirotoShioi/items/8a6107434337b30ce457 を参考
-newtype Check a = Check (ReaderT (Env Label) (StateT (Env Alias) (ExceptT String Identity)) a)
-  deriving (Functor, Applicative, Monad, MonadReader (Env Label), MonadState (Env Alias), MonadError String)
+newtype Check a = Check ((StateT (Env Alias) (ExceptT String (WriterT Logs Identity))) a)
+  deriving (Functor, Applicative, Monad, MonadWriter Logs, MonadState (Env Alias), MonadError String)
 
+data Result
+  = RTerm Term
+  | RExpr Expr
+newtype Eval a = Eval (ReaderT (Env Term) (StateT (Env Result) (ExceptT String (WriterT Logs Identity))) a)
+  deriving (Functor, Applicative, Monad, MonadWriter Logs, MonadReader (Env Term), MonadState (Env Result), MonadError String)
 
-runCheck :: Check a -> Env Alias -> Either String a
-runCheck (Check m) env = runIdentity (runExceptT (evalStateT (runReaderT m Map.empty) env))
+-- TO DO LIST
+-- 3. テスト時やデバッグ時にわかりやすいよう，Writerモナドの[String]にその時の状態をtell関数で書き込むようにする(ロギング)
+-- 4. テストの内容を再作成する（ユニットテスト）
+-- 5. Labelは既に利用されていないので，Readerモナドを利用して別の何かする．もしくは消す
+
+-- Either String a （Stringが例外）
+runCheck :: Check a -> Env Alias -> (Either String a, Logs)
+runCheck (Check m) env = runIdentity (runWriterT (runExceptT (evalStateT m env)))
 
 -- Entrypoint of type checking
-check :: Program -> String
-check p = case runCheck (checkProg p) Map.empty of
-  Left  x -> x
-  Right _ -> "Success!"
+check :: Program -> Err (String, Logs)
+check p = case runCheck (checkProg p) M.empty of
+  (Left  s, logs) -> Bad s
+  (Right s, logs) -> Ok (s, logs)
 
-defNotFoundError :: Show a => a -> Check b
-defNotFoundError x = throwError $ "The alias not found: " ++ show x
+defNotFoundError :: (Show a, Print a) => a -> Check b
+defNotFoundError x = do
+  tell [infoLog $ "The alias not found: " ++ printTree x]
+  throwError $ "The alias not found: " ++ printTree x
 
-dupDefTypeError :: Show a => a -> Check b
-dupDefTypeError x = throwError $ "The alias is already defined as Type: " ++ show x
+dupDefTypeError :: (Show a, Print a) => a -> Check b
+dupDefTypeError x = do
+  tell [infoLog $ "The alias is already defined as Type: " ++ printTree x]
+  throwError $ "The alias is already defined as Type: " ++ printTree x
 
-dupDefTermError :: Show a => a -> Check b
-dupDefTermError x = throwError $ "The alias is already defined as Term:" ++ show x
+dupDefTermError :: (Show a, Print a) => a -> Check b
+dupDefTermError x = do
+  tell [infoLog $ "The alias is already defined as Term:" ++ printTree x]
+  throwError $ "The alias is already defined as Term:" ++ printTree x
 
-dupDefExprError :: Show a => a -> Check b
-dupDefExprError x = throwError $ "The alias is already defined as Expression: " ++ show x
+dupDefExprError :: (Show a, Print a) => a -> Check b
+dupDefExprError x = do
+  tell [infoLog $ "The alias is already defined as Expression: " ++ printTree x]
+  throwError $ "The alias is already defined as Expression: " ++ printTree x
 
-dupDefError :: Show a => Alias -> a -> Check b
+dupDefError :: (Show a, Print a) => Alias -> a -> Check b
 dupDefError AType{} = dupDefTypeError
 dupDefError ATerm{} = dupDefTermError
 dupDefError AExpr{} = dupDefExprError
+dupDefError AVar    = \x -> do
+  tell [infoLog $ "Bounded variable: " ++ printTree x]
+  throwError $ "Bounded variable: " ++ printTree x
 
-typeCheckForTermError :: Show a => a -> Check b
-typeCheckForTermError x = throwError $ "Type check failed: " ++ show x
+typeVarNotFoundError :: (Show a, Print a) => a -> Check b
+typeVarNotFoundError x = do
+  tell [infoLog $ "type variable not found: " ++ printTree x]
+  throwError $ "type variable not found: " ++ printTree x
 
-labelNotFoundError :: Show a => a -> Check b
-labelNotFoundError x = typeCheckForTermError $ "Recursion label" ++ show x ++ "not found."
+typeVarAlreadyBoundedError :: (Show a, Print a) => a -> Check b
+typeVarAlreadyBoundedError x = do
+  tell [infoLog $ "type variable already bounded: " ++ printTree x]
+  throwError $ "type variable already bounded: " ++ printTree x
+
+inferenceError :: (Show a, Print a) => LogLevel -> a -> Check b
+inferenceError ll x = do
+  tell [logAt ll $ "type inference failed: " ++ printTree x]
+  throwError $ "type inference failed: " ++ printTree x
+
+data LogLevel
+  = Debug   -- 重要では無いが，記録しておきたい場合
+  | Info    -- 処理に問題は無いが，重要な情報を持つ場合
+  | Warn    -- 言語仕様の範囲内だが，計算や処理に問題がある場合
+  | Error   -- 言語仕様と明確に異なる動作をする場合
+  deriving (Eq, Ord, Show, Read)
+
+debugLog :: String -> String
+debugLog str = "[debug]" ++ str
+
+infoLog :: String -> String
+infoLog str = "[info]" ++ str
+
+warnLog :: String -> String
+warnLog str = "[warn]" ++ str
+
+errorLog :: String -> String
+errorLog str = "[error]" ++ str
+
+logAt :: LogLevel -> String -> String
+logAt Debug   = debugLog
+logAt Info    = infoLog
+logAt Warn    = warnLog
+logAt Error   = errorLog
 
 checkProg :: Program -> Check String
-checkProg (Prog []) = throwError "There is no program"
-checkProg (Prog defs) = checkDefs defs
+checkProg (Prog defs) = do
+  tell [infoLog "check started"]
+  res <- case defs of
+    [] -> do
+      tell [infoLog "there is no program"]
+      throwError "there is no program"
+    _  -> checkDefs defs
+  tell [infoLog "check finished"]
+  pure res
 
 checkDefs :: [Def] -> Check String
 checkDefs []   = pure ""
@@ -72,34 +140,50 @@ checkDefs (d:ds) = (++) <$> checkDef d <*> checkDefs ds
 
 checkDef :: Def -> Check String
 checkDef (DType (Ident s) ty) = do
+  tell [infoLog $ "check type of alias " ++ printTree s]
   env <- get
-  case Map.lookup s env of
+  case M.lookup s env of
     Nothing -> do
+      tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
       checkType [] ty'
-      modify $ Map.insert s (AType ty')
+      modify $ M.insert s (AType ty')
       pure ""
     Just v -> dupDefError v s
 checkDef (DTerm (Ident s) ty tm) = do
+  tell [infoLog $ "check term of alias " ++ printTree s]
   env <- get
-  case Map.lookup s env of
+  case M.lookup s env of
     Nothing -> do
+      tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
       checkType [] ty'
+      tell [debugLog "tmPurify " ++ printTree tm]
       tm' <- tmPurify tm
-      checkTerm [] (tm', ty')
-      modify $ Map.insert s (ATerm tm' ty')
+      (cxt, cs) <- infer [] (tm', ty')
+      if null cxt
+        then case unify cs of -- unification
+          Just s  -> pure "" ---
+          Nothing -> throwError "" ---
+        else throwError "" ---
+      modify $ M.insert s (ATerm tm' ty')
       pure ""
     Just v -> dupDefError v s
 checkDef (DExpr (Ident s) ty ex) = do
+  tell [infoLog $ "check expr of alias " ++ printTree s]
   env <- get
-  case Map.lookup s env of
+  case M.lookup s env of
     Nothing -> do
+      tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
       checkType [] ty'
+      tell [debugLog "exPurify " ++ printTree ex]
       ex' <- exPurify ex
-      checkExpr ex' ty'
-      modify $ Map.insert s (AExpr ex' ty')
+      cs <- inferExpr (ex', ty')
+      case unify cs of -- unification
+        Just s  -> pure "" ---
+        Nothing -> throwError "" ---
+      modify $ M.insert s (AExpr ex' ty')
       pure ""
     Just v -> dupDefError v s
 
@@ -110,10 +194,13 @@ purify cxt (TyVar (Ident s)) =
     then pure (TyVar (Ident s))
     else do
       env <- get
-      case Map.lookup s env of
+      case M.lookup s env of
         Just (AType ty) -> pure ty
-        Just AExpr{}    -> dupDefExprError s
         Just ATerm{}    -> dupDefTermError s
+        Just AExpr{}    -> dupDefExprError s
+        Just AVar       -> do
+          tell [warnLog $ printTree s ++ "is already defined as binded variable"]
+          defNotFoundError s
         Nothing         -> defNotFoundError s
 purify cxt TyUnit =
   pure TyUnit
@@ -137,10 +224,13 @@ purify cxt (TyRec x ty) = do
 tmPurify :: Term -> Check Term
 tmPurify (TmVar (Ident s)) = do
     env <- get
-    case Map.lookup s env of
+    case M.lookup s env of
       Just AType{}      -> dupDefTypeError s
       Just (ATerm tm _) -> pure tm
       Just AExpr{}      -> dupDefExprError s
+      Just AVar         -> do
+          tell [warnLog $ printTree s ++ "is already defined as binded variable"]
+          defNotFoundError s
       Nothing           -> pure $ TmVar $ Ident s
 tmPurify TmUnit = pure TmUnit
 tmPurify (TmLeft tm) = do
@@ -158,46 +248,52 @@ tmPurify (TmArrow tm1 tm2) = do
   tm2' <- tmPurify tm2
   pure $ TmArrow tm1' tm2'
 tmPurify (TmFold ty tm) = do
-  ty' <- purify [] ty -- typeの置き換え
+  ty' <- purify [] ty
   tm' <- tmPurify tm
   pure $ TmFold ty' tm'
 tmPurify (TmLin tm1 tm2) = do
   tm1' <- tmPurify tm1
   tm2' <- tmPurify tm2
   pure $ TmLin tm1' tm2'
-tmPurify (TmOpp tm) = do
+tmPurify (TmTrace ty tm) = do
+  ty' <- purify [] ty
   tm' <- tmPurify tm
-  pure $ TmOpp tm'
-tmPurify (TmTrace tm ty) = do
+  pure $ TmTrace ty' tm'
+tmPurify (TmComp tm1 tm2) = do
+  tm1' <- tmPurify tm1
+  tm2' <- tmPurify tm2
+  pure $ TmComp tm1' tm2'
+tmPurify (TmFlip tm) = do
   tm' <- tmPurify tm
-  ty' <- purify [] ty -- typeの置き換え
-  pure $ TmTrace tm' ty'
+  pure $ TmFlip tm'
+tmPurify TmEmpty = pure TmEmpty
+tmPurify TmId = pure TmId
 
 -- exprのtmPurify
 exPurify :: Expr -> Check Expr
 exPurify (ExTerm (TmVar (Ident s))) = do
   env <- get
-  case Map.lookup s env of
+  case M.lookup s env of
     Just AType{}       -> dupDefTypeError s
-    Just ATerm{}       -> dupDefTermError s
+    Just (ATerm tm _)  -> pure $ ExTerm tm
     Just (AExpr ex _)  -> pure ex
+    Just AVar          -> do
+          tell [warnLog $ printTree s ++ "is already defined as binded variable"]
+          defNotFoundError s
     Nothing            -> defNotFoundError s
 exPurify (ExTerm tm) = do
   tm' <- tmPurify tm
   pure $ ExTerm tm'
-exPurify (ExApp ex1 ex2) = do
-  ex1' <- exPurify ex1
-  ex2' <- exPurify ex2
-  pure $ ExApp ex1' ex2'
-exPurify (ExFlip ex) = do
+exPurify (ExApp ex tm) = do
   ex' <- exPurify ex
-  pure $ ExFlip ex'
+  tm' <- tmPurify tm
+  pure $ ExApp ex' tm'
 
 -- check type formation (see Type Formation rules)
 checkType :: [Ident] -> Type -> Check String
 checkType cxt (TyVar (Ident s))
   | Ident s `elem` cxt = pure ""
-  | otherwise          = throwError $ "type variable not found." ++ show s
+  | otherwise          = typeVarNotFoundError s
 checkType cxt TyUnit =
   pure ""
 checkType cxt (TySum t1 t2) =
@@ -207,7 +303,7 @@ checkType cxt (TyTensor t1 t2) =
 checkType cxt (TyFunc t1 t2) =
   checkType cxt t1 >> checkType cxt t2
 checkType cxt (TyRec x t)
-  | x `elem` cxt = throwError "type variable already bounded."
+  | x `elem` cxt = typeVarAlreadyBoundedError x
   | otherwise    = checkType (x:cxt) t
 
 subst :: Type -> Ident -> Type -> Type
@@ -222,131 +318,286 @@ subst (TyRec y t)      x s = TyRec y (subst t x s)
 x ~> ty = \t -> subst t x ty
 
 --型変数（自由束縛にかかわらず全て）
-tyvars :: Type -> [Ident]
-tyvars (TyVar x) = [x]
-tyvars  TyUnit   = []
-tyvars (TySum    t1 t2) = tyvars t1 ++ tyvars t2
-tyvars (TyTensor t1 t2) = tyvars t1 ++ tyvars t2
-tyvars (TyFunc   t1 t2) = tyvars t1 ++ tyvars t2
-tyvars (TyRec x t) = let v = tyvars t in if x `elem` v then v else x:v
+tyvars :: Type -> S.Set Ident
+tyvars (TyVar x) = S.singleton x
+tyvars  TyUnit   = S.empty
+tyvars (TySum    t1 t2) = tyvars t1 `S.union` tyvars t2
+tyvars (TyTensor t1 t2) = tyvars t1 `S.union` tyvars t2
+tyvars (TyFunc   t1 t2) = tyvars t1 `S.union` tyvars t2
+tyvars (TyRec x t) = S.insert x $ tyvars t
 
 -- 束縛変数が異なっていても同値であることを判定
-alphaEquiv :: Type -> Type -> Bool
-alphaEquiv (TyVar x) (TyVar y)
+tyEquiv :: Type -> Type -> Bool
+tyEquiv (TyVar x) (TyVar y)
   | x == y     = True
   | otherwise  = False
-alphaEquiv  TyUnit           TyUnit          = True
-alphaEquiv (TySum    s1 s2) (TySum    t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
-alphaEquiv (TyTensor s1 s2) (TyTensor t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
-alphaEquiv (TyFunc   s1 s2) (TyFunc   t1 t2) = alphaEquiv s1 t1 && alphaEquiv s2 t2
-alphaEquiv (TyRec x s) (TyRec y t)
-  | x == y    = alphaEquiv s t
-  | otherwise = alphaEquiv s' t'
+tyEquiv  TyUnit           TyUnit          = True
+tyEquiv (TySum    s1 s2) (TySum    t1 t2) = tyEquiv s1 t1 && tyEquiv s2 t2
+tyEquiv (TyTensor s1 s2) (TyTensor t1 t2) = tyEquiv s1 t1 && tyEquiv s2 t2
+tyEquiv (TyFunc   s1 s2) (TyFunc   t1 t2) = tyEquiv s1 t1 && tyEquiv s2 t2
+tyEquiv (TyRec x s) (TyRec y t)
+  | x == y    = tyEquiv s t
+  | otherwise = tyEquiv s' t'
     where
       svs = tyvars (TyRec x s)
       tvs = tyvars (TyRec y t)
       f (Ident s) = s
-      uv = TyVar $ Ident $ unwords $ (map f svs) ++ (map f tvs)
+      uv = TyVar $ Ident $ unwords $ map f $ S.toList $ S.union svs tvs
       s' = (x ~> uv)s
       t' = (y ~> uv)t
+tyEquiv _ _ = False
+
+-- Typeの中の自由変数のリスト
+tyFV :: Type -> S.Set Ident
+tyFV (TyVar x)          = S.singleton x
+tyFV  TyUnit            = S.empty
+tyFV (TySum    ty1 ty2) = tyFV ty1 `S.union` tyFV ty2
+tyFV (TyTensor ty1 ty2) = tyFV ty1 `S.union` tyFV ty2
+tyFV (TyFunc   ty1 ty2) = tyFV ty1 `S.union` tyFV ty2
+tyFV (TyRec x ty)       = S.delete x $ tyFV ty
+
+unify :: [(Type, Type)] -> Maybe (Type -> Type)
+unify [] =
+  Just id
+unify ((s,t):ls)
+  | s == t =
+    unify ls
+unify ((TyVar x, t):ls)
+  | x `elem` tyFV t = do
+    unif <- unify $ map (bimap sig sig) ls
+    Just $ unif . sig
+    where
+      sig = x ~> t
+unify ((s, TyVar x):ls)
+  | x `elem` tyFV s = do
+    unif <- unify $ map (bimap sig sig) ls
+    Just $ unif . sig
+    where
+      sig = x ~> s
+unify ((TyUnit,         TyUnit)        :ls) = unify ls
+unify ((TySum    s1 s2, TySum    t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyTensor s1 s2, TyTensor t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyFunc   s1 s2, TyFunc   t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyRec x s,      TyRec y t)     :ls) =
+  unify $ (s', t') : ls
+  where
+    svs = tyvars (TyRec x s)
+    tvs = tyvars (TyRec y t)
+    f (Ident s) = s
+    uv = TyVar $ Ident $ unwords $ map f $ S.toList $ S.union svs tvs
+    s' = (x ~> uv) s
+    t' = (y ~> uv) t
+unify _ = Nothing
+
+-- クソザコフレッシュ変数製造機
+-- 未使用の変数名を返す
+uvar :: Check Ident
+uvar = do
+  env <- get
+  let u = nextuvar env 0
+  tell [infoLog $ "make fresh variable: " ++ printTree u]
+  modify $ M.insert u AVar -- 環境に使用済みであるという情報を追加している
+  tell [infoLog $ "added as bind variable: " ++ printTree u]
+  pure $ Ident u
+  where
+    var n = "X_" ++ show n
+    nextuvar e n = if M.member (var n) e
+      then nextuvar e (n+1)
+      else var n
+
+type Typed = (Term, Type)
+type Context = [Typed]
+
+(.:.) :: Term -> Type -> Typed
+tm .:. ty = (tm, ty)
 
 -- Termが変数の場合は後ろに追加，そうでない場合は前に追加
 -- なんでこんなことをするかというと，コンテキスト中の変数を含まない項を必ず処理させるため
 -- 本来の型検査であればコンテキストの順序に依存しないが，型検査のアルゴリズム実装にあたってはコンテキストの順序は代表元だけで処理したいのじゃ
-ext :: (Term, Type) -> Context -> Context
+ext :: Typed -> Context -> Context
 ext (TmVar i, ty) cxt = cxt ++ [(TmVar i, ty)]
 ext (tm     , ty) cxt = (tm,ty):cxt
 
-type Context = [(Term, Type)]
-checkTerm :: Context -> (Term, Type) -> Check Context
--- variable
-checkTerm cxt (TmVar i, ty) =
+(#) :: Context -> Typed -> Context
+cxt # (tm, ty) = ext (tm, ty) cxt
+
+type Constraint = (Type, Type)
+
+typedTerm :: Typed -> String
+typedTerm (tm,ty) = intercalate "" [printTree tm, ":", printTree ty]
+context :: Context -> String
+context cxt = intercalate "#" $ reverse $ map typedTerm cxt
+-- Γ#t1:T1 |- t:T |> Γ' | C
+judgement :: Context -> Typed -> String
+judgement cxt (tm,ty) = unwords [context cxt, "|-", typedTerm (tm,ty)]
+
+infer :: Context -> Typed -> Check (Context, [Constraint])
+-- variable 
+infer cxt (TmVar i, ty) =
   case lookup (TmVar i) cxt of
     Just ty' -> if ty == ty'
-      then pure $ delete (TmVar i, ty') cxt
-      else typeCheckForTermError "same variable but different type."
-    Nothing -> typeCheckForTermError $ "not found variable." ++ show i
+      then pure (delete (TmVar i, ty') cxt, [])
+      else inferenceError Info "same variable but different type."
+    Nothing -> inferenceError Info $ "not found the variable" ++ show i
 -- unit_l
-checkTerm ((TmUnit, TyUnit):cxt) (tm, ty) =
-  checkTerm cxt (tm, ty)
+infer ((TmUnit, vy) : cxt) (tm, ty) = do
+  (cxt', cs) <- infer cxt (tm, ty)
+  pure (cxt', (vy, TyUnit) : cs)
 -- inl_l
-checkTerm ((TmLeft tm1, TySum ty1 ty2):cxt) (tm, ty) = do
-  let cxt' = (tm1, ty1) `ext` cxt
-  checkTerm cxt' (tm, ty)
-  -- inr_l
-checkTerm ((TmRight tm2, TySum ty1 ty2):cxt) (tm, ty) = do
-  let cxt' = (tm2, ty2) `ext` cxt
-  checkTerm cxt' (tm, ty)
+infer ((TmLeft tm1, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer ((tm1, x1) : cxt) (tm, ty)
+  pure (cxt', (vy, TySum x1 x2) : cs)
+-- inr_l
+infer ((TmRight tm2, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer ((tm2, x2) : cxt) (tm, ty)
+  pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_l
-checkTerm ((TmTensor tm1 tm2, TyTensor ty1 ty2):cxt) (tm, ty) = do
-  let cxt' = (tm2, ty2) `ext` ((tm1, ty1) `ext` cxt)
-  checkTerm cxt' (tm, ty)
+infer ((TmTensor tm1 tm2, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer (cxt # (tm1, x1) # (tm2, x2)) (tm, ty)
+  pure (cxt', (vy, TyTensor x1 x2) : cs)
 -- arrow_l
-checkTerm ((TmArrow tm1 tm2, TyFunc ty1 ty2):cxt) (tm, ty) = do
-  cxt' <- checkTerm cxt (tm1, ty1)
-  let cxt'' = (tm2, ty2) `ext` cxt'
-  checkTerm cxt'' (tm, ty)
+infer ((TmArrow tm1 tm2, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt',  cs1) <- infer cxt (tm1, x1)
+  (cxt'', cs2) <- infer (cxt # (tm2, x2)) (tm, ty)
+  pure (cxt'', (vy, TyFunc x1 x2) : (cs1 ++ cs2))
 -- fold_l
-checkTerm ((TmFold sy um, TyRec x uy):cxt) (tm, ty)
-  | alphaEquiv sy (TyRec x uy) = do
-    let uy'  = (x ~> TyRec x uy) uy
-        cxt' = (um, uy') `ext` cxt
-    checkTerm cxt' (tm, ty)
-  | otherwise                  = throwError "not equivalent"
--- lin_l
-checkTerm ((TmLin tm1 tm2, uy):cxt) (tm, ty) = do
-  cxt1 <- checkTerm (ext (tm1,uy) cxt) (tm, ty)
-  cxt2 <- checkTerm (ext (tm2,uy) cxt) (tm, ty)
-  if cxt1 == cxt2 --🤔
-    then pure cxt1
-    else typeCheckForTermError "[L]remainder contexts between lin are different."
--- opp_l
-checkTerm ((TmOpp um, uy):cxt) (tm, ty) = do
-  let cxt' = (um, uy) `ext` cxt
-  checkTerm cxt' (tm, ty)
+infer ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty) = do
+  i <- uvar
+  let x = TyVar i
+  let uy' = (y ~> x) uy
+  checkType [] (TyRec i uy')
+  (cxt', cs) <- infer (cxt # (um, (i ~> TyRec i uy') uy')) (tm, ty)
+  pure (cxt', (vy, TyRec i uy') : cs)
 -- trace_l
-checkTerm ((TmTrace um sy, TyFunc uy1 uy2):cxt) (tm, ty) = do
-  let cxt' = (um, TyFunc (TySum sy uy1) (TySum sy uy2)) `ext` cxt
-  checkTerm cxt' (tm, ty)
-
+infer ((TmTrace uy um, vy) : cxt) (tm, ty) = do
+  -- uyに変数の重複がないか確認する必要あり
+  checkType [] uy
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer (cxt # (um, TyFunc (TySum uy x1) (TySum uy x2))) (tm, ty)
+  pure (cxt', (vy, TyFunc x1 x2) : cs)
+-- lin_l
+infer ((TmLin tm1 tm2, vy) : cxt) (tm, ty) = do
+  x <- TyVar <$> uvar
+  (cxt1, cs1) <- infer (cxt # (tm1, x)) (tm, ty)
+  (cxt2, cs2) <- infer (cxt # (tm2, x)) (tm, ty)
+  if cxt1 == cxt2 -- 🤔
+    then pure (cxt1, (vy, x) : union cs1 cs2)
+    else inferenceError Info "remainder contexts between lin are different."
+-- comp_l
+infer ((TmComp tm1 tm2, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  x3 <- TyVar <$> uvar
+  (cxt', cs) <- infer (cxt # (tm2, TyFunc x2 x3) # (tm1, TyFunc x1 x2)) (tm, ty)
+  pure (cxt', (vy, TyFunc x1 x3) : cs)
+-- flip_l
+infer ((TmFlip um, vy) : cxt) (tm, ty) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer (cxt # (um, TyFunc x2 x1)) (tm, ty)
+  pure (cxt', (vy, TyFunc x1 x2) : cs)
+-- id_l
+infer ((TmId, vy) : cxt) (tm, ty) = do
+  x <- TyVar <$> uvar
+  (cxt', cs) <- infer cxt (tm, ty)
+  pure (cxt', (vy, TyFunc x x) : cs)
 -- unit_r
-checkTerm cxt (TmUnit, TyUnit) =
-  pure cxt
+infer [] (TmUnit, vy) =
+  pure ([], [(vy, TyUnit)])
 -- inl_r
-checkTerm cxt (TmLeft tm1, TySum ty1 ty2) =
-  checkTerm cxt (tm1, ty1)
+infer cxt (TmLeft tm1, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer cxt (tm1, x1)
+  pure (cxt', (vy, TySum x1 x2) : cs)
 -- inr_r
-checkTerm cxt (TmRight tm2, TySum ty1 ty2) =
-  checkTerm cxt (tm2, ty2)
+infer cxt (TmRight tm2, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer cxt (tm2, x2)
+  pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_r
-checkTerm cxt (TmTensor tm1 tm2, TyTensor ty1 ty2) = do
-  cxt' <- checkTerm cxt (tm1, ty1)
-  checkTerm cxt' (tm2, ty2)
+infer cxt (TmTensor tm1 tm2, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt',  cs1) <- infer cxt (tm1, x1)
+  (cxt'', cs2) <- infer cxt' (tm2, x2)
+  pure (cxt'', (vy, TyTensor x1 x2) : (cs1 ++ cs2))
 -- arrow_r
-checkTerm cxt (TmArrow tm1 tm2, TyFunc ty1 ty2) =
-  checkTerm (ext (tm1, ty1) cxt) (tm2, ty2)
+infer cxt (TmArrow tm1 tm2, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer (cxt # (tm1, x1)) (tm2, x2)
+  pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- fold_r
-checkTerm cxt (TmFold uy tm, TyRec x ty)
-  | alphaEquiv uy (TyRec x ty) = do
-    let ty' = (x ~> TyRec x ty) ty
-    checkTerm cxt (tm, ty')
-  | otherwise                  = throwError "not equivalent"
--- lin_r
-checkTerm cxt (TmLin tm1 tm2, ty) = do
-  cxt1 <- checkTerm cxt (tm1, ty)
-  cxt2 <- checkTerm cxt (tm2, ty)
-  if cxt1 == cxt2 --🤔
-    then pure cxt1
-    else typeCheckForTermError $ "[R]remainder contexts between lin are different."
--- opp_r
-checkTerm cxt (TmOpp tm, ty) =
-  checkTerm cxt (tm, ty)
+infer cxt (TmFold (TyRec y ty) tm, vy) = do
+  i <- uvar
+  let x = TyVar i
+  let ty' = (y ~> x) ty
+  checkType [] (TyRec i ty')
+  (cxt', cs) <- infer cxt (tm, (i ~> TyRec i ty') ty')
+  pure (cxt', (vy, TyRec i ty') : cs)
 -- trace_r
-checkTerm cxt (TmTrace tm uy, TyFunc ty1 ty2) =
-  checkTerm cxt (tm, TyFunc (TySum uy ty1) (TySum uy ty2))
+infer cxt (TmTrace ty tm, vy) = do
+  -- tyに変数の重複がないか確認する必要あり
+  checkType [] ty
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer cxt (tm, TyFunc (TySum x1 ty) (TySum x2 ty))
+  pure (cxt', (vy, TyFunc x1 x2) : cs)
+-- lin_r
+infer cxt (TmLin tm1 tm2, vy) = do
+  x <- TyVar <$> uvar
+  (cxt1, cs1) <- infer cxt (tm1, x)
+  (cxt2, cs2) <- infer cxt (tm2, x)
+  if cxt1 == cxt2 -- 🤔
+    then pure (cxt1, (vy, x) : union cs1 cs2)
+    else inferenceError Info "remainder contexts between lin are different."
+-- comp_r
+infer cxt (TmComp tm1 tm2, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  x3 <- TyVar <$> uvar
+  (cxt',  cs1) <- infer cxt (tm1, TyFunc x1 x2)
+  (cxt'', cs2) <- infer cxt' (tm2, TyFunc x2 x3)
+  pure (cxt'', (vy, TyFunc x1 x3) : (cs1 ++ cs2))
+-- flip_r
+infer cxt (TmFlip ty, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  (cxt', cs) <- infer cxt (ty, TyFunc x2 x1)
+  pure (cxt', (vy, TyFunc x1 x2) : cs)
+-- id_r
+infer cxt (TmId, vy) = do
+  x <- TyVar <$> uvar
+  pure ([], [(vy, TyFunc x x)])
+-- fail
+infer cxt (tm, ty) =
+  inferenceError Info $ "no inference rules matched to" ++ judgement cxt (tm,ty)
 
--- otherwise
-checkTerm cxt (tm, ty) = typeCheckForTermError $ show cxt ++ "|-" ++ show tm ++ ":" ++ show ty
+inferExpr :: (Expr, Type) -> Check [Constraint]
+inferExpr (ExTerm tm, vy) = do
+  (cxt, cs) <- infer [] (tm, vy)
+  if null cxt
+    then pure cs
+    else inferenceError Info "context must be empty after type inference."
+inferExpr (ExApp ex tm, vy) = do
+  x1 <- TyVar <$> uvar
+  x2 <- TyVar <$> uvar
+  cs1 <- inferExpr (ex, TyFunc x1 x2)
+  (cxt, cs2) <- infer [] (tm, x1)
+  if null cxt
+    then pure $ (vy, x2) : (cs1 ++ cs2)
+    else inferenceError Info "context must be empty after type inference."
 
 -- Termの中の自由変数のリスト
 tmFV :: Term -> Check [Ident]
@@ -363,184 +614,28 @@ tmFV (TmArrow tm1 tm2) = do
   tmFV2 <- tmFV tm1
   pure $ tmFV1 \\ tmFV2 -- 当然束縛変数は除く
 tmFV (TmFold _ tm) = tmFV tm
-tmFV (TmTrace tm _) = tmFV tm
 tmFV (TmLin tm1 tm2) = do -- Linは左右で同じ自由変数を持つこと
   tmFV1 <- tmFV tm1
   tmFV2 <- tmFV tm2
   if tmFV1 == tmFV2
     then pure tmFV1
-    else throwError ""
-tmFV (TmOpp tm) = tmFV tm
+    else do
+      tell [warnLog "tmFV have same free variables, but not same: ", printTree tm1, printTree tm2]
+      throwError "tmFV have same free variables, but not same"
+tmFV (TmTrace _ tm) = tmFV tm
+tmFV (TmComp tm1 tm2) = do
+  tmFV1 <- tmFV tm1
+  tmFV2 <- tmFV tm2
+  pure $ tmFV1 ++ tmFV2
+tmFV (TmFlip tm) = tmFV tm
+tmFV TmEmpty = pure []
+tmFV TmId = pure []
 
--- Typeの中の自由変数のリスト
-tyFV :: Type -> [Ident]
-tyFV (TyVar x)          = [x]
-tyFV  TyUnit            = []
-tyFV (TySum    ty1 ty2) = tyFV ty1 ++ tyFV ty2
-tyFV (TyTensor ty1 ty2) = tyFV ty1 ++ tyFV ty2
-tyFV (TyFunc   ty1 ty2) = tyFV ty1 ++ tyFV ty2
-tyFV (TyRec x ty)       = delete x $ tyFV ty
-
-checkExpr :: Expr -> Type -> Check String
-checkExpr (ExTerm tm) ty = do
-  cxt <- checkTerm [] (tm, ty)
-  if null cxt
-    then pure ""
-    else typeCheckForTermError "Context must be empty after type check."
-checkExpr (ExApp ex tm) ty =
-  throwError $ "checkExpr: App is not Implemented yet."
-checkExpr (ExComp ex1 ex2) (TyFunc t1 t3) =
-  throwError $ "checkExpr: Comp is not implemented yet."
-checkExpr (ExFlip ex) (TyFunc t1 t2) =
-  checkExpr ex (TyFunc t2 t1)
-
-
-data Sign = Pos | Neg deriving (Eq, Ord, Show, Read)
--- 符号をできるだけ(unitか変数直下まで)下げる
-downOpp :: Term -> Term
-downOpp tm = force Pos tm
-  where force Pos (TmVar x)          = TmVar x
-        force Neg (TmVar x)          = TmOpp $ TmVar x
-        force Pos TmUnit             = TmUnit
-        force Neg TmUnit             = TmOpp TmUnit
-        force sig (TmLeft  tm)       = TmLeft  $ force sig tm
-        force sig (TmRight tm)       = TmRight $ force sig tm
-        force sig (TmTensor tm1 tm2) = TmTensor (force sig tm1) (force sig tm2)
-        force sig (TmArrow  tm1 tm2) = TmArrow  (force sig tm1) (force sig tm2)
-        force sig (TmFold ty tm)     = TmFold ty $ force sig tm
-        force sig (TmTrace tm ty)    = TmTrace (force sig tm) ty
-        force sig (TmLin tm1 tm2)    = TmLin (force sig tm1) (force sig tm2)
-        force Pos (TmOpp tm)         = force Neg tm
-        force Neg (TmOpp tm)         = force Pos tm
-
--- 線形結合をできるだけ上げる
-upLin :: Term -> Term
-upLin (TmVar x) =
-  TmVar x
-upLin (TmUnit)  =
-  TmUnit
-upLin (TmLeft tm) =
-  case upLin tm of
-    TmLin tm1 tm2 -> TmLin (TmLeft tm1) (TmLeft tm2)
-    tm'           -> TmLeft tm'
-upLin (TmRight tm) =
-  case upLin tm of
-    TmLin tm1 tm2 -> TmLin (TmRight tm1) (TmRight tm2)
-    tm'           -> TmRight tm'
-upLin (TmTensor tm1 tm2) =
-  case (upLin tm1, upLin tm2) of
-    (TmLin tm11 tm12, TmLin tm21 tm22) -> TmLin (TmLin (TmTensor tm11 tm21) (TmTensor tm11 tm22)) (TmLin (TmTensor tm12 tm21) (TmTensor tm12 tm22))
-    (TmLin tm11 tm12, tm2')            -> TmLin (TmTensor tm11 tm2') (TmTensor tm12 tm2')
-    (tm1', TmLin tm21 tm22)            -> TmLin (TmTensor tm1' tm21) (TmTensor tm1' tm22)
-    (tm1', tm2')                       -> TmTensor tm1' tm2'
-upLin (TmArrow tm1 tm2) =
-  case (upLin tm1, upLin tm2) of
-    (TmLin tm11 tm12, TmLin tm21 tm22) -> TmLin (TmLin (TmArrow tm11 tm21) (TmArrow tm11 tm22)) (TmLin (TmArrow tm12 tm21) (TmArrow tm12 tm22))
-    (TmLin tm11 tm12, tm2')            -> TmLin (TmArrow tm11 tm2') (TmArrow tm12 tm2')
-    (tm1', TmLin tm21 tm22)            -> TmLin (TmArrow tm1' tm21) (TmArrow tm1' tm22)
-    (tm1', tm2')                       -> TmArrow tm1' tm2'
-upLin (TmFold ty tm) =
-  case upLin tm of
-    TmLin tm1 tm2 -> TmLin (TmFold ty tm1) (TmFold ty tm2)
-    tm'           -> TmFold ty tm'
-upLin (TmTrace tm ty) =
-  case (upLin tm) of
-    TmLin tm1 tm2 -> TmLin (TmTrace tm1 ty) (TmTrace tm2 ty)
-    tm'           -> TmTrace tm' ty
-upLin (TmLin tm1 tm2) =
-  TmLin (upLin tm1) (upLin tm2)
-upLin (TmOpp tm) =
-  case (upLin tm) of
-    TmLin tm1 tm2 -> TmLin (TmOpp tm1) (TmOpp tm2)
-    tm'           -> TmOpp tm'
-
-
--- +に関して再帰的に半順序順にソートする
--- ソートの実態
-mysort :: [(Int, Term)] -> [(Int, Term)]
-mysort = sortBy compare
--- mysort = sortBy (\(i1,t1) (i2,t2) -> (i2 `compare` i1) <> (t1 `compare` t2))
-
--- +に関してリストで列挙する(Intは「+」だけを一番上から数えたときの深さ)
--- upLinで「+」が全て上に揃っている前提
-enum :: Int -> Term -> [(Int, Term)]
-enum n (TmLin tm1 tm2)    = tms1 ++ tms2
-  where tms1 = mysort $ enum (n+1) tm1
-        tms2 = mysort $ enum (n+1) tm2
-enum n tm = [(n, tm)]
-
--- enumでLinがバラされた前提
--- Nothingが融合・相殺不能
--- TmNullが相殺
-fusion :: Term -> Term -> Maybe Term
-fusion (TmVar x) (TmVar y)
-  | x == y = Just $ TmVar x
-fusion (TmVar x) (TmOpp (TmVar y))
-  | x == y = Just TmNull
-fusion (TmOpp (TmVar x)) (TmVar y)
-  | x == y = Just TmNull
-fusion (TmOpp (TmVar x)) (TmOpp (TmVar y))
-  | x == y = Just $ TmOpp $ TmVar x
-fusion TmUnit TmUnit =
-  Just TmUnit
-fusion TmUnit (TmOpp TmUnit) =
-  Just TmNull
-fusion (TmOpp TmUnit) TmUnit =
-  Just TmNull
-fusion (TmOpp TmUnit) (TmOpp TmUnit) =
-  Just $ TmOpp TmUnit
-fusion (TmLeft tm1) (TmLeft tm2) =
-  case (fusion tm1 tm2) of
-    Nothing -> Nothing
-    Just TmNull -> Just TmNull
-    Just tm -> Just $ TmLeft tm
-fusion (TmRight tm1) (TmRight tm2) =
-  case (fusion tm1 tm2) of
-    Nothing -> Nothing
-    Just TmNull -> Just TmNull
-    Just tm -> Just $ TmRight tm
-fusion (TmTensor tm11 tm12) (TmTensor tm21 tm22) =
-  case (fusion tm11 tm21, fusion tm12 tm22) of
-    (Nothing, _) -> Nothing
-    (_, Nothing) -> Nothing
-    (Just TmNull, Just TmNull) -> Just TmNull
-    (Just TmNull, Just _)      -> Nothing
-    (Just _, Just TmNull)      -> Nothing
-    (Just tm1, Just tm2)       -> Just $ TmTensor tm1 tm2
-fusion (TmArrow tm11 tm12) (TmArrow tm21 tm22) =
-  case (fusion tm11 tm21, fusion tm12 tm22) of
-    (Nothing, _) -> Nothing
-    (_, Nothing) -> Nothing
-    (Just TmNull, Just TmNull) -> Just TmNull
-    (Just TmNull, Just _)      -> Nothing
-    (Just _, Just TmNull)      -> Nothing
-    (Just tm1, Just tm2)       -> Just $ TmArrow tm1 tm2
-fusion (TmFold ty1 tm1) (TmFold ty2 tm2)
-  | ty1 `alphaEquiv` ty2 =
-    case (fusion tm1 tm2) of
-      Nothing -> Nothing
-      Just TmNull -> Just TmNull
-      Just tm -> Just $ TmFold ty1 tm
-  | otherwise = Nothing
-fusion (TmTrace tm1 ty1) (TmTrace tm2 ty2)
-  | ty1 `alphaEquiv` ty2 =
-     case (fusion tm1 tm2) of
-       Nothing -> Nothing
-       Just TmNull -> Just TmNull
-       Just tm -> Just $ TmTrace tm ty1
-fusion _ _ = Nothing
-
-merge ::  [(Int, Term)] -> Term
-merge ts = case fld ts of
-  [(_, tm)] -> tm
-  where fld :: [(Int, Term)] -> [(Int, Term)]
-        fld [(n, t)] = [(n, t)]
-        fld ((n1,t1) : (n2,t2) : ts) = if n1 == n2
-          then
-            case fusion t1 t2 of
-              Just tm' -> fld $ (n1-1, tm'):ts
-              Nothing  -> fld $ (n1-1, TmLin t1 t2):ts
-          else fld $ (n1,t1) : (fld $ (n2,t2):ts)
-
-repr :: Term -> Term
-repr = merge . enum 0 . upLin . downOpp
+-- -- 以降から実際の項の評価処理を書く
+-- type Sbst = (M.Map Ident Term)
+-- -- matching
+-- mtch :: Term -> Term -> Maybe Sbst
+-- -- substitution
+-- sbst :: Sbst -> Term -> (Term, Sbst)
+-- -- application
+-- appl :: Expr -> Maybe Term
