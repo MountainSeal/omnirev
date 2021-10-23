@@ -17,26 +17,25 @@ TyUnit   . Type4 ::= "I" ;
 TySum    . Type2 ::= Type2 "+" Type3 ;
 TyTensor . Type3 ::= Type3 "*" Type4 ;
 TyFunc   . Type1 ::= Type1 "->" Type2 ;
-TyRec    . Type4 ::= "fix" Ident "." Type4 ;
+TyRec    . Type4 ::= "rec" Ident "." Type4 ;
 coercions Type 4 ;
 
 --Term
-TmVar    . Term4 ::= Ident ;
-TmUnit   . Term4 ::= "unit" ;
-TmLeft   . Term4 ::= "inl" Term4 ;
-TmRight  . Term4 ::= "inr" Term4 ;
-TmTensor . Term3 ::= Term3 "," Term4 ;
-TmArrow  . Term2 ::= Term2 "=>" Term3 ;
-TmFold   . Term4 ::= "fold" Type Term4 ;
-TmLin    . Term1 ::= Term1 "|" Term2 ;
-TmOpp    . Term4 ::= "-" Term4 ;
--- TmLabel  . Term4 ::= Ident Term4 ;
-TmTrace  . Term4 ::= Term4 "trace" Type ;
-coercions Term 4 ;
+TmVar    . Term5 ::= Ident ;
+TmUnit   . Term5 ::= "unit" ;
+TmLeft   . Term5 ::= "inl" Term5 ;
+TmRight  . Term5 ::= "inr" Term5 ;
+TmTensor . Term4 ::= Term4 "," Term5 ;
+TmArrow  . Term3 ::= Term3 "=>" Term4 ;
+TmFold   . Term5 ::= "fold" "[" Type "]" Term5 ;
+TmLin    . Term2 ::= Term2 "|" Term3 ;
+TmTrace  . Term5 ::= "trace" "[" Type "]" Term5 ;
+TmComp   . Term1 ::= Term1 ";" Term2 ;
+TmFlip   . Term5 ::= "~" Term5 ;
+TmEmpty  . Term5 ::= "empty" ;
+TmId     . Term5 ::= "id" ;
+coercions Term 5 ;
 
 --Expr
-ExTerm  . Expr1 ::= Term ;
-ExApp   . Expr1 ::= Expr1 "@" Expr1 ;
--- ExComp  . Expr1 ::= Expr1 ";" Expr2 ;
-ExFlip  . Expr1 ::= "~" Expr1 ;
-coercions Expr 1 ;
+ExTerm  . Expr ::= Term ;
+ExApp   . Expr ::= Expr "@" Term ;

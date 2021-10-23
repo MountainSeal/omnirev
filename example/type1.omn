@@ -4,5 +4,5 @@ type qubit = I + I
 type tens = (I + I) * (I + I)
 type var = qubit * qubit
 type circuit = qubit -> qubit
-type nat = fix x. (I + x)
-type natlist = fix y. (I + nat * y)
+type nat = rec x. (I + x)
+type natlist = rec y. (I + nat * y)
