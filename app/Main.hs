@@ -11,6 +11,7 @@ import Omnirev.LexOmnirev
 import Omnirev.ParOmnirev
 import Omnirev.PrintOmnirev
 import Omnirev.AbsOmnirev
+import Omnirev.EvalOmnirev
 
 
 
@@ -27,10 +28,10 @@ putStrV :: Verbosity -> String -> IO ()
 putStrV v s = when (v > 1) $ putStrLn s
 
 runFile :: (Print a, Show a) => Verbosity -> ParseFun a -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= run v p
+runFile v p f = putStrLn f >> readFile f >>= runParse v p
 
-run :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
-run v p s = let ts = myLLexer s in case p ts of
+runParse :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
+runParse v p s = let ts = myLLexer s in case p ts of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
                           putStrV v "Tokens:"
                           putStrV v $ show ts
@@ -41,6 +42,27 @@ run v p s = let ts = myLLexer s in case p ts of
 
                           exitSuccess
 
+runCheckFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
+runCheckFile v p f = putStrLn f >> readFile f >>= runCheck v p
+
+runCheck :: Verbosity -> ParseFun Program -> String -> IO ()
+runCheck v p s = let ts = myLLexer s in case p ts of
+  Bad s   -> do
+    putStrLn "\nParse              Failed...\n"
+    putStrV v "Tokens:"
+    putStrV v $ show ts
+    putStrLn  s
+    exitFailure
+  Ok tree -> do
+    putStrLn "\nParse Successful!"
+    case check tree of
+      Bad s -> do
+        putStrLn "\nCheck              Failed...\n"
+        exitFailure
+      Ok (s,logs) -> do
+        putStrLn $ unlines logs
+        exitSuccess 
+      
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree
@@ -56,7 +78,15 @@ usage = do
     , "  (no arguments)  Parse stdin verbosely."
     , "  (files)         Parse content of files verbosely."
     , "  -s (files)      Silent mode. Parse content of files silently."
+    , "  -c (files)      Check type of files."
+    , "  -e (files)      Evaluate of files."
+    , "  -v             Output version information."
     ]
+  exitFailure
+
+version :: IO ()
+version = do
+  putStrLn "omnirev-0.4.0"
   exitFailure
 
 main :: IO ()
@@ -64,6 +94,8 @@ main = do
   args <- getArgs
   case args of
     ["--help"] -> usage
-    [] -> getContents >>= run 2 pProgram
+    [] -> getContents >>= runParse 2 pProgram
+    "-c":fs -> mapM_ (runCheckFile 2 pProgram) fs
     "-s":fs -> mapM_ (runFile 0 pProgram) fs
+    ["-v"] -> version
     fs -> mapM_ (runFile 2 pProgram) fs
