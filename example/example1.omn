@@ -1,0 +1,31 @@
+type qubit = I + I
+
+term not : qubit -> qubit =
+  inl unit => inr unit
+| inr unit => inl unit
+
+term swap : (qubit*qubit) -> (qubit*qubit)
+= inl unit, inl unit => inl unit, inl unit
+| inl unit, inr unit => inr unit, inl unit
+| inr unit, inl unit => inl unit, inr unit
+| inr unit, inr unit => inr unit, inr unit
+
+term cnot : (qubit*qubit) -> (qubit*qubit)
+= inl unit, inl unit => inl unit, inl unit
+| inl unit, inr unit => inl unit, inr unit
+| inr unit, inl unit => inr unit, inr unit
+| inr unit, inr unit => inr unit, inl unit
+
+term notandid : (qubit*qubit) -> (qubit*qubit)
+= not ; id ; ~not
+
+type nat = rec X. (I + X)
+
+term add : (nat * nat) -> (nat * nat) = trace[nat]
+( inr (x, y)                     => inl (y, fold[nat] inl unit, x)
+| inl (a, b, fold[nat] inr n)    => inl (fold[nat] inr a, fold[nat] inr b, n)
+| inl (a, b, fold[nat] inl unit) => inr (a, b)
+)
+
+term one : nat = fold[nat] inr fold[nat] inl unit
+expr two : nat = add @ (one, one)

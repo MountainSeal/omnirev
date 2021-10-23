@@ -23,12 +23,25 @@
                {\DisplayProof\egroup}
 
 \newcommand{\sequent}[2]{#1 \;\vdash\; #2}
-\newcommand{\match}[3]{#1 = #2 \quad\hookrightarrow\quad #3}
-\newcommand{\subst}[3]{#1 \; #2 \quad\rightsquigarrow\quad #3}
+\newcommand{\match}[3]{#1 \;;\; #2 \quad\rightharpoonup\quad #3}
+\newcommand{\subst}[4]{#1 \;\triangleright\; #2 \quad\rightsquigarrow\quad #3 \;\triangleright\; #4}
 \newcommand{\semantics}[1]{{\llbracket #1 \rrbracket}}
 \newcommand{\reduction}[2]{#1 \quad\Rightarrow\quad #2}
 \newcommand{\flip}[2]{#1 \quad\looparrowright\quad #2}
 \newcommand{\bnfdef}{::=}
+\newcommand{\equi}[2]{#1 \;\equiv\; #2}
+\newcommand{\precedes}[2]{#1 \;\prec\; #2}
+\newcommand{\nsequent}[3]{#1 \;\vdash\; #2 \;\triangleright\; #3}
+%\newcommand{\infer}[5]{#1 \; \vdash \; #2 \; \triangleright \; #3 \; \mid_{#4} #5}
+\newcommand{\infer}[5]{#1 \; \vdash \; #2 \; \triangleright \; #3 \; \mid \; #5}
+\newcommand{\treduction}[2]{#1 \;\blacktriangleright\; #2}
+\newcommand{\kinfer}[4]{#1 \;\vdash\; #2 \;\mid_{#3}\; #4}
+
+% https://tex.stackexchange.com/questions/417895/how-to-typeset-utimes-akin-to-uplus
+\newcommand\utimes{\mathbin{\ooalign{$\cup$\cr%
+   \hfil\raise0.42ex\hbox{$\scriptscriptstyle\times$}\hfil\cr}}}
+\newcommand\bigutimes{\mathop{\ooalign{$\bigcup$\cr%
+   \hfil\raise0.36ex\hbox{$\scriptscriptstyle\boldsymbol{\times}$}\hfil\cr}}}
 
 \newcommand*{\vcenteredhbox}[1]{\begingroup
 \setbox0=\hbox{#1}\parbox{\wd0}{\box0}\endgroup}
@@ -38,37 +51,51 @@
 
 \begin{itembox}[c]{Syntax}
   \begin{alignat*}{4}
-    &\text{Type Variables}  & \quad &X,Y,Z  & \quad &        & \quad & \\
-    &\text{Term Variables}  &       &x,y,z  &       &        &       & \\
-    &\text{Trace Labels}    &       &l      &       &        &       & \\
-    &\text{Types}           &       &T,S,U  &       &\bnfdef &       & X \\
-    &                       &       &       &       &|       &       & I \\
-    &                       &       &       &       &|       &       & T \oplus T \\
-    &                       &       &       &       &|       &       & T \otimes T \\
-    &                       &       &       &       &|       &       & T \multimap T \\
-    &                       &       &       &       &|       &       & \mu{X}.T \\
-    &\text{Terms}           &       &t,u,v  &       &\bnfdef &       & x \\
-    &                       &       &       &       &|       &       & \text{()} \\
-    &                       &       &       &       &|       &       & \text{inl}\;t \\
-    &                       &       &       &       &|       &       & \text{inr}\;t \\
-    &                       &       &       &       &|       &       & t\times{}t \\
-    &                       &       &       &       &|       &       & t\mapsto{}t \\
-    &                       &       &       &       &|       &       & \text{fold}\;t \\
-    &                       &       &       &       &|       &       & t+t \\
-    &                       &       &       &       &|       &       & l\;t \\
-    &\text{Type Contexts}   &       &\Theta &       &\bnfdef &       & \\
-    &\text{Term Contexts}   &       &       &       &|       &       & \Theta,X \\
-    &                       &       &\Gamma &       &\bnfdef &       & \\
-    &                       &       &       &       &|       &       & \Gamma,t:T \\
-    &\text{Type Judgements} &       &       &       &        &       & \sequent{\Theta}{T} \\
-    &\text{Term Judgements} &       &       &       &        &       & \sequent{\Gamma}{t:T} \\
-    &\text{Expressions}     &       &e,f,g  &       &\bnfdef &       & t \\
-    &                       &       &       &       &|       &       & f\;t \\
-    &                       &       &       &       &|       &       & f\fcmp{}f \\
-    &                       &       &       &       &|       &       & f^\dagger \\
-    &                       &       &       &       &|       &       & t\;\text{where}\;l::T
+    % &\text{Kind Variables}  & \quad &\chi,\xi,\zeta  & \quad &        & \quad & \\
+    &\text{Type Variables}  & \quad &X,Y,Z           &       &        &       & \\
+    &\text{Term Variables}  &       &x,y,z           &       &        &       & \\
+    % &\text{Kinds}           &       &\kappa,\nu,\tau &       &\bnfdef &       & \ast \\
+    % &                       &       &                &       &|       &       & \kappa \rightarrow \kappa \\
+    &\text{Types}           &       &T,S,U           &       &\bnfdef &       & X \\
+    &                       &       &                &       &|       &       & I \\
+    &                       &       &                &       &|       &       & T \oplus T \\
+    &                       &       &                &       &|       &       & T \otimes T \\
+    &                       &       &                &       &|       &       & T \multimap T \\
+    &                       &       &                &       &|       &       & \mu{X}.T \\
+    % &                       &       &                &       &|       &       & \forall(X:\nu).T \\
+    % &                       &       &                &       &|       &       & \lambda(X:\kappa).T \\
+    % &                       &       &                &       &|       &       & T\;T \\
+    &\text{Terms}           &       &t,u,v           &       &\bnfdef &       & x \\
+    &                       &       &                &       &|       &       & \text{()} \\
+    &                       &       &                &       &|       &       & \text{inl}\;t \\
+    &                       &       &                &       &|       &       & \text{inr}\;t \\
+    &                       &       &                &       &|       &       & t\times{}t \\
+    &                       &       &                &       &|       &       & t\mapsto{}t \\
+    &                       &       &                &       &|       &       & \text{fold}\;t \\
+    &                       &       &                &       &|       &       & \text{trace}\;t \\
+    &                       &       &                &       &|       &       & t + t \\
+    &                       &       &                &       &|       &       & t \fcmp t \\
+    &                       &       &                &       &|       &       & t^\dagger \\
+    &                       &       &                &       &|       &       & \varnothing \\
+    &                       &       &                &       &|       &       & \text{id} \\    
+    % &                       &       &                &       &|       &       & \Lambda(T:\kappa).t \\
+    &\text{Type Contexts}   &       &\Theta          &       &\bnfdef &       & \\
+    % &                       &       &                &       &|       &       & \Theta,X:\kappa\\
+    &                       &       &                &       &|       &       & \Theta,X\\
+    &\text{Term Contexts}   &       &\Gamma          &       &\bnfdef &       & \\
+    &                       &       &                &       &|       &       & \Gamma,t:T \\
+    % &\text{Type Judgements} &       &                &       &        &       & \sequent{\Theta}{T:\kappa} \\
+    &\text{Type Judgements} &       &                &       &        &       & \sequent{\Theta}{T} \\
+    &\text{Term Judgements} &       &                &       &        &       & \sequent{\Gamma}{t:T} \\
+    &\text{Expressions}     &       &e,f,g           &       &\bnfdef &       & t \\
+    &                       &       &                &       &|       &       & t\;\text{@}\;t \\
+    % &                       &       &                &       &|       &       & f\;[T]
+    &\text{Expr judgement}  &       &                &       &\bnfdef &       & \sequent{}{e:T} \\
+    &\text{Var Environment} &      &\Xi              &       &\bnfdef &       & \{\;\} \\
+    &                       &      &                 &       &        &       & \Xi,\{x\rightarrow{t}\} \\
   \end{alignat*}
 \end{itembox}
+% \newpage
 
 \begin{itembox}[c]{Type Formation rules}
   \begin{center}
@@ -86,13 +113,13 @@
       \AxiomC{$\sequent{\Theta}{T_1}$}
       \AxiomC{$\sequent{\Theta}{T_2}$}
       %\RightLabel{$\oplus$}
-      \BinaryInfC{$\sequent{\Theta}{T_1\oplus{}T_2}$}
+      \BinaryInfC{$\sequent{\Theta}{T_1\oplus{}T_2:}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\sequent{\Theta}{T_1}$}
       \AxiomC{$\sequent{\Theta}{T_2}$}
       %\RightLabel{$\otimes$}
-      \BinaryInfC{$\sequent{\Theta}{T_1\otimes{}T_2}$}
+      \BinaryInfC{$\sequent{\Theta}{T_1\otimes{}T_2:}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\sequent{\Theta}{T_1}$}
@@ -108,19 +135,201 @@
   \end{center}
 \end{itembox}
 
-\begin{itembox}[c]{Substitution}
+% \begin{itembox}[c]{Type Kinding rules}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\Theta(X)=\kappa$}
+%       %\RightLabel{Variable}
+%       \UnaryInfC{$\sequent{\Theta}{X:\kappa}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       %\RightLabel{$I$}
+%       \UnaryInfC{$\sequent{\Theta}{I:\ast}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta}{T_1:\ast}$}
+%       \AxiomC{$\sequent{\Theta}{T_2:\ast}$}
+%       %\RightLabel{$\oplus$}
+%       \BinaryInfC{$\sequent{\Theta}{T_1\oplus{}T_2:\ast}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta}{T_1:\ast}$}
+%       \AxiomC{$\sequent{\Theta}{T_2:\ast}$}
+%       %\RightLabel{$\otimes$}
+%       \BinaryInfC{$\sequent{\Theta}{T_1\otimes{}T_2:\ast}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta}{T_1:\ast}$}
+%       \AxiomC{$\sequent{\Theta}{T_2:\ast}$}
+%       %\RightLabel{$\multimap$}
+%       \BinaryInfC{$\sequent{\Theta}{T_1\multimap{}T_2:\ast}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%   \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta,X:\ast}{T:\ast}$}
+%       %\RightLabel{$\mu$}
+%       \UnaryInfC{$\sequent{\Theta}{\mu{X}.T:\ast}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta,X:\nu}{T:\ast}$}
+%       %\RightLabel{$\forall$}
+%       \UnaryInfC{$\sequent{\Theta}{\forall{(X:\nu)}.T:\ast}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta,X:\kappa}{T:\nu}$}
+%       %\RightLabel{Type Abstraction}
+%       \UnaryInfC{$\sequent{\Theta}{\lambda{(X:\kappa)}.T:\kappa\rightarrow\nu}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Theta}{T_1:\kappa\rightarrow\nu}$}
+%       \AxiomC{$\sequent{\Theta}{T_2:\kappa}$}
+%       %\RightLabel{Type Application}
+%       \BinaryInfC{$\sequent{\Theta}{(T_1\;T_2):\nu}$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+\begin{itembox}[c]{Type Substitution}
   \begin{align*}
-    X[X/S]                 &= S \\
-    Y[X/S]                 &= Y \\
-    I[X/S]                 &= I \\
-    T_1\oplus{}T_2[X/S]    &= T_1[X/S]\oplus{}T_2[X/S] \\
-    T_1\otimes{}T_2[X/S]   &= T_1[X/S]\otimes{}T_2[X/S] \\
-    T_1\multimap{}T_2[X/S] &= T_1[X/S]\multimap{}T_2[X/S] \\
-    \mu{Y}.T[X/S]          &= \mu{Y}.(T[X/S])
+    X[X \rightarrow S]                   &= S \\
+    Y[X \rightarrow S]                   &= Y \\
+    I[X \rightarrow S]                   &= I \\
+    T_1\oplus{}T_2[X \rightarrow S]      &= T_1[X \rightarrow S]\oplus{}T_2[X \rightarrow S] \\
+    T_1\otimes{}T_2[X \rightarrow S]     &= T_1[X \rightarrow S]\otimes{}T_2[X \rightarrow S] \\
+    T_1\multimap{}T_2[X \rightarrow S]   &= T_1[X \rightarrow S]\multimap{}T_2[X \rightarrow S] \\
+    \mu{Y}.T[X \rightarrow S]            &= \mu{Y}.(T[X \rightarrow S]) \\
+    % \forall(X:\kappa).T[X \rightarrow S] &= \forall(X:\kappa).(T[X \rightarrow S]) \\
   \end{align*}
 \end{itembox}
 
-\begin{itembox}[c]{Term Typing rules}
+% \begin{itembox}[c]{Type Reduction}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T_1}{T_2}$}
+%       \AxiomC{$\treduction{T_2}{T_3}$}
+%       \BinaryInfC{$\treduction{T_1}{T_3}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\treduction{(\lambda(X:\kappa).T)\;U}{T[X/T]}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\treduction{I}{I}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T_1}{T_1'}$}
+%       \AxiomC{$\treduction{T_2}{T_2'}$}
+%       \BinaryInfC{$\treduction{T_1\oplus{}T_2}{T_1'\oplus{}T_2'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T_1}{T_1'}$}
+%       \AxiomC{$\treduction{T_2}{T_2'}$}
+%       \BinaryInfC{$\treduction{T_1\otimes{}T_2}{T_1'\otimes{}T_2'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T_1}{T_1'}$}
+%       \AxiomC{$\treduction{T_2}{T_2'}$}
+%       \BinaryInfC{$\treduction{T_1\multimap{}T_2}{T_1'\multimap{}T_2'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T}{T'}$}
+%       \UnaryInfC{$\treduction{\mu{X}.T}{\mu{X}}.T'$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\treduction{T}{T'}$}
+%       \UnaryInfC{$\treduction{\forall{(X:\kappa)}.T}{\forall{(X:\kappa)}.T'}$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Kind Inference rules}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$X:\kappa\in\Theta$}
+%       \RightLabel{CK--Var}
+%       \UnaryInfC{$\kinfer{\Theta}{X:\kappa}{\{\;\}}{\{\;\}}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \RightLabel{CK--Unit}
+%       \UnaryInfC{$\kinfer{\Theta}{I:\ast}{\{\;\}}{\{\;\}}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta}{T_1:\ast}{V_1}{C_1}$}
+%       \AxiomC{$\kinfer{\Theta}{T_2:\ast}{V_2}{C_2}$}
+%       \AxiomC{$C'=C_1\cup{}C_2$}
+%       \RightLabel{CK--Sum}
+%       \TrinaryInfC{$\kinfer{\Theta}{T_1\oplus{}T_2:\ast}{V_1\cup{}V_2}{C'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta}{T_1:\ast}{V_1}{C_1}$}
+%       \AxiomC{$\kinfer{\Theta}{T_2:\ast}{V_2}{C_2}$}
+%       \AxiomC{$C'=C_1\cup{}C_2$}
+%       \RightLabel{CK--Tensor}
+%       \TrinaryInfC{$\kinfer{\Theta}{T_1\otimes{}T_2:\ast}{V_1\cup{}V_2}{C'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta}{T_1:\ast}{V_1}{C_1}$}
+%       \AxiomC{$\kinfer{\Theta}{T_2:\ast}{V_2}{C_2}$}
+%       \AxiomC{$C'=C_1\cup{}C_2$}
+%       \RightLabel{CK--Function}
+%       \TrinaryInfC{$\kinfer{\Theta}{T_1\multimap{}T_2:\ast}{V_1\cup{}V_2}{C'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta,X:\ast}{T:\ast}{V}{C}$}
+%       \RightLabel{CK--Recursive}
+%       \UnaryInfC{$\kinfer{\Theta}{\mu{X}.T:\ast}{V}{C}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta,X:\ast}{T:\ast}{V}{C}$}
+%       \RightLabel{CK--Universal}
+%       \UnaryInfC{$\kinfer{\Theta}{\forall{X}.T:\ast}{V}{C}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta,X:\kappa}{T:\nu}{V}{C}$}
+%       \RightLabel{CK--Abstraction}
+%       \UnaryInfC{$\kinfer{\Theta}{\lambda{X}.T:\kappa\rightarrow\nu}{V}{C}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\kinfer{\Theta}{T_1:\kappa\rightarrow\nu}{V_1}{C_1}$}
+%       \AxiomC{$\kinfer{\Theta}{T_2:\kappa}{V_2}{C_2}$}
+%       \AxiomC{$C'=C_1\cup{}C_2\cup{}\{\kappa=\nu\rightarrow\xi\}$}
+%       \RightLabel{CK--Application}
+%       \TrinaryInfC{$\kinfer{\Theta}{(T_1\;T_2):\xi}{V_1\cup{}V_2\cup{}\{\xi\}}{C'}$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+\newpage
+
+\begin{itembox}[c]{Typing rules}
   \begin{center}
     \begin{bprooftree}
       \AxiomC{$　$}
@@ -197,14 +406,26 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\sequent{\Gamma,u:U[X/\mu{X}.U]}{t:T}$}
+      \AxiomC{$\sequent{\Gamma,u:U[X \rightarrow \mu{X}.U]}{t:T}$}
       \LeftLabel{$\mu_L$}
       \UnaryInfC{$\sequent{\Gamma,\text{fold}\;u:\mu{X}.U}{t:T}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\sequent{\Gamma}{t:T[X/\mu{X}.T]}$}
+      \AxiomC{$\sequent{\Gamma}{t:T[X \rightarrow \mu{X}.T]}$}
       \RightLabel{$\mu_R$}
       \UnaryInfC{$\sequent{\Gamma}{\text{fold}\;t:\mu{X}.T}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\sequent{\Gamma,\text{trace}\;u:U_1\multimap{}U_2}{t:T}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}$}
+      \RightLabel{$\text{Trace}_R$}
+      \UnaryInfC{$\sequent{\Gamma}{\text{trace}\;t:T_1\multimap{}T_2}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -222,315 +443,1291 @@
     \end{bprooftree}
   \end{center}
   \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{[]\Gamma,u:S}{t:T[\Lambda]}$}
-      \LeftLabel{$\text{Trace}_L$}
-      \UnaryInfC{$\sequent{[l:S]\Gamma,l\;u:U}{t:T[\Lambda]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{[\Lambda]\Gamma}{t:U[]}$}
-      \RightLabel{$\text{Trace}_R$}
-      \UnaryInfC{$\sequent{[\Lambda]\Gamma}{l\;t:T[l:U]}$}
-    \end{bprooftree}
-  \end{center}
-\end{itembox}
-
-\begin{itembox}[c]{Expression Typing rules}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{}{f:T_1\multimap{}T_2}$}
-      \AxiomC{$\sequent{}{t:T_2}$}
-      \LeftLabel{Application}
-      \BinaryInfC{$\sequent{}{f\;t:T_1}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{}{f:T_1\multimap{}T_2}$}
-      \AxiomC{$\sequent{}{g:T_2\multimap{}T_3}$}
-      \RightLabel{Composition}
-      \BinaryInfC{$\sequent{}{f\fcmp{}g:T_1\multimap{}T_3}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{}{f:T\multimap{}U}$}
-      \LeftLabel{Dagger}
-      \UnaryInfC{$\sequent{}{f^\dagger:U\multimap{}T}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\sequent{[l:U]}{t:T[l:U]}$}
-      \RightLabel{Trace}
-      \UnaryInfC{$\sequent{}{t\;\text{where}\;l::U:T}$}
-    \end{bprooftree}
-  \end{center}
-\end{itembox}
-
-\begin{itembox}[c]{Operational Semantics}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \LeftLabel{Match--var}
-      \UnaryInfC{$\match{x}{t}{[x\rightarrow{t}]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \RightLabel{Subst-var}
-      \UnaryInfC{$\subst{[x\rightarrow{t}]}{x}{t}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \LeftLabel{Match--unit}
-      \UnaryInfC{$\match{\text{()}}{\text{()}}{[\;]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \RightLabel{Subst--unit}
-      \UnaryInfC{$\subst{[\;]}{\text{()}}{\text{()}}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u}{[\Xi]}$}
-      \LeftLabel{Match--inl}
-      \UnaryInfC{$\match{\text{inl}\;t}{\text{inl}\;u}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi]}{t}{t'}$}
-      \RightLabel{Subst--inl}
-      \UnaryInfC{$\subst{[\Xi]}{\text{inl}\;t}{\text{inl}\;t'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u}{[\Xi]}$}
-      \LeftLabel{Match--inr}
-      \UnaryInfC{$\match{\text{inr}\;t}{\text{inr}\;u}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi]}{t}{t'}$}
-      \RightLabel{Subst--inr}
-      \UnaryInfC{$\subst{[\Xi]}{\text{inr}\;t}{\text{inr}\;t'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t_1}{u_1}{[\Xi_1]}$}
-      \AxiomC{$\match{t_2}{u_2}{[\Xi_2]}$}
-      \LeftLabel{Match--tensor}
-      \BinaryInfC{$\match{t_1\times{}t_2}{u_1\times{}u_2}{[\Xi_1,\Xi_2]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi_1]}{t_1}{t'_1}$}
-      \AxiomC{$\subst{[\Xi_2]}{t_2}{t'_2}$}
-      \RightLabel{Subst--tensor}
-      \BinaryInfC{$\subst{[\Xi_1,\Xi_2]}{t_1\times{}t_2}{t'_1\times{}t'_2}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t_1}{u_1}{[\Xi_1]}$}
-      \AxiomC{$\match{t_2}{u_2}{[\Xi_2]}$}
-      \LeftLabel{Match--arrow}
-      \BinaryInfC{$\match{t_1\mapsto{}t_2}{u_1\mapsto{}u_2}{[\Xi_1,\Xi_2]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi_1]}{t_1}{t'_1}$}
-      \AxiomC{$\subst{[\Xi_2]}{t_2}{t'_2}$}
-      \RightLabel{Subst--arrow}
-      \BinaryInfC{$\subst{[\Xi_1,\Xi_2]}{t_1\mapsto{}t_2}{t'_1\mapsto{}t'_2}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u}{[\Xi]}$}
-      \LeftLabel{Match--fold}
-      \UnaryInfC{$\match{\text{fold}\;t}{\text{fold}\;u}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi]}{t}{t'}$}
-      \RightLabel{Subst--fold}
-      \UnaryInfC{$\subst{[\Xi]}{\text{fold}\;t}{\text{fold}\;t'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t_1}{u}{[\Xi]}$}
-      \AxiomC{$\match{t_2}{u}{[\Xi]}$}
-      \LeftLabel{Match--lin}
-      \BinaryInfC{$\match{t_1+t_2}{u}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi]}{t_1}{t'_1}$}
-      \AxiomC{$\subst{[\Xi]}{t_2}{t'_2}$}
-      \RightLabel{Subst-lin}
-      \BinaryInfC{$\subst{[\Xi]}{t_1+t_2}{t'_1+t'_2}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u}{[\Xi]}$}
-      \LeftLabel{Match--trace}
-      \UnaryInfC{$\match{l\;t}{l\;u}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\subst{[\Xi]}{t}{t'}$}
-      \AxiomC{$\reduction{[l,u]u\;t'}{t''}$}
-      \RightLabel{Subst--trace}
-      \BinaryInfC{$\subst{[l,u][\Xi]}{l\;t}{t''}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_1}{[\Xi]}$}
-      \LeftLabel{Match--lin--l}
-      \UnaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{t_1\;t}{t_1'}$}
-      \RightLabel{App--lin--l}
-      \UnaryInfC{$\reduction{(t_1+t_2)\;t}{t'_1}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_1}{[\Xi]}$}
-      \AxiomC{$\match{t}{u_2}{[\Xi]}$}
-      \LeftLabel{Match--lin--c}
-      \BinaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{t_1\;t}{t_1'}$}
-      \AxiomC{$\reduction{t_2\;t}{t_2'}$}
-      \RightLabel{App--lin--c}
-      \BinaryInfC{$\reduction{(t_1+t_2)\;t}{t'_1+t'_2}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\match{t}{u_2}{[\Xi]}$}
-      \LeftLabel{Match--lin--r}
-      \UnaryInfC{$\match{t}{u_1+u_2}{[\Xi]}$}
-    \end{bprooftree}
       \begin{bprooftree}
-      \AxiomC{$\reduction{t_2\;t}{t_2'}$}
-      \RightLabel{App--lin--r}
-      \UnaryInfC{$\reduction{(t_1+t_2)\;t}{t'_2}$}
-    \end{bprooftree}
+        \AxiomC{$\sequent{\Gamma,t_1:T_1\multimap{}T_2,t_2:T_2\multimap{}T_3}{t:T}$}
+        \LeftLabel{$\text{Composition}_L$}
+        \UnaryInfC{$\sequent{\Gamma,t_1\fcmp{}t_2:T_1\multimap{}T_3}{t:T}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\sequent{\Gamma_1}{t_1:T_1\multimap{}T_2}$}
+        \AxiomC{$\sequent{\Gamma_2}{t_2:T_2\multimap{}T_3}$}
+        \RightLabel{$\text{Composition}_R$}
+        \BinaryInfC{$\sequent{\Gamma_1,\Gamma_2}{t_1\fcmp{}t_2:T_1\multimap{}T_3}$}
+      \end{bprooftree}
   \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\sequent{\Gamma,u:T_2\multimap{}T_1}{t:T}$}
+        \LeftLabel{$\dagger_L$}
+        \UnaryInfC{$\sequent{\Gamma,u^\dagger:T_1\multimap{}T_2}{t:T}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\sequent{\Gamma}{t:T_2\multimap{}T_1}$}
+        \RightLabel{$\dagger_R$}
+        \UnaryInfC{$\sequent{\Gamma}{t^\dagger:T_1\multimap{}T_2}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\sequent{\Gamma}{t:T}$}
+        \LeftLabel{$\text{id}_L$}
+        \UnaryInfC{$\sequent{\Gamma,\text{id}:U\multimap{}U}{t:T}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \RightLabel{$\text{id}_R$}
+        \UnaryInfC{$\sequent{}{\text{id}:T\multimap{}T}$}
+      \end{bprooftree}
+  \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{u:U}{}t:T$}
+%       \LeftLabel{$\forall_L$}
+%       \UnaryInfC{$\sequent{\Gamma,\Lambda(X:\kappa).u:\forall(X:\kappa).U}{t:T}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{\Gamma}{t:T}$}
+%       \RightLabel{$\forall_R$}
+%       \UnaryInfC{$\sequent{\Gamma}{\Lambda(X:\kappa).t:\forall(X:\kappa).T}$}
+%     \end{bprooftree}
+%   \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\sequent{}{t:T_1\multimap{}T_2}$}
+      \AxiomC{$\sequent{}{t_1:T_1}$}
+      \LeftLabel{Application}
+      \BinaryInfC{$\sequent{}{t\;\text{@}\;t_1:T_2}$}
+    \end{bprooftree}
+    % \begin{bprooftree}
+    %   \AxiomC{$\sequent{}{f:T_1\multimap{}T_2}$}
+    %   \AxiomC{$\sequent{}{g:T_2\multimap{}T_3}$}
+    %   \RightLabel{Composition}
+    %   \BinaryInfC{$\sequent{}{f\fcmp{}g:T_1\multimap{}T_3}$}
+    % \end{bprooftree}
+  \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\sequent{}{f:T\multimap{}U}$}
+%       \RightLabel{Dagger}
+%       \UnaryInfC{$\sequent{}{f^\dagger:U\multimap{}T}$}
+%     \end{bprooftree}
+%       \begin{bprooftree}
+%         \AxiomC{$\sequent{}{f:\forall(X:\kappa).U}$}
+%         \AxiomC{$\sequent{}{T:\kappa}$}
+%         \LeftLabel{Universal Application}
+%         \BinaryInfC{$\sequent{}{f\;[T]:U}$}
+%       \end{bprooftree}
+%   \end{center}
+\end{itembox}
 
+% \begin{itembox}[c]{Equivalence relation}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{t_1+t_2}{t_2+t_1}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{(t_1+t_2)+(t_3+t_4)}{(t_1+t_3)+(t_2+t_4)}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t_1}{t_2}$}
+%       \UnaryInfC{$\equi{t_1+t_2}{t_1}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{t+\varnothing}{t}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{()}{()}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{x}{x}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t}{t'}$}
+%       \UnaryInfC{$\equi{\text{inl}\;t}{\text{inl}\;t'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t}{t'}$}
+%       \UnaryInfC{$\equi{\text{inr}\;t}{\text{inr}\;t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t_1}{t_1'}$}
+%       \AxiomC{$\equi{t_2}{t_2'}$}
+%       \BinaryInfC{$\equi{t_1\times{}t_2}{t_1'\times{}t_2'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t_1}{t_1'}$}
+%       \AxiomC{$\equi{t_2}{t_2'}$}
+%       \BinaryInfC{$\equi{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t}{t'}$}
+%       \UnaryInfC{$\equi{\text{fold}\;t}{\text{fold}\;t'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\equi{t}{t'}$}
+%       \UnaryInfC{$\equi{\text{trace}\;t}{\text{trace}\;t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1+\text{inl}\;t_2}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1+\text{inr}\;t_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{(t_1+t_2)\times{}t_3}{(t_1\times{}t_3)+(t_2\times{}t_3)}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{t_1\times{}(t_2+t_3)}{(t_1\times{}t_2)+(t_1\times{}t_3)}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{(t_1+t_2)\mapsto{}t_3}{(t_1\mapsto{}t_3)+(t_2\mapsto{}t_3)}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{(t_1\mapsto{}t_2)+(t_1\mapsto{}t_3)}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \UnaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{\text{fold}\;t_1+\text{fold}\;t_2}$}
+%     \end{bprooftree}
+%     % \begin{bprooftree}
+%     %   \AxiomC{$　$}
+%     %   \UnaryInfC{$\equi{(t_1+t_2)\;\text{trace}_T}{(t_1\;\text{trace}_T)+(t_2\;\text{trace}_T)}$}
+%     % \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+% \begin{itembox}[c]{Operational Semantics}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \LeftLabel{Match--var}
+%       \UnaryInfC{$\match{x}{t}{\{x\rightarrow{t}\}}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \RightLabel{Subst-var}
+%       \UnaryInfC{$\subst{\{x\rightarrow{t}\}}{x}{t}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \LeftLabel{Match--unit}
+%       \UnaryInfC{$\match{\text{()}}{\text{()}}{\{\;\}}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \RightLabel{Subst--unit}
+%       \UnaryInfC{$\subst{\{\;\}}{\text{()}}{\text{()}}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t}{u}{\Xi}$}
+%       \LeftLabel{Match--inl}
+%       \UnaryInfC{$\match{\text{inl}\;t}{\text{inl}\;u}{\Xi}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi}{t}{t'}$}
+%       \RightLabel{Subst--inl}
+%       \UnaryInfC{$\subst{\Xi}{\text{inl}\;t}{\text{inl}\;t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t}{u}{\Xi}$}
+%       \LeftLabel{Match--inr}
+%       \UnaryInfC{$\match{\text{inr}\;t}{\text{inr}\;u}{\Xi}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi}{t}{t'}$}
+%       \RightLabel{Subst--inr}
+%       \UnaryInfC{$\subst{\Xi}{\text{inr}\;t}{\text{inr}\;t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t_1}{u_1}{\Xi_1}$}
+%       \AxiomC{$\match{t_2}{u_2}{\Xi_2}$}
+%       \LeftLabel{Match--tensor}
+%       \BinaryInfC{$\match{t_1\times{}t_2}{u_1\times{}u_2}{\Xi_1\utimes\Xi_2}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi_1}{t_1}{t'_1}$}
+%       \AxiomC{$\subst{\Xi_2}{t_2}{t'_2}$}
+%       \RightLabel{Subst--tensor}
+%       \BinaryInfC{$\subst{\Xi_1\utimes\Xi_2}{t_1\times{}t_2}{t'_1\times{}t'_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t_1}{u_1}{\Xi_1}$}
+%       \AxiomC{$\match{t_2}{u_2}{\Xi_2}$}
+%       \LeftLabel{Match--arrow}
+%       \BinaryInfC{$\match{t_1\mapsto{}t_2}{u_1\mapsto{}u_2}{\Xi_1\utimes\Xi_2}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi_1}{t_1}{t'_1}$}
+%       \AxiomC{$\subst{\Xi_2}{t_2}{t'_2}$}
+%       \RightLabel{Subst--arrow}
+%       \BinaryInfC{$\subst{\Xi_1\utimes\Xi_2}{t_1\mapsto{}t_2}{t'_1\mapsto{}t'_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t}{u}{\Xi}$}
+%       \LeftLabel{Match--fold}
+%       \UnaryInfC{$\match{\text{fold}\;t}{\text{fold}\;u}{\Xi}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi}{t}{t'}$}
+%       \RightLabel{Subst--fold}
+%       \UnaryInfC{$\subst{\Xi}{\text{fold}\;t}{\text{fold}\;t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t}{u}{\Xi}$}
+%       \LeftLabel{Match--trace}
+%       \UnaryInfC{$\match{t\;\text{trace}_T}{u\;\text{trace}_T}{\Xi}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi}{t}{t'}$}
+%       \RightLabel{Subst--trace}
+%       \UnaryInfC{$\subst{\Xi}{t\;\text{trace}_T}{t'\;\text{trace}_T}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t}{u_1}{\Xi_1}$}
+%       \AxiomC{$\match{t}{u_2}{\Xi_2}$}
+%       \LeftLabel{Match--lin1}
+%       \BinaryInfC{$\match{t}{u_1+u_2}{\Xi_1\uplus\Xi_2}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\subst{\Xi}{t_1}{t'_1}$}
+%       \AxiomC{$\subst{\Xi}{t_2}{t'_2}$}
+%       \RightLabel{Subst-lin}
+%       \BinaryInfC{$\subst{\Xi}{t_1+t_2}{t'_1+t'_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t_1}{u}{\Xi_1}$}
+%       \AxiomC{$\match{t_2}{u}{\Xi_2}$}
+%       \LeftLabel{Match--lin2}
+%       \BinaryInfC{$\match{t_1+t_2}{u}{\Xi_1\uplus\Xi_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \LeftLabel{Match--unmatch--l}
+%       \UnaryInfC{$\match{\text{inl}\;t_1}{\text{inr}\;t_2}{\bot}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \LeftLabel{Match--unmatch--r}
+%       \UnaryInfC{$\match{\text{inr}\;t_1}{\text{inl}\;t_2}{\bot}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t_1}{t}{\bot}$}
+%       \LeftLabel{App--unmatch}
+%       \UnaryInfC{$\reduction{(t_1\mapsto{}t_2)\;\text{@}\;t}{\varnothing}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\match{t_1}{t}{\Xi}$}
+%       \AxiomC{$\subst{\Xi}{t_2}{t'}$}
+%       \LeftLabel{App--arrow}
+%       \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;\text{@}\;t}{t'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\flip{f^\dagger}{f'}$}
+%       \AxiomC{$\reduction{f'\;\text{@}\;t}{t'}$}
+%       \RightLabel{App--dagger}
+%       \BinaryInfC{$\reduction{f^\dagger\;\text{@}\;t}{t'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t_1\;\text{@}\;t}{t_1'}$}
+%       \AxiomC{$\reduction{t_2\;\text{@}\;t}{t_2'}$}
+%       \LeftLabel{App--lin--l}
+%       \BinaryInfC{$\reduction{(t_1+t_2)\;\text{@}\;t}{t'_1+t'_2}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t\;\text{@}\;t_1}{t_1'}$}
+%       \AxiomC{$\reduction{t\;\text{@}\;t_2}{t_2'}$}
+%       \RightLabel{App--lin--r}
+%       \BinaryInfC{$\reduction{t\;\text{@}\;(t_1+t_2)}{t_1'+t_2'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inr}\;u'}$}
+%       \LeftLabel{App--trace--nix}
+%       \UnaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;u}{u'}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inl}\;u'}$}
+%       \AxiomC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+%       \RightLabel{App--trace--loop}
+%       \BinaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;\text{inl}\;u}{u''}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t\;\text{@}\;(\text{inr}\;u)}{\text{inl}\;u'}$}
+%       \AxiomC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+%       \LeftLabel{App--trace--start}
+%       \BinaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;u}{u''}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{t\;\text{@}\;(\text{inl}\;u)}{\text{inr}\;u'}$}
+%       \RightLabel{App--trace--end}
+%       \UnaryInfC{$\reduction{(t\;\text{trace}_X)\;\text{@}\;\text{inl}\;u}{u'}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$　$}
+%       \LeftLabel{Flip--arrow}
+%       \UnaryInfC{$\flip{(t_1\mapsto{}t_2)^\dagger}{t_2\mapsto{}t_1}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\flip{t_1^\dagger}{t'_1}$}
+%       \AxiomC{$\flip{t_2^\dagger}{t'_2}$}
+%       \RightLabel{Flip--lin}
+%       \BinaryInfC{$\flip{(t_1+t_2)^\dagger}{t'_1+t'_2}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\reduction{f\;\text{@}\;t}{t'}$}
+%       \AxiomC{$\flip{t'^\dagger}{t''}$}
+%       \LeftLabel{Flip--app}
+%       \BinaryInfC{$\flip{(f\;\text{@}\;t)^\dagger}{t''}$}
+%     \end{bprooftree}
+%     \begin{bprooftree}
+%       \AxiomC{$\flip{t^\dagger}{t'}$}
+%       \RightLabel{Flip--trace}
+%       \UnaryInfC{$\flip{(t\;\text{trace}_X)^\dagger}{t'\;\text{trace}_X}$}
+%     \end{bprooftree}
+%   \end{center}
+%   \begin{center}
+%     \begin{bprooftree}
+%       \AxiomC{$\flip{t}{t'}$}
+%       \LeftLabel{Flip--flip}
+%       \UnaryInfC{$\flip{(t^\dagger)^\dagger}{t'}$}
+%     \end{bprooftree}
+%   \end{center}
+% \end{itembox}
+
+\begin{itembox}[c]{Syntax Directed Typing rules}
+  \begin{center}
+    $\nsequent{}{t:T}{}$
+  \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\match{t_1}{t}{[\Xi]}$}
-      \AxiomC{$\subst{[\Xi]}{t_2}{t'}$}
-      \LeftLabel{App--arrow}
-      \BinaryInfC{$\reduction{(t_1\mapsto{}t_2)\;t}{t'}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{f\;t}{t'}$}
-      \AxiomC{$\reduction{g\;t'}{t''}$}
-      \RightLabel{App--comp}
-      \BinaryInfC{$\reduction{(f\fcmp{}g)\;t}{t''}$}
+      \AxiomC{$\Gamma(x)=T$}
+      \LeftLabel{Variable}
+      \UnaryInfC{$\nsequent{\Gamma}{x:T}{\Gamma\setminus x}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\flip{f^\dagger}{f'}$}
-      \AxiomC{$\reduction{f'\;t}{t'}$}
-      \LeftLabel{App--dagger}
-      \BinaryInfC{$\reduction{f^\dagger\;t}{t'}$}
+      \AxiomC{$\nsequent{\Gamma}{t:T}{\Gamma'}$}
+      \LeftLabel{$I_L$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{()}:I}{t:T}{\Gamma'}$}
     \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\reduction{[l,u]u\;t}{t'}$}
-      \RightLabel{App--trace}
-      \UnaryInfC{$\reduction{(u\;\text{where}\;l::U)\;t}{t'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
     \begin{bprooftree}
       \AxiomC{$　$}
-      \LeftLabel{Flip--arrow}
-      \UnaryInfC{$\flip{(t_1\mapsto{}t_2)^\dagger}{t_2\mapsto{}t_1}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\flip{t_1^\dagger}{t'_1}$}
-      \AxiomC{$\flip{t_2^\dagger}{t'_2}$}
-      \RightLabel{Flip--lin}
-      \BinaryInfC{$\flip{(t_1+t_2)^\dagger}{t'_1+t'_2}$}
+      \RightLabel{$I_R$}
+      \UnaryInfC{$\nsequent{}{\text{()}:I}{}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\reduction{f\;t}{t'}$}
-      \AxiomC{$\flip{t'^\dagger}{t''}$}
-      \LeftLabel{Flip--app}
-      \BinaryInfC{$\flip{(f\;t)^\dagger}{t''}$}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1}{t:T}{\Gamma'}$}
+      \LeftLabel{$\oplus_{L_l}$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{inl}\;t_1:T_1\oplus{}T_2}{t:T}{\Gamma'}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\flip{f^\dagger}{f'}$}
-      \AxiomC{$\flip{g^\dagger}{g'}$}
-      \RightLabel{Flip--comp}
-      \BinaryInfC{$\flip{(f\fcmp{}g)^\dagger}{g'\fcmp{}f'}$}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \RightLabel{$\oplus_{R_l}$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{inl}\;t_1:T_1\oplus{}T_2}{\Gamma'}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\flip{t^\dagger}{t'}$}
-      \LeftLabel{Flip--trace}
-      \UnaryInfC{$\flip{(t\;\text{where}\;l::T)^\dagger}{t'\;\text{where}\;l::T}$}
+      \AxiomC{$\nsequent{\Gamma,t_2:T_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\oplus_{L_r}$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{inr}\;t_2:T_1\oplus{}T_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_2:T_2}{\Gamma'}$}
+      \RightLabel{$\oplus_{R_r}$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{inr}\;t_2:T_1\oplus{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1,t_2:T_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\otimes_L$}
+      \UnaryInfC{$\nsequent{\Gamma,t_1\times{}t_2:T_1\otimes{}T_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma'}{t_2:T_2}{\Gamma''}$}
+      \RightLabel{$\otimes_R$}
+      \BinaryInfC{$\nsequent{\Gamma}{t_1\times{}t_2:T_1\otimes{}T_2}{\Gamma''}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T_1}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma',t_2:T_2}{t:T}{\Gamma''}$}
+      \LeftLabel{$\multimap_L$}
+      \BinaryInfC{$\nsequent{\Gamma,t_1\mapsto{}t_2:T_1\multimap{}T_2}{t:T}{\Gamma''}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:T_1}{t_2:T_2}{\Gamma'}$}
+      \RightLabel{$\multimap_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{t_1\mapsto{}t_2:T_1\multimap{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,u:U[X \rightarrow \mu{X}.U]}{t:T}{\Gamma'}$}
+      \LeftLabel{$\mu_L$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{fold}\;u:\mu{X}.U}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t:T[X \rightarrow \mu{X}.T]}{\Gamma'}$}
+      \RightLabel{$\mu_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{fold}\;t:\mu{X}.T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,u:S\oplus{}U_1\multimap{}S\oplus{}U_2}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\nsequent{\Gamma,\text{trace}\;u:U_1\multimap{}U_2}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t:U\oplus{}T_1\multimap{}U\oplus{}T_2}{\Gamma'}$}
+      \RightLabel{$\text{Trace}_R$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{trace}\;t:T_1\multimap{}T_2}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma,t_1:U}{t:T}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma,t_2:U}{t:T}{\Gamma'}$}
+      \LeftLabel{$\text{Linearity}_L$}
+      \BinaryInfC{$\nsequent{\Gamma,t_1+t_2:U}{t:T}{\Gamma'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{\Gamma}{t_1:T}{\Gamma'}$}
+      \AxiomC{$\nsequent{\Gamma}{t_2:T}{\Gamma'}$}
+      \RightLabel{$\text{Linearity}_R$}
+      \BinaryInfC{$\nsequent{\Gamma}{t_1+t_2:T}{\Gamma'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\nsequent{\Gamma,t_1:T_1\multimap{}T_2,t_2:T_2\multimap{}T_3}{t:T}{\Gamma'}$}
+        \LeftLabel{$\text{Comp}_L$}
+        \UnaryInfC{$\nsequent{\Gamma,t_1\fcmp{}t_2:T_1\multimap{}T_3}{t:T}{\Gamma'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\nsequent{\Gamma}{t_1:T_1\multimap{}T_2}{\Gamma'}$}
+        \AxiomC{$\nsequent{\Gamma'}{t_2:T_2\multimap{}T_3}{\Gamma''}$}
+        \RightLabel{$\text{Comp}_R$}
+        \BinaryInfC{$\nsequent{\Gamma}{t_1\fcmp{}t_2:T_1\multimap{}T_3}{\Gamma''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\nsequent{\Gamma,u:T_2\multimap{}T_1}{t:T}{\Gamma'}$}
+        \LeftLabel{$\dagger_L$}
+        \UnaryInfC{$\nsequent{\Gamma,u^\dagger:T_1\multimap{}T_2}{t:T}{\Gamma'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\nsequent{\Gamma}{t:T_2\multimap{}T_1}{\Gamma'}$}
+        \RightLabel{$\dagger_R$}
+        \UnaryInfC{$\nsequent{\Gamma}{t^\dagger:T_1\multimap{}T_2}{\Gamma'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\nsequent{\Gamma}{t:T}{\Gamma'}$}
+        \LeftLabel{$\text{id}_L$}
+        \UnaryInfC{$\nsequent{\Gamma,\text{id}:U\multimap{}U}{t:T}{\Gamma'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \RightLabel{$\text{id}_R$}
+        \UnaryInfC{$\nsequent{}{\text{id}:T\multimap{}T}{}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\nsequent{}{t:T_1\multimap{}T_2}$}
+      \AxiomC{$\nsequent{}{t_1:T_1}{}$}
+      \LeftLabel{Application}
+      \BinaryInfC{$\nsequent{}{t\;\text{@}\;t_1:T_2}{}$}
     \end{bprooftree}
   \end{center}
 \end{itembox}
+
+\begin{itembox}[c]{Constraint--Based Type Inference rules}
+  \begin{center}
+      $\infer{}{t:X}{}{\chi}{C}$
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\Gamma(x)=T$}
+      \LeftLabel{Variable}
+      \UnaryInfC{$\infer{\Gamma}{x:T}{\Gamma\setminus (x:T)}{\{\}}{\{\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$I_L$}
+      \UnaryInfC{$\infer{\Gamma,\text{()}:V}{t:T}{\Gamma'}{\chi}{C\cup\{V=I\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \RightLabel{$I_R$}
+      \UnaryInfC{$\infer{}{\text{()}:V}{}{\{\}}{\{V=I\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,t_1:X_1}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$\oplus_{L_l}$}
+      \UnaryInfC{$\infer{\Gamma,\text{inl}\;t_1:V}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\oplus{}X_2\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t_1:X_1}{\Gamma'}{\chi}{C}$}
+      \RightLabel{$\oplus_{R_l}$}
+      \UnaryInfC{$\infer{\Gamma}{\text{inl}\;t_1:V}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\oplus{}X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,t_2:X_2}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$\oplus_{L_r}$}
+      \UnaryInfC{$\infer{\Gamma,\text{inr}\;t_2:V}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\oplus{}X_2\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t_2:X_2}{\Gamma'}{\chi}{C}$}
+      \RightLabel{$\oplus_{R_r}$}
+      \UnaryInfC{$\infer{\Gamma}{\text{inr}\;t_2:V}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{X_1\oplus{}X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,t_1:X_1,t_2:X_2}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$\otimes_L$}
+      \UnaryInfC{$\infer{\Gamma,t_1\times{}t_2:V}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\otimes{}X_2\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t_1:X_1}{\Gamma'}{\chi_1}{C_1}$}
+      \AxiomC{$\infer{\Gamma'}{t_2:X_2}{\Gamma''}{\chi_2}{C_2}$}
+      \RightLabel{$\otimes_R$}
+      \BinaryInfC{$\infer{\Gamma}{t_1\times{}t_2:V}{\Gamma''}{\chi_1\cup\chi_2\cup\{X_1,X_2\}}{C_1\cup{}C_2\cup\{V=X_1\otimes{}X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t_1:X_1}{\Gamma'}{\chi_1}{C_1}$}
+      \AxiomC{$\infer{\Gamma',t_2:X_2}{t:T}{\Gamma''}{\chi_2}{C_2}$}
+      \LeftLabel{$\multimap_L$}
+      \BinaryInfC{$\infer{\Gamma,t_1\mapsto{}t_2:V}{t:T}{\Gamma''}{\chi_1\cup\chi_2\cup\{X_1,X_2\}}{C_1\cup{}C_2\cup\{V=X_1\multimap{}X_2\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,t_1:X_1}{t_2:X_2}{\Gamma'}{\chi}{C}$}
+      \RightLabel{$\multimap_R$}
+      \UnaryInfC{$\infer{\Gamma}{t_1\mapsto{}t_2:V}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\multimap{}X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,u:U[Y \rightarrow \mu{Y}.U]}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$\mu_L$}
+      \UnaryInfC{$\infer{\Gamma,\text{fold}_{\mu{Y}.U}\;u:V}{t:T}{\Gamma'}{\chi}{C\cup\{V=\mu{Y}.U\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t:T[X \rightarrow \mu{X}.T]}{\Gamma'}{\chi}{C}$}
+      \RightLabel{$\mu_R$}
+      \UnaryInfC{$\infer{\Gamma}{\text{fold}_{\mu{X}.T}\;t:V}{\Gamma'}{\chi}{C\cup\{V=\mu{X}.T\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,u:U\oplus{}X_1\multimap{}U\oplus{}X_2}{t:T}{\Gamma'}{\chi}{C}$}
+      \LeftLabel{$\text{Trace}_L$}
+      \UnaryInfC{$\infer{\Gamma,\text{trace}_U\;u:V}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\multimap{}X_2\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t:T\oplus{}X_1\multimap{}T\oplus{}X_2}{\Gamma'}{\chi}{C}$}
+      \RightLabel{$\text{Trace}_R$}
+      \UnaryInfC{$\infer{\Gamma}{\text{trace}_T\;t:V}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\multimap{}X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma,t_1:X}{t:T}{\Gamma'}{\chi_1}{C_1}$}
+      \AxiomC{$\infer{\Gamma,t_2:X}{t:T}{\Gamma'}{\chi_2}{C_2}$}
+      \LeftLabel{$\text{Lin}_L$}
+      \BinaryInfC{$\infer{\Gamma,t_1+t_2:V}{t:T}{\Gamma'}{\chi_1\cup\chi_2\cup\{X\}}{C_1\cup{}C_2\cup\{V=X\}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\infer{\Gamma}{t_1:X}{\Gamma'}{\chi_1}{C_1}$}
+      \AxiomC{$\infer{\Gamma}{t_2:X}{\Gamma'}{\chi_2}{C_2}$}
+      \RightLabel{$\text{Lin}_R$}
+      \BinaryInfC{$\infer{\Gamma}{t_1+t_2:V}{\Gamma'}{\chi_1\cup\chi_2\cup\{X\}}{C_1\cup{}C_2\cup\{V=X\}}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\infer{\Gamma,t_1:X_1\multimap{}X_2,t_2:X_2\multimap{}X_3}{t:T}{\Gamma'}{\chi}{C}$}
+        \LeftLabel{$\text{Comp}_L$}
+        \UnaryInfC{$\infer{\Gamma,t_1\fcmp{}t_2:V}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2,X_3\}}{C\cup\{V=X_1\multimap{}X_3\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\infer{\Gamma}{t_1:X_1\multimap{}X_2}{\Gamma'}{\chi_1}{C_1}$}
+        \AxiomC{$\infer{\Gamma'}{t_2:X_2'\multimap{}X_3}{\Gamma''}{\chi_2}{C_2}$}
+        \RightLabel{$\text{Comp}_R$}
+        \BinaryInfC{$\infer{\Gamma}{t_1\fcmp{}t_2:V}{\Gamma''}{\chi_1\cup\chi_2\cup\{X_1,X_2,X_3\}}{C_1\cup{}C_2\cup\{V=X_1\multimap{}X_3\}}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\infer{\Gamma,u:X_2\multimap{}X_1}{t:T}{\Gamma'}{\chi}{C}$}
+        \LeftLabel{$\dagger_L$}
+        \UnaryInfC{$\infer{\Gamma,u^\dagger:}{t:T}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\multimap{}X_2\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\infer{\Gamma}{t:X_2\multimap{}X_1}{\Gamma'}{\chi}{C}$}
+        \RightLabel{$\dagger_R$}
+        \UnaryInfC{$\infer{\Gamma}{t^\dagger:V}{\Gamma'}{\chi\cup\{X_1,X_2\}}{C\cup\{V=X_1\multimap{}X_2\}}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\infer{\Gamma}{t:T}{\Gamma'}{\chi}{C}$}
+        \LeftLabel{$\text{id}_L$}
+        \UnaryInfC{$\infer{\Gamma,\text{id}:V}{t:T}{\Gamma'}{\chi\cup\{X\}}{C\cup\{V=X\multimap{}X\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \RightLabel{$\text{id}_R$}
+        \UnaryInfC{$\infer{}{\text{id}:V}{}{\{X\}}{\{V=X\multimap{}X\}}$}
+      \end{bprooftree}
+    \end{center}
+    \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\infer{}{t:X_1\multimap{}X_2}{}{\chi_1}{C_1}$}
+      \AxiomC{$\infer{}{t_1:X_1}{}{\chi_2}{C_2}$}
+      \LeftLabel{Application}
+      \BinaryInfC{$\infer{}{t\;\text{@}\;t_1:V}{}{\chi_1\cup\chi_2\cup\{X_1,X_2\}}{C_1\cup{}C_2\cup\{V=X_2\}}$}
+    \end{bprooftree}
+  \end{center}
+\end{itembox}
+
+\begin{itembox}[c]{Unification}
+  \begin{align*}
+      unify    &:= \text{Set of Constraint} \rightarrow \text{Substitution} \\
+      unify(\{\})             &= [] \\
+      unify(\{X = T\} \cup C) &= unify([X \rightarrow T]C) \circ [X \rightarrow T] \\
+      unify(\{T = X\} \cup C) &= unify([X \rightarrow T]C) \circ [X \rightarrow T] \\
+      unify(\{S_1 \oplus S_2 = T_1 \oplus T_2\} \cup C) &= unify(C \cup \{S_1 = T_1, S_2 = T_2\}) \\
+      unify(\{S_1 \otimes S_2 = T_1 \otimes T_2\} \cup C) &= unify(C \cup \{S_1 = T_1, S_2 = T_2\}) \\
+      unify(\{S_1 \multimap S_2 = T_1 \multimap T_2\} \cup C) &= unify(C \cup \{S_1 = T_1, S_2 = T_2\}) \\
+      unify(\{\mu{X}.S = \mu{Y}.T\} \cup C) &= unify(C \cup \{X = Y, S = T\}) 
+  \end{align*}
+\end{itembox}
+
+\newpage
 
 \begin{itembox}[c]{Type Interpretation}
-$\bf{V}$ is Compact Closed Category with Finite Biproduct.\\
-$\Pi_i$ is projection functor. \\
-$K_I$ is constant $I$ functor. \\
-$[-,-]$ is internal hom functor. \\
-$(-)^\ast$ is contravariant anafunctor. Using Axiom of Choice, we can define it on strict functor (see \url{https://ncatlab.org/nlab/show/rigid+monoidal+category#remarks}). \\
-$Id$ is identity functor.
+$|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
+圏$\bf{V}$はトレース双積付きダガーコンパクト圏(Dagger Compact Category with Traced Finite Biproduct)
+\begin{itemize}
+  \item $F: {\bf V}^n \rightarrow {\bf V}$は$n$多重関手
+  \item $\Pi_i:{\bf V}^{|\Theta|} \rightarrow {\bf V}$は射影関手
+  \item $K_I:{\bf V}^{|\Theta|} \rightarrow {\bf V}$は定数$I$関手
+  \item $\otimes:{\bf V} \times {\bf V} \rightarrow {\bf V}$はテンソル積関手
+  \item $\oplus:{\bf V} \times {\bf V} \rightarrow {\bf V}$は双積関手
+  \item $(-)^\star:{\bf V}^{op} \rightarrow {\bf V}$は充満忠実自己反変関手
+  \item $[-,-]:{\bf V}^{op} \times {\bf V} \rightarrow {\bf V}$は内部ホム関手
+  \item $Id_{\bf V}$は恒等関手
+  \item 圏$\bf{V}$と関手$F:{\bf V}^n \rightarrow {\bf V}\quad(n \ge 1)$について，パラメトライズされた$F$の始代数は，以下を満たす組$(F^\sharp, \phi^F)$
+    \begin{itemize}
+      \item $F^\sharp:{\bf V}^{n-1} \rightarrow {\bf V}$は関手
+      \item $\phi^F:F\circ\langle{Id,F^\sharp}\rangle \Rightarrow F^\sharp:{\bf V}^{n-1} \rightarrow {\bf V}$は自然同型
+      \item 全ての$T\in|{\bf V}^{n-1}|$について，組$(F^\sharp(T),\phi^F_T)$は$F(T,-)\mathchar`-$始代数
+    \end{itemize}
+\end{itemize}
   \begin{align*}
-    \semantics{\Theta \vdash T}                 &: {\bf V}^{|\Theta|} {\bf\rightarrow} {\bf V} \\
-    \semantics{\Theta \vdash X_i}               &= \Pi_i \\
-    \semantics{\Theta \vdash I}                 &= K_I \\
-    \semantics{\Theta \vdash T_1\oplus{}T_2}    &= \oplus\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
-    \semantics{\Theta \vdash T_1\otimes{}T_2}   &= \otimes\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
-    \semantics{\Theta \vdash T_1\multimap{}T_2} &= \otimes\circ[(-)^\ast,Id]\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
-    \semantics{\Theta \vdash \mu{X}.T}          &= \semantics{\Theta,X \vdash T}^\sharp
+    \semantics{\Theta \vdash T}                  &: {\bf V}^{|\Theta|} {\bf\rightarrow} {\bf V} \\
+    \semantics{\Theta \vdash X_i}                &= \Pi_i \\
+    \semantics{\Theta \vdash I}                  &= K_I \\
+    \semantics{\Theta \vdash T_1\oplus{}T_2}     &= \oplus\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
+    \semantics{\Theta \vdash T_1\otimes{}T_2}    &= \otimes\circ\langle\semantics{\Theta \vdash T_1},\semantics{\Theta \vdash T_2}\rangle \\
+    \semantics{\Theta \vdash T_1\multimap{}T_2}  &= \otimes\circ\langle\semantics{\Theta \vdash T_1}^\star,\semantics{\Theta \vdash T_2}\rangle \\
+    \semantics{\Theta \vdash \mu{X}.T}           &= \semantics{\Theta,X \vdash T}^\sharp \\
+    \semantics{\Theta \vdash T[X \rightarrow U]} &= \semantics{\Theta \vdash T}\circ\langle{Id,\semantics{\Theta \vdash U}}\rangle \\
+    \semantics{T}                                &:= \semantics{\; \vdash T}(\ast) \in |{\bf V}|
   \end{align*}
+  $\ast$は，スモール圏の圏$\mathbf{Cat}$における終対象$\mathbf{1}$の唯一の対象
 \end{itembox}
 
 \begin{itembox}[c]{Denotational Semantics}
-${\bf V}(A,B)$ is morphism which Domain and Codomain are $A \in \text{Obj}({\bf V})$ and $B \in \text{Obj}({\bf V})$, respectively. \\
-$id_T$ is identity morphism of Object $T$. \\
-$0_{A,B}$ is zero morphism of ${\bf V}(A,B)$. \\
-$\iota_i$ is injection morphism. \\
-$\pi_i$ is projection morphism. \\
-$\pi_i = \iota_i^{-1}$ \\
-$\pi_i\circ\iota_j = id$ if $i = j$ \\
-$\pi_i\circ\iota_j = 0$ otherwise \\
-$unfold_{\mu{X}.T} = fold^{-1}_{\mu{X}.T}$ \\
-$f \circ (g \oplus h) = (f \circ g) \oplus (f \circ h)$ \\
-$(f \oplus g) \circ h = (f \circ h) \oplus (g \circ h)$ \\
-$id_A \otimes id_B = id_{A \otimes B}$ \\
-$(f \otimes g) \circ (h \otimes k) = (f \circ h) \otimes (g \circ k)$ \\
-$f^{\ast\ast} = f$ \\
-${(f \otimes g)}^\ast = f^\ast \otimes g^\ast$ \\
-$\Delta_T : T \rightarrow T\oplus{}T$ \\
-$\nabla_T : T\oplus{}T \rightarrow T$
+% $Hom_{\bf V}(A,B)$ is morphism which Domain and Codomain are $A\in|{\bf V}|$ and $B\in |{\bf V}|$, respectively. \\
+% $id_T$ is identity morphism of $T \in|{\bf V}|$. \\
+% $0_{A,B}$ is zero morphism of $Hom_{\bf V}(A,B)$. \\
+% $\iota_i$ is injection morphism. \\
+% $\pi_i$ is projection morphism. \\
+% $\pi_i = \iota_i^{-1}$ \\
+% $\pi_i\circ\iota_j = id$ if $i = j$ \\
+% $\pi_i\circ\iota_j = 0$ otherwise \\
+% $unfold_{\mu{X}.T} = fold^{-1}_{\mu{X}.T}$ \\
+% $f \circ (g \oplus h) = (f \circ g) \oplus (f \circ h)$ \\
+% $(f \oplus g) \circ h = (f \circ h) \oplus (g \circ h)$ \\
+% $id_A \otimes id_B = id_{A \otimes B}$ \\
+% $(f \otimes g) \circ (h \otimes k) = (f \circ h) \otimes (g \circ k)$ \\
+% $f^{\star\star} = f$ \\
+% ${(f \otimes g)}^\star = f^\star \otimes g^\star$ \\
+% $\Delta_T : T \rightarrow T\oplus{}T$ satisfying $\pi_i\circ\Delta_T = id_T$ \\
+% $\nabla_T : T\oplus{}T \rightarrow T$ satisfying $\iota_i\circ\nabla_T = id_T $ \\
+% $f+g = \Delta_T \circ (f\oplus{}g) \circ \nabla_U$ \\
+% % $S : {\bf V}(T,T)$ is additive antipode \\
+% $Tr_U^{X,Y}(f) : {\bf V}(X,Y)$ which $f : {\bf V}(U\oplus{}X, U\oplus{}Y)$ \\
   \begin{align*}
-    \semantics{t:T}                               &\in {\bf V}(I,T) \\
-    % \semantics{\varnothing:T}                     &:= 0_{I,T} \\
-    \semantics{x:T}                               &:= x_T \\
-    \semantics{\text{()}:T}                       &:= id_I \\
-    \semantics{\text{inl}\;t_1:T_1\oplus{}T_2}    &:= \iota_1\circ\semantics{t_1:T_1} \\
-    \semantics{\text{inr}\;t_2:T_1\oplus{}T_2}    &:= \iota_2\circ\semantics{t_2:T_2} \\
-    \semantics{t_1\times{}t_2:T_1\otimes{}T_2}    &:= \semantics{t_1:T_1}\otimes\semantics{t_2:T_2} \\
-    \semantics{t_1\mapsto{}t_2:T_1\multimap{}T_2} &:= \semantics{t_1:T_1}^\ast\otimes\semantics{t_2:T_2} \\
-    \semantics{\text{fold}\;t:\mu{X}.T}           &:= fold_{\mu{X}.T}\circ\semantics{t:T[X/\mu{X}.T]} \\
-    \semantics{t_1+t_2:T}                         &:= \nabla_T\circ\semantics{t_1:T}\oplus\semantics{t_2:T}\circ\Delta_T \\
-    % \semantics{t_1\;t_2}                          &:= \semantics{v_1}(\ast)(\semantics{v_2}(\ast))
+    \semantics{t:T}                                 &\in \semantics{T} \\
+    \semantics{\text{id}:T}                         &= 1 \\
+    \semantics{\varnothing:T}                       &= 0 \\ % undefined
+    \semantics{x:T}                                 &= x \\
+    \semantics{\text{()}:I}                         &= \ast \\
+    \semantics{\text{inl}\;t_1:T_1\oplus{}T_2}      &= \iota_1(\semantics{t_1:T_1}) \\
+    \semantics{\text{inr}\;t_2:T_1\oplus{}T_2}      &= \iota_2(\semantics{t_2:T_2}) \\
+    \semantics{t_1\times{}t_2:T_1\otimes{}T_2}      &= \semantics{t_1:T_1}\otimes\semantics{t_2:T_2} \\
+    \semantics{t_1\mapsto{}t_2:T_1\multimap{}T_2}   &= \semantics{t_1:T_1}^\star\otimes\semantics{t_2:T_2} \\
+    \semantics{\text{fold}\;t:\mu{X}.T}             &= fold_{\mu{X}.T}(\semantics{t:T[X/\mu{X}.T]}) \\
+    \semantics{t_1+t_2:T}                           &= \tfrac{1}{\sqrt{2}}(\semantics{t_1:T}+\semantics{t_2:T}) \\
+    \semantics{t_1\fcmp{}t_2:T_1\multimap{}T_3}     &= \semantics{t_2:T_2\multimap{}T_3}\circ\semantics{t_1:T_1\multimap{}T_2} \\
+    \semantics{\text{trace}_U\;t:T_1\multimap{}T_2} &= Tr_{T_1,T_2}^U(\semantics{t:(U\oplus{}T_1)\multimap(U\oplus{}T_2)}) \\
+    \semantics{t^\dagger:T_1\multimap{}T_2}         &= \semantics{t:T_2\multimap{}T_1}^{-1} \\
+    \semantics{t\;\text{@}\;t_1:T_2}                &= \semantics{t:T_1\multimap{}T_2}(\semantics{t_1:T_1}) \\
   \end{align*}
+\end{itembox}
+
+\begin{itembox}[c]{partial order}
+  \begin{center}
+    % $ x \prec () \prec \text{inl}\;t \prec \text{inr}\;t \prec t_1\times{}t_2 \prec t_1\mapsto{}t_2 \prec \text{fold}\;t \prec t\;\text{trace}_T \prec t_1+t_2 \prec -t $
+    % $ \varnothing \prec x \prec () \prec \text{inl}\;t \prec \text{inr}\;t \prec t_1\times{}t_2 \prec t_1\mapsto{}t_2 \prec \text{fold}\;t \prec t\;\text{trace}_T \prec \forall(X:\kappa).t \prec t_1+t_2 $
+    $ \varnothing \prec x \prec () \prec \text{inl}\;t \prec \text{inr}\;t \prec t_1\times{}t_2 \prec t_1\mapsto{}t_2 \prec \text{fold}\;t \prec \text{trace}\;t  \prec t_1+t_2 $
+  \end{center}
+\end{itembox}
+
+\begin{itembox}[c]{Term Matching and Substitution}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{x}{t}{\{x \to t\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$t\in\Xi(x)$}
+        \UnaryInfC{$\subst{\Xi}{x}{t}{\Xi\setminus\{x \to t\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$x \notin Dom(\Xi)$}
+        \UnaryInfC{$\subst{\Xi}{x}{\varnothing}{\Xi}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{()}{()}{\{\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\subst{\Xi}{()}{()}{\Xi}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u}{\Xi}$}
+        \UnaryInfC{$\match{\text{inl}\;t}{\text{inl}\;u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{\text{inl}\;t}{\text{inr}\;u}{\bot}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+        \UnaryInfC{$\subst{\Xi}{\text{inl}\;t}{\text{inl}\;t'}{\Xi'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u}{\Xi}$}
+        \UnaryInfC{$\match{\text{inr}\;t}{\text{inr}\;u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{\text{inr}\;t}{\text{inl}\;u}{\bot}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+        \UnaryInfC{$\subst{\Xi}{\text{inr}\;t}{\text{inr}\;t'}{\Xi'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t_1}{u_1}{\Xi_1}$}
+        \AxiomC{$\match{t_2}{u_2}{\Xi_2}$}
+        \BinaryInfC{$\match{t_1\times{}t_2}{u_1\times{}u_2}{\Xi_1\cup^\times_\bot\Xi_2}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\Xi'}$}
+        \AxiomC{$\subst{\Xi'}{t_2}{t_2'}{\Xi''}$}
+        \BinaryInfC{$\subst{\Xi}{t_1\times{}t_2}{t_1'\times{}t_2'}{\Xi''}$}
+      \end{bprooftree}
+    \end{center}
+    \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t_1}{u_1}{\Xi_1}$}
+        \AxiomC{$\match{t_2}{u_2}{\Xi_2}$}
+        \BinaryInfC{$\match{t_1\mapsto{}t_2}{u_1\mapsto{}u_2}{\Xi_1\cup^\times_\bot\Xi_2}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\Xi'}$}
+        \AxiomC{$\subst{\Xi'}{t_2}{t_2'}{\Xi''}$}
+        \BinaryInfC{$\subst{\Xi}{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}{\Xi''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u}{\Xi}$}
+        \UnaryInfC{$\match{\text{fold}\;t}{\text{fold}\;u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+        \UnaryInfC{$\subst{\Xi}{\text{fold}\;t}{\text{fold}\;t'}{\Xi'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u}{\Xi}$}
+        \UnaryInfC{$\match{\text{trace}\;t}{\text{trace}\;u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+        \UnaryInfC{$\subst{\Xi}{\text{trace}\;t}{\text{trace}\;t'}{\Xi'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u_1}{\Xi_1}$}
+        \AxiomC{$\match{t}{u_2}{\Xi_2}$}
+        \BinaryInfC{$\match{t}{u_1+u_2}{\Xi_1\cup^+_\bot\Xi_2}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\match{t_1}{u}{\Xi_1}$}
+        \AxiomC{$\match{t_2}{u}{\Xi_2}$}
+        \BinaryInfC{$\match{t_1+t_2}{u}{\Xi_1\cup^+_\bot\Xi_2}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\Xi'}$}
+        \AxiomC{$\subst{\Xi'}{t_2}{t_2'}{\Xi''}$}
+        \BinaryInfC{$\subst{\Xi}{t_1+t_2}{t_1'+t_2'}{\Xi''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t_1}{u_1}{\Xi_1}$}
+        \AxiomC{$\match{t_2}{u_2}{\Xi_2}$}
+        \BinaryInfC{$\match{t_1\fcmp{}t_2}{u_1\fcmp{}u_2}{\Xi_1\cup^\times_\bot\Xi_2}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\Xi'}$}
+        \AxiomC{$\subst{\Xi'}{t_2}{t_2'}{\Xi''}$}
+        \BinaryInfC{$\subst{\Xi}{t_1\fcmp{}t_2}{t_1'\fcmp{}t_2'}{\Xi''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{\text{id}}{\text{id}}{\{\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\subst{\Xi}{\text{id}}{\text{id}}{\Xi}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{\varnothing}{\varnothing}{\{\}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\subst{\Xi}{\varnothing}{\varnothing}{\Xi}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\match{t}{u}{\Xi}$}
+        \UnaryInfC{$\match{t^\dagger}{u^\dagger}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+        \UnaryInfC{$\subst{\Xi}{t^\dagger}{t'^\dagger}{\Xi'}$}
+      \end{bprooftree}
+  \end{center}
+\end{itembox}
+
+\begin{itembox}[c]{Operational Sematics}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)+t_3}{t_1'+(t_2'+t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\varnothing+t}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1+t_2}{t_2+t_1}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t+t}{t}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \AxiomC{$\equi{t_3}{t_3'}$}
+        \TrinaryInfC{$\equi{(t_1\fcmp{}t_2)\fcmp{}t_3}{t_1'\fcmp(t_2'\fcmp{}t_3')}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t}{t'}$}
+        \UnaryInfC{$\equi{\text{id}\fcmp{}t}{t'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t}{t'}$}
+        \UnaryInfC{$\equi{t\fcmp{}\text{id}}{t'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \BinaryInfC{$\equi{t_1\fcmp{}t_2}{t_1'\fcmp{}t_2'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \AxiomC{$\equi{t_3}{t_3'}$}
+        \TrinaryInfC{$\equi{t_1\fcmp(t_2+t_3)}{t_1'\fcmp{}t_2'+t_1'\fcmp{}t_3'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \AxiomC{$\equi{t_3}{t_3'}$}
+        \TrinaryInfC{$\equi{(t_1+t_2)\fcmp{}t_3}{(t_1'\fcmp{}t_3')+(t_2'\fcmp{}t_3')}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{\varnothing\fcmp{}t}{\varnothing}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{t\fcmp\varnothing}{\varnothing}$}
+      \end{bprooftree}
+  \end{center}
+
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inl}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inr}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\times\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\times{}t_2}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\mapsto\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\mapsto{}t_2}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{fold}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{trace}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+  \end{center}
+
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{\varnothing}{\varnothing}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{\text{id}}{\text{id}}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{()}{()}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{x}{x}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{inl}\;t}{\text{inl}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{inr}\;t}{\text{inr}\;t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\times{}t_2}{t_1'\times{}t_2'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{fold}\;t}{\text{fold}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{trace}\;t}{\text{trace}\;t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1'+\text{inl}\;t_2'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1'+\text{inr}\;t_2'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)\times{}t_3}{(t_1'\times{}t_3')+(t_2'\times{}t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{t_1\times{}(t_2+t_3)}{(t_1'\times{}t_2')+(t_1'\times{}t_3')}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)\mapsto{}t_3}{(t_1'\mapsto{}t_3')+(t_2'\mapsto{}t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{(t_1'\mapsto{}t_2')+(t_1'\mapsto{}t_3')}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{\text{fold}\;t_1'+\text{fold}\;t_2'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+        \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+        \BinaryInfC{$\equi{(t_1+t_2)^\dagger}{t_1'+t_2'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{\varnothing^\dagger}{\varnothing}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+        \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+        \BinaryInfC{$\equi{(t_1\fcmp{}t_2)^\dagger}{t_2'\fcmp{}t_1'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\equi{\text{id}^\dagger}{\text{id}}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t}{t'}$}
+        \UnaryInfC{$\equi{(t^\dagger)^\dagger}{t'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \BinaryInfC{$\equi{(t_1\mapsto{}t_2)^\dagger}{t_2'\mapsto{}t_1'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t^\dagger}{t'}$}
+        \UnaryInfC{$\equi{(\text{trace}\;t)^\dagger}{\text{trace}\;t'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1}{t_1'}$}
+        \AxiomC{$\equi{t_2}{t_2'}$}
+        \AxiomC{$\equi{t}{t'}$}
+        \AxiomC{$\match{t_1'}{t'}{\Xi}$}
+        \AxiomC{$\subst{\Xi}{t_2'}{t''}$}
+        \QuinaryInfC{$\equi{(t_1\mapsto{}t_2)\;\text{@}\;t}{t''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\;\text{@}\;t}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{id}\;\text{@}\;t}{t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1\;\text{@}\;t}{t_1'}$}
+        \AxiomC{$\equi{t_2\;\text{@}\;t}{t_2'}$}
+        \BinaryInfC{$\equi{(t_1+t_2)\;\text{@}\;t}{t_1'+t_2'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t\;\text{@}\;t_1}{t_1'}$}
+        \AxiomC{$\equi{t\;\text{@}\;t_2}{t_2'}$}
+        \BinaryInfC{$\equi{t\;\text{@}\;(t_1+t_2)}{t_1'+t_2'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t_1\;\text{@}\;t}{t'}$}
+        \AxiomC{$\equi{t_2\;\text{@}\;t'}{t''}$}
+        \BinaryInfC{$\equi{(t_1\fcmp{}t_2)\;\text{@}\;t}{t''}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t^\dagger}{t'}$}
+        \AxiomC{$\equi{t'\;\text{@}\;u}{u'}$}
+        \BinaryInfC{$\equi{t^\dagger\;\text{@}\;u}{u'}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t\;\text{@}\;(\text{inr}\;u)}{\text{inr}\;u'}$}
+        \UnaryInfC{$\equi{(\text{trace}\;t)\;\text{@}\;u}{u'}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t\;\text{@}\;(\text{inl}\;u)}{\text{inl}\;u'}$}
+        \AxiomC{$\equi{(\text{trace}\;t)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+        \BinaryInfC{$\equi{(\text{trace}\;t)\;\text{@}\;(\text{inl}\;u)}{u''}$}
+      \end{bprooftree}
+  \end{center}
+  \begin{center}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t\;\text{@}\;(\text{inr}\;u)}{\text{inl}\;u'}$}
+        \AxiomC{$\equi{(\text{trace}\;t)\;\text{@}\;(\text{inl}\;u')}{u''}$}
+        \BinaryInfC{$\equi{(\text{trace}\;t)\;\text{@}\;u}{u''}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\equi{t\;\text{@}\;(\text{inl}\;u)}{\text{inr}\;u'}$}
+        \UnaryInfC{$\equi{(\text{trace}\;t)\;\text{@}\;(\text{inl}\;u)}{u'}$}
+      \end{bprooftree}
+  \end{center}
 \end{itembox}
 
 \end{document}

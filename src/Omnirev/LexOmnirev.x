@@ -21,7 +21,7 @@ $i = [$l $d _ ']     -- identifier character
 $u = [. \n]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \= | \: | \+ | \* | \- \> | \. | \( | \) | \, | \= \> | \| | \; | \~
+   \= | \: | \+ | \* | \- \> | \. | \( | \) | \, | \= \> | \[ | \] | \| | \; | \~ | \@
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -103,7 +103,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "I" 12 (b "->" 6 (b "*" 3 (b ")" 2 (b "(" 1 N N) N) (b "," 5 (b "+" 4 N N) N)) (b ";" 9 (b ":" 8 (b "." 7 N N) N) (b "=>" 11 (b "=" 10 N N) N))) (b "type" 18 (b "fold" 15 (b "fix" 14 (b "expr" 13 N N) N) (b "inr" 17 (b "inl" 16 N N) N)) (b "|" 21 (b "where" 20 (b "unit" 19 N N) N) (b "~" 22 N N)))
+resWords = b "]" 15 (b ":" 8 (b "+" 4 (b ")" 2 (b "(" 1 N N) (b "*" 3 N N)) (b "->" 6 (b "," 5 N N) (b "." 7 N N))) (b "@" 12 (b "=" 10 (b ";" 9 N N) (b "=>" 11 N N)) (b "[" 14 (b "I" 13 N N) N))) (b "rec" 22 (b "id" 19 (b "expr" 17 (b "empty" 16 N N) (b "fold" 18 N N)) (b "inr" 21 (b "inl" 20 N N) N)) (b "unit" 26 (b "trace" 24 (b "term" 23 N N) (b "type" 25 N N)) (b "~" 28 (b "|" 27 N N) N)))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

@@ -98,7 +98,8 @@ instance Print AbsOmnirev.Program where
 instance Print AbsOmnirev.Def where
   prt i e = case e of
     AbsOmnirev.DType id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "="), prt 0 type_])
-    AbsOmnirev.DTerm id type_ expr -> prPrec i 0 (concatD [doc (showString "expr"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 expr])
+    AbsOmnirev.DExpr id type_ expr -> prPrec i 0 (concatD [doc (showString "expr"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 expr])
+    AbsOmnirev.DTerm id type_ term -> prPrec i 0 (concatD [doc (showString "term"), prt 0 id, doc (showString ":"), prt 0 type_, doc (showString "="), prt 0 term])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
@@ -112,25 +113,26 @@ instance Print AbsOmnirev.Type where
     AbsOmnirev.TySum type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "+"), prt 3 type_2])
     AbsOmnirev.TyTensor type_1 type_2 -> prPrec i 3 (concatD [prt 3 type_1, doc (showString "*"), prt 4 type_2])
     AbsOmnirev.TyFunc type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "->"), prt 2 type_2])
-    AbsOmnirev.TyRec id type_ -> prPrec i 4 (concatD [doc (showString "fix"), prt 0 id, doc (showString "."), prt 4 type_])
+    AbsOmnirev.TyRec id type_ -> prPrec i 4 (concatD [doc (showString "rec"), prt 0 id, doc (showString "."), prt 4 type_])
 
 instance Print AbsOmnirev.Term where
   prt i e = case e of
-    AbsOmnirev.TmVar id -> prPrec i 4 (concatD [prt 0 id])
-    AbsOmnirev.TmUnit -> prPrec i 4 (concatD [doc (showString "unit")])
-    AbsOmnirev.TmLeft term -> prPrec i 4 (concatD [doc (showString "inl"), prt 4 term])
-    AbsOmnirev.TmRight term -> prPrec i 4 (concatD [doc (showString "inr"), prt 4 term])
-    AbsOmnirev.TmTensor term1 term2 -> prPrec i 3 (concatD [prt 3 term1, doc (showString ","), prt 4 term2])
-    AbsOmnirev.TmArrow term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString "=>"), prt 2 term2])
-    AbsOmnirev.TmFold term -> prPrec i 4 (concatD [doc (showString "fold"), prt 4 term])
+    AbsOmnirev.TmVar id -> prPrec i 5 (concatD [prt 0 id])
+    AbsOmnirev.TmUnit -> prPrec i 5 (concatD [doc (showString "unit")])
+    AbsOmnirev.TmLeft term -> prPrec i 5 (concatD [doc (showString "inl"), prt 5 term])
+    AbsOmnirev.TmRight term -> prPrec i 5 (concatD [doc (showString "inr"), prt 5 term])
+    AbsOmnirev.TmTensor term1 term2 -> prPrec i 4 (concatD [prt 4 term1, doc (showString ","), prt 5 term2])
+    AbsOmnirev.TmArrow term1 term2 -> prPrec i 3 (concatD [prt 3 term1, doc (showString "=>"), prt 4 term2])
+    AbsOmnirev.TmFold type_ term -> prPrec i 5 (concatD [doc (showString "fold"), doc (showString "["), prt 0 type_, doc (showString "]"), prt 5 term])
     AbsOmnirev.TmLin term1 term2 -> prPrec i 2 (concatD [prt 2 term1, doc (showString "|"), prt 3 term2])
-    AbsOmnirev.TmLabel id term -> prPrec i 4 (concatD [prt 0 id, prt 4 term])
+    AbsOmnirev.TmTrace type_ term -> prPrec i 5 (concatD [doc (showString "trace"), doc (showString "["), prt 0 type_, doc (showString "]"), prt 5 term])
+    AbsOmnirev.TmComp term1 term2 -> prPrec i 1 (concatD [prt 1 term1, doc (showString ";"), prt 2 term2])
+    AbsOmnirev.TmFlip term -> prPrec i 5 (concatD [doc (showString "~"), prt 5 term])
+    AbsOmnirev.TmEmpty -> prPrec i 5 (concatD [doc (showString "empty")])
+    AbsOmnirev.TmId -> prPrec i 5 (concatD [doc (showString "id")])
 
 instance Print AbsOmnirev.Expr where
   prt i e = case e of
-    AbsOmnirev.ExTerm term -> prPrec i 2 (concatD [prt 0 term])
-    AbsOmnirev.ExApp expr term -> prPrec i 2 (concatD [prt 2 expr, prt 0 term])
-    AbsOmnirev.ExComp expr1 expr2 -> prPrec i 1 (concatD [prt 1 expr1, doc (showString ";"), prt 2 expr2])
-    AbsOmnirev.ExFlip expr -> prPrec i 2 (concatD [doc (showString "~"), prt 2 expr])
-    AbsOmnirev.ExTrace term id type_ -> prPrec i 2 (concatD [prt 0 term, doc (showString "where"), prt 0 id, doc (showString ":"), prt 0 type_])
+    AbsOmnirev.ExTerm term -> prPrec i 0 (concatD [prt 0 term])
+    AbsOmnirev.ExApp expr term -> prPrec i 0 (concatD [prt 0 expr, doc (showString "@"), prt 0 term])
 

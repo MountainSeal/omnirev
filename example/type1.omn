@@ -1,8 +1,8 @@
 // 型の例
 type alias = I
-type qubit = I (+) I
-type tens = (I (+) I) (*) (I (+) I)
-type star = ~((I (+) I) (*) (I (+) I)) (*) ((I (+) I) (*) (I (+) I))
-type nat = fix x. I (+) x
-type var = qubit
-type natlist = fix x. I (+) nat (*) x
+type qubit = I + I
+type tens = (I + I) * (I + I)
+type var = qubit * qubit
+type circuit = qubit -> qubit
+type nat = rec x. (I + x)
+type natlist = rec y. (I + nat * y)

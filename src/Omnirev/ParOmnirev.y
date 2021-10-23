@@ -24,17 +24,23 @@ import Omnirev.ErrM
   ';' { PT _ (TS _ 9) }
   '=' { PT _ (TS _ 10) }
   '=>' { PT _ (TS _ 11) }
-  'I' { PT _ (TS _ 12) }
-  'expr' { PT _ (TS _ 13) }
-  'fix' { PT _ (TS _ 14) }
-  'fold' { PT _ (TS _ 15) }
-  'inl' { PT _ (TS _ 16) }
-  'inr' { PT _ (TS _ 17) }
-  'type' { PT _ (TS _ 18) }
-  'unit' { PT _ (TS _ 19) }
-  'where' { PT _ (TS _ 20) }
-  '|' { PT _ (TS _ 21) }
-  '~' { PT _ (TS _ 22) }
+  '@' { PT _ (TS _ 12) }
+  'I' { PT _ (TS _ 13) }
+  '[' { PT _ (TS _ 14) }
+  ']' { PT _ (TS _ 15) }
+  'empty' { PT _ (TS _ 16) }
+  'expr' { PT _ (TS _ 17) }
+  'fold' { PT _ (TS _ 18) }
+  'id' { PT _ (TS _ 19) }
+  'inl' { PT _ (TS _ 20) }
+  'inr' { PT _ (TS _ 21) }
+  'rec' { PT _ (TS _ 22) }
+  'term' { PT _ (TS _ 23) }
+  'trace' { PT _ (TS _ 24) }
+  'type' { PT _ (TS _ 25) }
+  'unit' { PT _ (TS _ 26) }
+  '|' { PT _ (TS _ 27) }
+  '~' { PT _ (TS _ 28) }
   L_ident  { PT _ (TV $$) }
 
 %%
@@ -46,13 +52,14 @@ Program :: { Program }
 Program : ListDef { AbsOmnirev.Prog $1 }
 Def :: { Def }
 Def : 'type' Ident '=' Type { AbsOmnirev.DType $2 $4 }
-    | 'expr' Ident ':' Type '=' Expr { AbsOmnirev.DTerm $2 $4 $6 }
+    | 'expr' Ident ':' Type '=' Expr { AbsOmnirev.DExpr $2 $4 $6 }
+    | 'term' Ident ':' Type '=' Term { AbsOmnirev.DTerm $2 $4 $6 }
 ListDef :: { [Def] }
 ListDef : Def { (:[]) $1 } | Def ListDef { (:) $1 $2 }
 Type4 :: { Type }
 Type4 : Ident { AbsOmnirev.TyVar $1 }
       | 'I' { AbsOmnirev.TyUnit }
-      | 'fix' Ident '.' Type4 { AbsOmnirev.TyRec $2 $4 }
+      | 'rec' Ident '.' Type4 { AbsOmnirev.TyRec $2 $4 }
       | '(' Type ')' { $2 }
 Type2 :: { Type }
 Type2 : Type2 '+' Type3 { AbsOmnirev.TySum $1 $3 } | Type3 { $1 }
@@ -63,34 +70,32 @@ Type1 :: { Type }
 Type1 : Type1 '->' Type2 { AbsOmnirev.TyFunc $1 $3 } | Type2 { $1 }
 Type :: { Type }
 Type : Type1 { $1 }
-Term4 :: { Term }
-Term4 : Ident { AbsOmnirev.TmVar $1 }
+Term5 :: { Term }
+Term5 : Ident { AbsOmnirev.TmVar $1 }
       | 'unit' { AbsOmnirev.TmUnit }
-      | 'inl' Term4 { AbsOmnirev.TmLeft $2 }
-      | 'inr' Term4 { AbsOmnirev.TmRight $2 }
-      | 'fold' Term4 { AbsOmnirev.TmFold $2 }
-      | Ident Term4 { AbsOmnirev.TmLabel $1 $2 }
+      | 'inl' Term5 { AbsOmnirev.TmLeft $2 }
+      | 'inr' Term5 { AbsOmnirev.TmRight $2 }
+      | 'fold' '[' Type ']' Term5 { AbsOmnirev.TmFold $3 $5 }
+      | 'trace' '[' Type ']' Term5 { AbsOmnirev.TmTrace $3 $5 }
+      | '~' Term5 { AbsOmnirev.TmFlip $2 }
+      | 'empty' { AbsOmnirev.TmEmpty }
+      | 'id' { AbsOmnirev.TmId }
       | '(' Term ')' { $2 }
+Term4 :: { Term }
+Term4 : Term4 ',' Term5 { AbsOmnirev.TmTensor $1 $3 }
+      | Term5 { $1 }
 Term3 :: { Term }
-Term3 : Term3 ',' Term4 { AbsOmnirev.TmTensor $1 $3 }
+Term3 : Term3 '=>' Term4 { AbsOmnirev.TmArrow $1 $3 }
       | Term4 { $1 }
-Term1 :: { Term }
-Term1 : Term1 '=>' Term2 { AbsOmnirev.TmArrow $1 $3 }
-      | Term2 { $1 }
 Term2 :: { Term }
 Term2 : Term2 '|' Term3 { AbsOmnirev.TmLin $1 $3 } | Term3 { $1 }
+Term1 :: { Term }
+Term1 : Term1 ';' Term2 { AbsOmnirev.TmComp $1 $3 } | Term2 { $1 }
 Term :: { Term }
 Term : Term1 { $1 }
-Expr2 :: { Expr }
-Expr2 : Term { AbsOmnirev.ExTerm $1 }
-      | Expr2 Term { AbsOmnirev.ExApp $1 $2 }
-      | '~' Expr2 { AbsOmnirev.ExFlip $2 }
-      | Term 'where' Ident ':' Type { AbsOmnirev.ExTrace $1 $3 $5 }
-      | '(' Expr ')' { $2 }
-Expr1 :: { Expr }
-Expr1 : Expr1 ';' Expr2 { AbsOmnirev.ExComp $1 $3 } | Expr2 { $1 }
 Expr :: { Expr }
-Expr : Expr1 { $1 }
+Expr : Term { AbsOmnirev.ExTerm $1 }
+     | Expr '@' Term { AbsOmnirev.ExApp $1 $3 }
 {
 
 returnM :: a -> Err a
