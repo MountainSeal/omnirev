@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- Author: MountainSeal
-module Omnirev.EvalOmnirev(check) where
+module Omnirev.CheckOmnirev(check) where
 
 
 import Control.Monad.Identity
@@ -40,9 +40,9 @@ newtype Eval a = Eval (ReaderT (Env Term) (StateT (Env Result) (ExceptT String (
   deriving (Functor, Applicative, Monad, MonadWriter Logs, MonadReader (Env Term), MonadState (Env Result), MonadError String)
 
 -- TO DO LIST
--- 3. テスト時やデバッグ時にわかりやすいよう，Writerモナドの[String]にその時の状態をtell関数で書き込むようにする(ロギング)
--- 4. テストの内容を再作成する（ユニットテスト）
--- 5. Labelは既に利用されていないので，Readerモナドを利用して別の何かする．もしくは消す
+-- テストの内容を再作成する（ユニットテスト）
+-- monad-loggerを利用したロギングに変更
+-- optparse-applicativeを利用してコマンドのオプション処理をする
 
 -- Either String a （Stringが例外）
 runCheck :: Check a -> Env Alias -> (Either String a, Logs)

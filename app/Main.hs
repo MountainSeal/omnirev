@@ -11,7 +11,7 @@ import Omnirev.LexOmnirev
 import Omnirev.ParOmnirev
 import Omnirev.PrintOmnirev
 import Omnirev.AbsOmnirev
-import Omnirev.EvalOmnirev
+import Omnirev.CheckOmnirev
 
 
 

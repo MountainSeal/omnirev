@@ -1,7 +1,7 @@
-module EvalOmnirevSpec where
+module CheckOmnirevSpec where
 
 import Omnirev.AbsOmnirev
-import Omnirev.EvalOmnirev
+import Omnirev.CheckOmnirev
 import Omnirev.ErrM as Err
 import Test.Hspec
 import Data.Map as Map
