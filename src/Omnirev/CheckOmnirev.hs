@@ -51,7 +51,7 @@ runCheck (Check m) env = runIdentity (runWriterT (runExceptT (evalStateT m env))
 -- Entrypoint of type checking
 check :: Program -> Err (String, Logs)
 check p = case runCheck (checkProg p) M.empty of
-  (Left  s, logs) -> Bad s
+  (Left  s, logs) -> Bad $ unlines logs
   (Right s, logs) -> Ok (s, logs)
 
 defNotFoundError :: (Show a, Print a) => a -> Check b
@@ -97,6 +97,11 @@ inferenceError ll x = do
   tell [logAt ll $ "type inference failed: " ++ printTree x]
   throwError $ "type inference failed: " ++ printTree x
 
+unificationFailError :: Check a
+unificationFailError = do
+  tell [infoLog "unification fail"]
+  throwError "unification fail"
+
 data LogLevel
   = Debug   -- 重要では無いが，記録しておきたい場合
   | Info    -- 処理に問題は無いが，重要な情報を持つ場合
@@ -105,16 +110,16 @@ data LogLevel
   deriving (Eq, Ord, Show, Read)
 
 debugLog :: String -> String
-debugLog str = "[debug]" ++ str
+debugLog str = "[debug] " ++ str
 
 infoLog :: String -> String
-infoLog str = "[info]" ++ str
+infoLog str = "[info]  " ++ str
 
 warnLog :: String -> String
-warnLog str = "[warn]" ++ str
+warnLog str = "[warn]  " ++ str
 
 errorLog :: String -> String
-errorLog str = "[error]" ++ str
+errorLog str = "[error] " ++ str
 
 logAt :: LogLevel -> String -> String
 logAt Debug   = debugLog
@@ -146,6 +151,7 @@ checkDef (DType (Ident s) ty) = do
     Nothing -> do
       tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
+      tell [debugLog "checkType " ++ printTree ty']
       checkType [] ty'
       modify $ M.insert s (AType ty')
       pure ""
@@ -157,15 +163,22 @@ checkDef (DTerm (Ident s) ty tm) = do
     Nothing -> do
       tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
+      tell [debugLog "checkType " ++ printTree ty']
       checkType [] ty'
       tell [debugLog "tmPurify " ++ printTree tm]
       tm' <- tmPurify tm
-      (cxt, cs) <- infer [] (tm', ty')
+      tell [debugLog "infer " ++ printTree tm']
+      -- 推論が正しく機能しているか確認するため一時的に型変数を使う
+      x <- TyVar <$> uvar
+      -- (cxt, cs) <- infer [] (tm', ty')
+      (cxt, cs) <- infer [] (tm', x)
+      tell [debugLog "unify " ++ constraints cs]
       if null cxt
-        then case unify cs of -- unification
-          Just s  -> pure "" ---
-          Nothing -> throwError "" ---
-        else throwError "" ---
+        then case unify cs of
+          Just s  -> do
+            tell [infoLog "unification success" ++ printTree (s x)]
+          Nothing -> unificationFailError
+        else inferenceError Info "context must be empty after type inference."
       modify $ M.insert s (ATerm tm' ty')
       pure ""
     Just v -> dupDefError v s
@@ -176,13 +189,20 @@ checkDef (DExpr (Ident s) ty ex) = do
     Nothing -> do
       tell [debugLog "purify " ++ printTree ty]
       ty' <- purify [] ty
+      tell [debugLog "checkType " ++ printTree ty']
       checkType [] ty'
       tell [debugLog "exPurify " ++ printTree ex]
       ex' <- exPurify ex
-      cs <- inferExpr (ex', ty')
-      case unify cs of -- unification
-        Just s  -> pure "" ---
-        Nothing -> throwError "" ---
+      tell [debugLog "infer " ++ printTree ex']
+      -- 推論が正しく機能しているか確認するため一時的に型変数を使う
+      x <- TyVar <$> uvar
+      cs <- inferExpr (ex', x)
+      -- cs <- inferExpr (ex', ty')
+      tell [debugLog "unify " ++ constraints cs]
+      case unify cs of
+        Just s  -> do
+          tell [infoLog "unification success" ++ printTree (s x)]
+        Nothing -> unificationFailError
       modify $ M.insert s (AExpr ex' ty')
       pure ""
     Just v -> dupDefError v s
@@ -431,9 +451,15 @@ context cxt = intercalate "#" $ reverse $ map typedTerm cxt
 judgement :: Context -> Typed -> String
 judgement cxt (tm,ty) = unwords [context cxt, "|-", typedTerm (tm,ty)]
 
+constraint :: Constraint -> String
+constraint (ty1, ty2) = "(" ++ printTree ty1 ++ "=" ++ printTree ty2 ++ ")"
+constraints :: [Constraint] -> String
+constraints cs = intercalate "," $ map constraint cs
+
 infer :: Context -> Typed -> Check (Context, [Constraint])
 -- variable 
-infer cxt (TmVar i, ty) =
+infer cxt (TmVar i, ty) = do
+  tell [infoLog $ "variable: " ++ judgement cxt (TmVar i, ty)]
   case lookup (TmVar i) cxt of
     Just ty' -> if ty == ty'
       then pure (delete (TmVar i, ty') cxt, [])
@@ -441,28 +467,33 @@ infer cxt (TmVar i, ty) =
     Nothing -> inferenceError Info $ "not found the variable" ++ show i
 -- unit_l
 infer ((TmUnit, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "unit_l: " ++ judgement ((TmUnit, vy) : cxt) (tm, ty)]
   (cxt', cs) <- infer cxt (tm, ty)
   pure (cxt', (vy, TyUnit) : cs)
 -- inl_l
 infer ((TmLeft tm1, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "inl_l: " ++ judgement ((TmLeft tm1, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer ((tm1, x1) : cxt) (tm, ty)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- inr_l
 infer ((TmRight tm2, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "inr_l: " ++ judgement ((TmRight tm2, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer ((tm2, x2) : cxt) (tm, ty)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_l
 infer ((TmTensor tm1 tm2, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "tensor_l: " ++ judgement ((TmTensor tm1 tm2, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer (cxt # (tm1, x1) # (tm2, x2)) (tm, ty)
   pure (cxt', (vy, TyTensor x1 x2) : cs)
 -- arrow_l
 infer ((TmArrow tm1 tm2, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "arrow_l: " ++ judgement ((TmArrow tm1 tm2, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt',  cs1) <- infer cxt (tm1, x1)
@@ -470,22 +501,26 @@ infer ((TmArrow tm1 tm2, vy) : cxt) (tm, ty) = do
   pure (cxt'', (vy, TyFunc x1 x2) : (cs1 ++ cs2))
 -- fold_l
 infer ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "fold_l: " ++ judgement ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty)]
   i <- uvar
   let x = TyVar i
   let uy' = (y ~> x) uy
+  tell [debugLog "checkType " ++ printTree (TyRec i uy')]
   checkType [] (TyRec i uy')
   (cxt', cs) <- infer (cxt # (um, (i ~> TyRec i uy') uy')) (tm, ty)
   pure (cxt', (vy, TyRec i uy') : cs)
 -- trace_l
 infer ((TmTrace uy um, vy) : cxt) (tm, ty) = do
-  -- uyに変数の重複がないか確認する必要あり
-  checkType [] uy
+  tell [infoLog $ "trace_l: " ++ judgement ((TmTrace uy um, vy) : cxt) (tm, ty)]
+  tell [debugLog "checkType " ++ printTree uy]
+  checkType [] uy -- uyに変数の重複がないか確認する必要あり
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer (cxt # (um, TyFunc (TySum uy x1) (TySum uy x2))) (tm, ty)
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- lin_l
 infer ((TmLin tm1 tm2, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "lin_l: " ++ judgement ((TmLin tm1 tm2, vy) : cxt) (tm, ty)]
   x <- TyVar <$> uvar
   (cxt1, cs1) <- infer (cxt # (tm1, x)) (tm, ty)
   (cxt2, cs2) <- infer (cxt # (tm2, x)) (tm, ty)
@@ -494,6 +529,7 @@ infer ((TmLin tm1 tm2, vy) : cxt) (tm, ty) = do
     else inferenceError Info "remainder contexts between lin are different."
 -- comp_l
 infer ((TmComp tm1 tm2, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "comp_l: " ++ judgement ((TmComp tm1 tm2, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   x3 <- TyVar <$> uvar
@@ -501,32 +537,38 @@ infer ((TmComp tm1 tm2, vy) : cxt) (tm, ty) = do
   pure (cxt', (vy, TyFunc x1 x3) : cs)
 -- flip_l
 infer ((TmFlip um, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "flip_l: " ++ judgement ((TmFlip um, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer (cxt # (um, TyFunc x2 x1)) (tm, ty)
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- id_l
 infer ((TmId, vy) : cxt) (tm, ty) = do
+  tell [infoLog $ "id_l: " ++ judgement ((TmId, vy) : cxt) (tm, ty)]
   x <- TyVar <$> uvar
   (cxt', cs) <- infer cxt (tm, ty)
   pure (cxt', (vy, TyFunc x x) : cs)
 -- unit_r
-infer [] (TmUnit, vy) =
+infer [] (TmUnit, vy) = do
+  tell [infoLog $ "unit_r: " ++ judgement [] (TmUnit, vy)]
   pure ([], [(vy, TyUnit)])
 -- inl_r
 infer cxt (TmLeft tm1, vy) = do
+  tell [infoLog $ "inl_r: " ++ judgement cxt (TmLeft tm1, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer cxt (tm1, x1)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- inr_r
 infer cxt (TmRight tm2, vy) = do
+  tell [infoLog $ "inr_r: " ++ judgement cxt (TmRight tm2, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer cxt (tm2, x2)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_r
 infer cxt (TmTensor tm1 tm2, vy) = do
+  tell [infoLog $ "tensor: " ++ judgement cxt (TmTensor tm1 tm2, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt',  cs1) <- infer cxt (tm1, x1)
@@ -534,28 +576,33 @@ infer cxt (TmTensor tm1 tm2, vy) = do
   pure (cxt'', (vy, TyTensor x1 x2) : (cs1 ++ cs2))
 -- arrow_r
 infer cxt (TmArrow tm1 tm2, vy) = do
+  tell [infoLog $ "arrow_r: " ++ judgement cxt (TmArrow tm1 tm2, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer (cxt # (tm1, x1)) (tm2, x2)
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- fold_r
 infer cxt (TmFold (TyRec y ty) tm, vy) = do
+  tell [infoLog $ "fold_r: " ++ judgement cxt (TmFold (TyRec y ty) tm, vy)]
   i <- uvar
   let x = TyVar i
   let ty' = (y ~> x) ty
+  tell [debugLog "checkType " ++ printTree (TyRec i ty')]
   checkType [] (TyRec i ty')
   (cxt', cs) <- infer cxt (tm, (i ~> TyRec i ty') ty')
   pure (cxt', (vy, TyRec i ty') : cs)
 -- trace_r
 infer cxt (TmTrace ty tm, vy) = do
-  -- tyに変数の重複がないか確認する必要あり
-  checkType [] ty
+  tell [infoLog $ "trace_r: " ++ judgement cxt (TmTrace ty tm, vy)]
+  tell [debugLog "checkType " ++ printTree ty]
+  checkType [] ty -- tyに変数の重複がないか確認する必要あり
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer cxt (tm, TyFunc (TySum x1 ty) (TySum x2 ty))
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- lin_r
 infer cxt (TmLin tm1 tm2, vy) = do
+  tell [infoLog $ "lin_r: " ++ judgement cxt (TmLin tm1 tm2, vy)]
   x <- TyVar <$> uvar
   (cxt1, cs1) <- infer cxt (tm1, x)
   (cxt2, cs2) <- infer cxt (tm2, x)
@@ -564,6 +611,7 @@ infer cxt (TmLin tm1 tm2, vy) = do
     else inferenceError Info "remainder contexts between lin are different."
 -- comp_r
 infer cxt (TmComp tm1 tm2, vy) = do
+  tell [infoLog $ "comp_r: " ++ judgement cxt (TmComp tm1 tm2, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   x3 <- TyVar <$> uvar
@@ -572,16 +620,19 @@ infer cxt (TmComp tm1 tm2, vy) = do
   pure (cxt'', (vy, TyFunc x1 x3) : (cs1 ++ cs2))
 -- flip_r
 infer cxt (TmFlip ty, vy) = do
+  tell [infoLog $ "flip_r: " ++ judgement cxt (TmFlip ty, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt', cs) <- infer cxt (ty, TyFunc x2 x1)
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- id_r
 infer cxt (TmId, vy) = do
+  tell [infoLog $ "id_r: " ++ judgement cxt (TmId, vy)]
   x <- TyVar <$> uvar
   pure ([], [(vy, TyFunc x x)])
 -- fail
-infer cxt (tm, ty) =
+infer cxt (tm, ty) = do
+  tell [infoLog $ ": " ++ judgement cxt (tm, ty)]
   inferenceError Info $ "no inference rules matched to" ++ judgement cxt (tm,ty)
 
 inferExpr :: (Expr, Type) -> Check [Constraint]

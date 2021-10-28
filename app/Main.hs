@@ -63,8 +63,10 @@ runCheck v p s = let ts = myLLexer s in case p ts of
     case check tree of
       Bad s -> do
         putStrLn "\nCheck              Failed...\n"
+        putStrLn s
         exitFailure
       Ok (s,logs) -> do
+        putStrLn "\nCheck Successful!"
         putStrLn $ unlines logs
         exitSuccess 
       
@@ -113,7 +115,8 @@ main = pas =<< execParser opts
 
 pas :: Args -> IO ()
 pas Version = exitFailure
-pas (FileInput path cFlag eFlag tFlag oPath) = runFile 0 pProgram path
+pas (FileInput path False eFlag tFlag oPath) = runFile 0 pProgram path
+pas (FileInput path True eFlag tFlag oPath) = runCheckFile 0 pProgram path
 pas StdInput = getContents >>= runParse 2 pProgram
 
 data Args
