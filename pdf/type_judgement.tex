@@ -878,7 +878,7 @@
     \begin{bprooftree}
       \AxiomC{$　$}
       \RightLabel{$I_R$}
-      \UnaryInfC{$\nsequent{}{\text{()}:I}{}$}
+      \UnaryInfC{$\nsequent{\Gamma}{\text{()}:I}{\Gamma}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -1022,9 +1022,9 @@
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\Gamma(x)=T$}
+      \AxiomC{$\Gamma(x)=V_2$}
       \LeftLabel{Variable}
-      \UnaryInfC{$\infer{\Gamma}{x:T}{\Gamma\setminus (x:T)}{\{\}}{\{\}}$}
+      \UnaryInfC{$\infer{\Gamma}{x:V_1}{\Gamma\setminus (x:T)}{\{\}}{\{V_1=V_2\}}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
@@ -1036,7 +1036,7 @@
     \begin{bprooftree}
       \AxiomC{$　$}
       \RightLabel{$I_R$}
-      \UnaryInfC{$\infer{}{\text{()}:V}{}{\{\}}{\{V=I\}}$}
+      \UnaryInfC{$\infer{\Gamma}{\text{()}:V}{\Gamma}{\{\}}{\{V=I\}}$}
     \end{bprooftree}
   \end{center}
   \begin{center}

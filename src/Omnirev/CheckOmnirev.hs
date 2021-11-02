@@ -102,6 +102,12 @@ unificationFailError = do
   tell [infoLog "unification fail"]
   throwError "unification fail"
 
+unificationMismatchError :: (Show a, Print a) => a -> a -> Check b
+unificationMismatchError x y = do
+  let str = "unification success, but mismatch: " ++ printTree x ++ " <> " ++ printTree y
+  tell [debugLog str]
+  throwError str
+
 data LogLevel
   = Debug   -- 重要では無いが，記録しておきたい場合
   | Info    -- 処理に問題は無いが，重要な情報を持つ場合
@@ -174,10 +180,11 @@ checkDef (DTerm (Ident s) ty tm) = do
       (cxt, cs) <- infer [] (tm', x)
       tell [debugLog "unify " ++ constraints cs]
       if null cxt
-        then case unify cs of
-          Just s  -> do
-            tell [infoLog "unification success" ++ printTree (s x)]
-          Nothing -> unificationFailError
+        then do
+          sb <- unify cs
+          if sb x `tyEquiv` ty'
+            then tell [debugLog "unification success: " ++ printTree (sb x)]
+            else unificationMismatchError ty' (sb x)
         else inferenceError Info "context must be empty after type inference."
       modify $ M.insert s (ATerm tm' ty')
       pure ""
@@ -199,10 +206,10 @@ checkDef (DExpr (Ident s) ty ex) = do
       cs <- inferExpr (ex', x)
       -- cs <- inferExpr (ex', ty')
       tell [debugLog "unify " ++ constraints cs]
-      case unify cs of
-        Just s  -> do
-          tell [infoLog "unification success" ++ printTree (s x)]
-        Nothing -> unificationFailError
+      sb <- unify cs
+      if sb x `tyEquiv` ty'
+        then tell [debugLog "unification success: " ++ printTree (sb x)]
+        else unificationMismatchError ty' (sb x)
       modify $ M.insert s (AExpr ex' ty')
       pure ""
     Just v -> dupDefError v s
@@ -376,30 +383,41 @@ tyFV (TyTensor ty1 ty2) = tyFV ty1 `S.union` tyFV ty2
 tyFV (TyFunc   ty1 ty2) = tyFV ty1 `S.union` tyFV ty2
 tyFV (TyRec x ty)       = S.delete x $ tyFV ty
 
-unify :: [(Type, Type)] -> Maybe (Type -> Type)
-unify [] =
-  Just id
+unify :: [(Type, Type)] -> Check (Type -> Type)
+unify [] = do
+  tell [infoLog $ "constraints: " ++ constraints []]
+  pure id
 unify ((s,t):ls)
-  | s == t =
+  | s == t = do
+    tell [infoLog $ "constraints: " ++ constraints ls]
     unify ls
-unify ((TyVar x, t):ls)
-  | x `elem` tyFV t = do
-    unif <- unify $ map (bimap sig sig) ls
-    Just $ unif . sig
-    where
-      sig = x ~> t
-unify ((s, TyVar x):ls)
-  | x `elem` tyFV s = do
-    unif <- unify $ map (bimap sig sig) ls
-    Just $ unif . sig
-    where
-      sig = x ~> s
-unify ((TyUnit,         TyUnit)        :ls) = unify ls
-unify ((TySum    s1 s2, TySum    t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
-unify ((TyTensor s1 s2, TyTensor t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
-unify ((TyFunc   s1 s2, TyFunc   t1 t2):ls) = unify $ (s1,t1) : (s2,t2) : ls
-unify ((TyRec x s,      TyRec y t)     :ls) =
-  unify $ (s', t') : ls
+unify ((TyVar x, t):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unif <- unify $ map (bimap sig sig) ls
+  pure $ unif . sig
+  where
+    sig = x ~> t
+unify ((s, TyVar x):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unif <- unify $ map (bimap sig sig) ls
+  pure $ unif . sig
+  where
+    sig = x ~> s
+unify ((TyUnit,         TyUnit)        :ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unify ls
+unify ((TySum    s1 s2, TySum    t1 t2):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyTensor s1 s2, TyTensor t1 t2):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyFunc   s1 s2, TyFunc   t1 t2):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unify $ (s1,t1) : (s2,t2) : ls
+unify ((TyRec x s,      TyRec y t)     :ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ls]
+  unify $ (s', t') : ls　-- ここおかしいからそのうち修正するん
   where
     svs = tyvars (TyRec x s)
     tvs = tyvars (TyRec y t)
@@ -407,7 +425,9 @@ unify ((TyRec x s,      TyRec y t)     :ls) =
     uv = TyVar $ Ident $ unwords $ map f $ S.toList $ S.union svs tvs
     s' = (x ~> uv) s
     t' = (y ~> uv) t
-unify _ = Nothing
+unify cs = do
+  tell [infoLog $ "constraints: " ++ constraints cs]
+  unificationFailError
 
 -- クソザコフレッシュ変数製造機
 -- 未使用の変数名を返す
@@ -415,9 +435,8 @@ uvar :: Check Ident
 uvar = do
   env <- get
   let u = nextuvar env 0
-  tell [infoLog $ "make fresh variable: " ++ printTree u]
   modify $ M.insert u AVar -- 環境に使用済みであるという情報を追加している
-  tell [infoLog $ "added as bind variable: " ++ printTree u]
+  tell [infoLog $ "make fresh variable as bind ones: " ++ printTree u]
   pure $ Ident u
   where
     var n = "X_" ++ show n
@@ -463,7 +482,9 @@ infer cxt (TmVar i, ty) = do
   case lookup (TmVar i) cxt of
     Just ty' -> if ty == ty'
       then pure (delete (TmVar i, ty') cxt, [])
-      else inferenceError Info "same variable but different type."
+      else do
+        tell [infoLog "same variable but different type."]
+        pure (delete (TmVar i, ty') cxt, [(ty, ty')])
     Nothing -> inferenceError Info $ "not found the variable" ++ show i
 -- unit_l
 infer ((TmUnit, vy) : cxt) (tm, ty) = do
@@ -502,13 +523,10 @@ infer ((TmArrow tm1 tm2, vy) : cxt) (tm, ty) = do
 -- fold_l
 infer ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "fold_l: " ++ judgement ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty)]
-  i <- uvar
-  let x = TyVar i
-  let uy' = (y ~> x) uy
-  tell [debugLog "checkType " ++ printTree (TyRec i uy')]
-  checkType [] (TyRec i uy')
-  (cxt', cs) <- infer (cxt # (um, (i ~> TyRec i uy') uy')) (tm, ty)
-  pure (cxt', (vy, TyRec i uy') : cs)
+  tell [infoLog $ "checkType " ++ printTree (TyRec y uy)]
+  checkType [] (TyRec y uy)
+  (cxt', cs) <- infer (cxt # (um, (y ~> uy) uy)) (tm, ty)
+  pure (cxt', (vy, TyRec y uy): cs)
 -- trace_l
 infer ((TmTrace uy um, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "trace_l: " ++ judgement ((TmTrace uy um, vy) : cxt) (tm, ty)]
@@ -549,9 +567,9 @@ infer ((TmId, vy) : cxt) (tm, ty) = do
   (cxt', cs) <- infer cxt (tm, ty)
   pure (cxt', (vy, TyFunc x x) : cs)
 -- unit_r
-infer [] (TmUnit, vy) = do
-  tell [infoLog $ "unit_r: " ++ judgement [] (TmUnit, vy)]
-  pure ([], [(vy, TyUnit)])
+infer cxt (TmUnit, vy) = do
+  tell [infoLog $ "unit_r: " ++ judgement cxt (TmUnit, vy)]
+  pure (cxt, [(vy, TyUnit)])
 -- inl_r
 infer cxt (TmLeft tm1, vy) = do
   tell [infoLog $ "inl_r: " ++ judgement cxt (TmLeft tm1, vy)]
@@ -568,7 +586,7 @@ infer cxt (TmRight tm2, vy) = do
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_r
 infer cxt (TmTensor tm1 tm2, vy) = do
-  tell [infoLog $ "tensor: " ++ judgement cxt (TmTensor tm1 tm2, vy)]
+  tell [infoLog $ "tensor_r: " ++ judgement cxt (TmTensor tm1 tm2, vy)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt',  cs1) <- infer cxt (tm1, x1)
@@ -582,15 +600,12 @@ infer cxt (TmArrow tm1 tm2, vy) = do
   (cxt', cs) <- infer (cxt # (tm1, x1)) (tm2, x2)
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- fold_r
-infer cxt (TmFold (TyRec y ty) tm, vy) = do
-  tell [infoLog $ "fold_r: " ++ judgement cxt (TmFold (TyRec y ty) tm, vy)]
-  i <- uvar
-  let x = TyVar i
-  let ty' = (y ~> x) ty
-  tell [debugLog "checkType " ++ printTree (TyRec i ty')]
-  checkType [] (TyRec i ty')
-  (cxt', cs) <- infer cxt (tm, (i ~> TyRec i ty') ty')
-  pure (cxt', (vy, TyRec i ty') : cs)
+infer cxt (TmFold (TyRec x ty) tm, vy) = do
+  tell [infoLog $ "fold_r: " ++ judgement cxt (TmFold (TyRec x ty) tm, vy)]
+  tell [infoLog $ "checkType " ++ printTree (TyRec x ty)]
+  checkType [] (TyRec x ty)
+  (cxt', cs) <- infer cxt (tm, (x ~> TyRec x ty) ty)
+  pure (cxt', (vy, TyRec x ty) : cs)
 -- trace_r
 infer cxt (TmTrace ty tm, vy) = do
   tell [infoLog $ "trace_r: " ++ judgement cxt (TmTrace ty tm, vy)]
@@ -598,7 +613,7 @@ infer cxt (TmTrace ty tm, vy) = do
   checkType [] ty -- tyに変数の重複がないか確認する必要あり
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
-  (cxt', cs) <- infer cxt (tm, TyFunc (TySum x1 ty) (TySum x2 ty))
+  (cxt', cs) <- infer cxt (tm, TyFunc (TySum ty x1) (TySum ty x2))
   pure (cxt', (vy, TyFunc x1 x2) : cs)
 -- lin_r
 infer cxt (TmLin tm1 tm2, vy) = do
@@ -632,7 +647,7 @@ infer cxt (TmId, vy) = do
   pure ([], [(vy, TyFunc x x)])
 -- fail
 infer cxt (tm, ty) = do
-  tell [infoLog $ ": " ++ judgement cxt (tm, ty)]
+  tell [infoLog $ "fail: " ++ judgement cxt (tm, ty)]
   inferenceError Info $ "no inference rules matched to" ++ judgement cxt (tm,ty)
 
 inferExpr :: (Expr, Type) -> Check [Constraint]
