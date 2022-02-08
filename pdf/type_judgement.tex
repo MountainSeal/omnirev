@@ -1,4 +1,4 @@
-\documentclass[10pt]{jsarticle}
+\documentclass[8pt]{jsarticle}
 
 \pagestyle{empty}
 
@@ -23,7 +23,7 @@
                {\DisplayProof\egroup}
 
 \newcommand{\sequent}[2]{#1 \;\vdash\; #2}
-\newcommand{\match}[3]{#1 \;;\; #2 \quad\rightharpoonup\quad #3}
+\newcommand{\match}[3]{#1 \;\triangleright\; #2 \quad\rightharpoonup\quad #3}
 \newcommand{\subst}[4]{#1 \;\triangleright\; #2 \quad\rightsquigarrow\quad #3 \;\triangleright\; #4}
 \newcommand{\semantics}[1]{{\llbracket #1 \rrbracket}}
 \newcommand{\reduction}[2]{#1 \quad\Rightarrow\quad #2}
@@ -1391,11 +1391,29 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
         \BinaryInfC{$\match{t_1\fcmp{}t_2}{u_1\fcmp{}u_2}{\Xi_1\cup^\times_\bot\Xi_2}$}
       \end{bprooftree}
       \begin{bprooftree}
+        \AxiomC{$\match{x}{t^\dagger\fcmp{}u}{\Xi}$}
+        \UnaryInfC{$\match{t\fcmp{}x}{u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$\match{x}{u\fcmp{}t^\dagger}{\Xi}$}
+        \UnaryInfC{$\match{x\fcmp{}t}{u}{\Xi}$}
+      \end{bprooftree}
+      \begin{bprooftree}
         \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\Xi'}$}
         \AxiomC{$\subst{\Xi'}{t_2}{t_2'}{\Xi''}$}
         \BinaryInfC{$\subst{\Xi}{t_1\fcmp{}t_2}{t_1'\fcmp{}t_2'}{\Xi''}$}
       \end{bprooftree}
   \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{t}{u^\dagger}{\Xi}$}
+      \UnaryInfC{$\match{t^\dagger}{u}{\Xi}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
+      \UnaryInfC{$\subst{\Xi}{t^\dagger}{t'^\dagger}{\Xi'}$}
+    \end{bprooftree}
+\end{center}
   \begin{center}
       \begin{bprooftree}
         \AxiomC{$　$}
@@ -1409,21 +1427,15 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
   \begin{center}
       \begin{bprooftree}
         \AxiomC{$　$}
-        \UnaryInfC{$\match{\varnothing}{\varnothing}{\{\}}$}
+        \UnaryInfC{$\match{\varnothing}{u}{\bot}$}
+      \end{bprooftree}
+      \begin{bprooftree}
+        \AxiomC{$　$}
+        \UnaryInfC{$\match{t}{\varnothing}{\bot}$}
       \end{bprooftree}
       \begin{bprooftree}
         \AxiomC{$　$}
         \UnaryInfC{$\subst{\Xi}{\varnothing}{\varnothing}{\Xi}$}
-      \end{bprooftree}
-  \end{center}
-  \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\match{t}{u}{\Xi}$}
-        \UnaryInfC{$\match{t^\dagger}{u^\dagger}{\Xi}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\subst{\Xi}{t}{t'}{\Xi'}$}
-        \UnaryInfC{$\subst{\Xi}{t^\dagger}{t'^\dagger}{\Xi'}$}
       \end{bprooftree}
   \end{center}
 \end{itembox}
@@ -1431,127 +1443,46 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
 \begin{itembox}[c]{Operational Sematics}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{(t_1+t_2)+t_3}{t_1'+(t_2'+t_3')}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\equi{t}{t'}$}
-      \UnaryInfC{$\equi{\varnothing+t}{t'}$}
-    \end{bprooftree}
-    \begin{bprooftree}
       \AxiomC{$　$}
-      \UnaryInfC{$\equi{t_1+t_2}{t_2+t_1}$}
+      \UnaryInfC{$\equi{x}{x}$}
     \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{t+t}{t}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1}{t_1'}$}
-        \AxiomC{$\equi{t_2}{t_2'}$}
-        \AxiomC{$\equi{t_3}{t_3'}$}
-        \TrinaryInfC{$\equi{(t_1\fcmp{}t_2)\fcmp{}t_3}{t_1'\fcmp(t_2'\fcmp{}t_3')}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t}{t'}$}
-        \UnaryInfC{$\equi{\text{id}\fcmp{}t}{t'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t}{t'}$}
-        \UnaryInfC{$\equi{t\fcmp{}\text{id}}{t'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1}{t_1'}$}
-        \AxiomC{$\equi{t_2}{t_2'}$}
-        \BinaryInfC{$\equi{t_1\fcmp{}t_2}{t_1'\fcmp{}t_2'}$}
-      \end{bprooftree}
-  \end{center}
-  \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1}{t_1'}$}
-        \AxiomC{$\equi{t_2}{t_2'}$}
-        \AxiomC{$\equi{t_3}{t_3'}$}
-        \TrinaryInfC{$\equi{t_1\fcmp(t_2+t_3)}{t_1'\fcmp{}t_2'+t_1'\fcmp{}t_3'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1}{t_1'}$}
-        \AxiomC{$\equi{t_2}{t_2'}$}
-        \AxiomC{$\equi{t_3}{t_3'}$}
-        \TrinaryInfC{$\equi{(t_1+t_2)\fcmp{}t_3}{(t_1'\fcmp{}t_3')+(t_2'\fcmp{}t_3')}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{\varnothing\fcmp{}t}{\varnothing}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{t\fcmp\varnothing}{\varnothing}$}
-      \end{bprooftree}
-  \end{center}
-
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\text{inl}\;\varnothing}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\text{inr}\;\varnothing}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{t_1\times\varnothing}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\varnothing\times{}t_2}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{t_1\mapsto\varnothing}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\varnothing\mapsto{}t_2}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\text{fold}\;\varnothing}{\varnothing}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$　$}
-      \UnaryInfC{$\equi{\text{trace}\;\varnothing}{\varnothing}$}
-    \end{bprooftree}
-  \end{center}
-
-  \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{\varnothing}{\varnothing}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{\text{id}}{\text{id}}$}
-      \end{bprooftree}
-  \end{center}
-  \begin{center}
     \begin{bprooftree}
       \AxiomC{$　$}
       \UnaryInfC{$\equi{()}{()}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$　$}
-      \UnaryInfC{$\equi{x}{x}$}
+      \UnaryInfC{$\equi{\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{id}}{\text{id}}$}
     \end{bprooftree}
   \end{center}
   \begin{center}
     \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inl}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1'+\text{inl}\;t_2'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
       \AxiomC{$\equi{t}{t'}$}
       \UnaryInfC{$\equi{\text{inl}\;t}{\text{inl}\;t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{inr}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1'+\text{inr}\;t_2'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t}{t'}$}
@@ -1560,39 +1491,13 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
   \end{center}
   \begin{center}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{t_1\times{}t_2}{t_1'\times{}t_2'}$}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\times\varnothing}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}$}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\times{}t_2}{\varnothing}$}
     \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\equi{t}{t'}$}
-      \UnaryInfC{$\equi{\text{fold}\;t}{\text{fold}\;t'}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\equi{t}{t'}$}
-      \UnaryInfC{$\equi{\text{trace}\;t}{\text{trace}\;t'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
-    \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1'+\text{inl}\;t_2'}$}
-    \end{bprooftree}
-    \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1'+\text{inr}\;t_2'}$}
-    \end{bprooftree}
-  \end{center}
-  \begin{center}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
       \AxiomC{$\equi{t_2}{t_2'}$}
@@ -1605,8 +1510,21 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \AxiomC{$\equi{t_3}{t_3'}$}
       \TrinaryInfC{$\equi{t_1\times{}(t_2+t_3)}{(t_1'\times{}t_2')+(t_1'\times{}t_3')}$}
     \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\times{}t_2}{t_1'\times{}t_2'}$}
+    \end{bprooftree}
   \end{center}
   \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t_1\mapsto\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\mapsto{}t_2}{\varnothing}$}
+    \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
       \AxiomC{$\equi{t_2}{t_2'}$}
@@ -1619,56 +1537,191 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \AxiomC{$\equi{t_3}{t_3'}$}
       \TrinaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{(t_1'\mapsto{}t_2')+(t_1'\mapsto{}t_3')}$}
     \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\mapsto{}t_2}{t_1'\mapsto{}t_2'}$}
+    \end{bprooftree}
   \end{center}
   \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{fold}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
       \AxiomC{$\equi{t_2}{t_2'}$}
       \BinaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{\text{fold}\;t_1'+\text{fold}\;t_2'}$}
     \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{fold}\;t}{\text{fold}\;t'}$}
+    \end{bprooftree}
   \end{center}
   \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
-        \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
-        \BinaryInfC{$\equi{(t_1+t_2)^\dagger}{t_1'+t_2'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{\varnothing^\dagger}{\varnothing}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
-        \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
-        \BinaryInfC{$\equi{(t_1\fcmp{}t_2)^\dagger}{t_2'\fcmp{}t_1'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$　$}
-        \UnaryInfC{$\equi{\text{id}^\dagger}{\text{id}}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t}{t'}$}
-        \UnaryInfC{$\equi{(t^\dagger)^\dagger}{t'}$}
-      \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{trace}\;\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{trace}\;t}{\text{trace}\;t'}$}
+    \end{bprooftree}
   \end{center}
   \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1}{t_1'}$}
-        \AxiomC{$\equi{t_2}{t_2'}$}
-        \BinaryInfC{$\equi{(t_1\mapsto{}t_2)^\dagger}{t_2'\mapsto{}t_1'}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t^\dagger}{t'}$}
-        \UnaryInfC{$\equi{(\text{trace}\;t)^\dagger}{\text{trace}\;t'}$}
-      \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\varnothing+t}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{t+\varnothing}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)+t_3}{t_1'+(t_2'+t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{t_1+(t_2+t_3)}{t_1'+(t_2'+t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1+t_2}{t_1'+t_2'}$}
+    \end{bprooftree}
   \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing\fcmp{}t}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{t\fcmp\varnothing}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{t_1\fcmp(t_2+t_3)}{t_1'\fcmp{}t_2'+t_1'\fcmp{}t_3'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)\fcmp{}t_3}{(t_1'\fcmp{}t_3')+(t_2'\fcmp{}t_3')}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{\text{id}\fcmp{}t}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{t\fcmp{}\text{id}}{t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{(t_1\fcmp{}t_2)\fcmp{}t_3}{t_1'\fcmp(t_2'\fcmp{}t_3')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \AxiomC{$\equi{t_3}{t_3'}$}
+      \TrinaryInfC{$\equi{t_1\fcmp{}(t_2\fcmp{}t_3)}{t_1'\fcmp(t_2'\fcmp{}t_3')}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\match{t_3}{t_2}{\Xi}$}
+      \AxiomC{$\subst{\Xi}{t_1}{t_1'}{\{\}}$}
+      \AxiomC{$\subst{\Xi}{t_4}{t_4'}{\{\}}$}
+      \TrinaryInfC{$\equi{t_1\mapsto{}t_2\fcmp{}t_3\mapsto{}t_4}{t_1'\mapsto{}t_4'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1}{t_1'}$}
+      \AxiomC{$\equi{t_2}{t_2'}$}
+      \BinaryInfC{$\equi{t_1\fcmp{}t_2}{t_1'\fcmp{}t_2'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{x^\dagger}{x}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{()^\dagger}{()}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\varnothing^\dagger}{\varnothing}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$　$}
+      \UnaryInfC{$\equi{\text{id}^\dagger}{\text{id}}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t}{t'}$}
+      \UnaryInfC{$\equi{(t^\dagger)^\dagger}{t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t^\dagger}{t'}$}
+      \UnaryInfC{$\equi{(\text{inl}\;t)^\dagger}{\text{inl}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t^\dagger}{t'}$}
+      \UnaryInfC{$\equi{(\text{inr}\;t)^\dagger}{\text{inr}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t^\dagger}{t'}$}
+      \UnaryInfC{$\equi{(\text{fold}\;t)^\dagger}{\text{fold}\;t'}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t^\dagger}{t'}$}
+      \UnaryInfC{$\equi{(\text{trace}\;t)^\dagger}{\text{trace}\;t'}$}
+    \end{bprooftree}
+  \end{center}
+  \begin{center}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+      \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+      \BinaryInfC{$\equi{(t_1\times{}t_2)^\dagger}{(t_1'\times{}t_2')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+      \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+      \BinaryInfC{$\equi{(t_1\mapsto{}t_2)^\dagger}{(t_2'\mapsto{}t_1')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+      \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+      \BinaryInfC{$\equi{(t_1+t_2)^\dagger}{(t_1'+t_2')}$}
+    \end{bprooftree}
+    \begin{bprooftree}
+      \AxiomC{$\equi{t_1^\dagger}{t_1'}$}
+      \AxiomC{$\equi{t_2^\dagger}{t_2'}$}
+      \BinaryInfC{$\equi{(t_1\fcmp{}t_2)^\dagger}{(t_2'\fcmp{}t_1')}$}
+    \end{bprooftree}
+  \end{center}
+
   \begin{center}
       \begin{bprooftree}
         \AxiomC{$\equi{t_1}{t_1'}$}
         \AxiomC{$\equi{t_2}{t_2'}$}
         \AxiomC{$\equi{t}{t'}$}
         \AxiomC{$\match{t_1'}{t'}{\Xi}$}
-        \AxiomC{$\subst{\Xi}{t_2'}{t''}$}
+        \AxiomC{$\subst{\Xi}{t_2'}{t''}{\{\}}$}
         \QuinaryInfC{$\equi{(t_1\mapsto{}t_2)\;\text{@}\;t}{t''}$}
       \end{bprooftree}
   \end{center}
@@ -1694,18 +1747,18 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
         \BinaryInfC{$\equi{t\;\text{@}\;(t_1+t_2)}{t_1'+t_2'}$}
       \end{bprooftree}
   \end{center}
-  \begin{center}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t_1\;\text{@}\;t}{t'}$}
-        \AxiomC{$\equi{t_2\;\text{@}\;t'}{t''}$}
-        \BinaryInfC{$\equi{(t_1\fcmp{}t_2)\;\text{@}\;t}{t''}$}
-      \end{bprooftree}
-      \begin{bprooftree}
-        \AxiomC{$\equi{t^\dagger}{t'}$}
-        \AxiomC{$\equi{t'\;\text{@}\;u}{u'}$}
-        \BinaryInfC{$\equi{t^\dagger\;\text{@}\;u}{u'}$}
-      \end{bprooftree}
-  \end{center}
+  % \begin{center}
+  %     \begin{bprooftree}
+  %       \AxiomC{$\equi{t_1\;\text{@}\;t}{t'}$}
+  %       \AxiomC{$\equi{t_2\;\text{@}\;t'}{t''}$}
+  %       \BinaryInfC{$\equi{(t_1\fcmp{}t_2)\;\text{@}\;t}{t''}$}
+  %     \end{bprooftree}
+  %     \begin{bprooftree}
+  %       \AxiomC{$\equi{t^\dagger}{t'}$}
+  %       \AxiomC{$\equi{t'\;\text{@}\;u}{u'}$}
+  %       \BinaryInfC{$\equi{t^\dagger\;\text{@}\;u}{u'}$}
+  %     \end{bprooftree}
+  % \end{center}
   \begin{center}
       \begin{bprooftree}
         \AxiomC{$\equi{t\;\text{@}\;(\text{inr}\;u)}{\text{inr}\;u'}$}
