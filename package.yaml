@@ -25,7 +25,10 @@ dependencies:
 - base >= 4.7 && < 5
 - array
 - containers
+- unordered-containers
+- hashable
 - mtl
+- monad-logger
 - optparse-applicative
 
 library:

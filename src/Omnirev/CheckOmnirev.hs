@@ -17,29 +17,16 @@ import Omnirev.AbsOmnirev
 import Omnirev.PrintOmnirev
 
 import Omnirev.ErrM as ErrM
-
-data Alias
-  = AType Type
-  | ATerm Term Type
-  | AExpr Expr Type
-  | AVar-- 再帰型の束縛変数（フレッシュでない変数名）
-  deriving (Eq, Ord, Show, Read)
-
-type Env a = M.Map String a
-
-type Logs = [String]
+import Omnirev.Log
+import Omnirev.Env
+import Data.Maybe
 
 -- https://qiita.com/HirotoShioi/items/8a6107434337b30ce457 を参考
 newtype Check a = Check ((StateT (Env Alias) (ExceptT String (WriterT Logs Identity))) a)
   deriving (Functor, Applicative, Monad, MonadWriter Logs, MonadState (Env Alias), MonadError String)
 
-data Result
-  = RTerm Term
-  | RExpr Expr
-newtype Eval a = Eval (ReaderT (Env Term) (StateT (Env Result) (ExceptT String (WriterT Logs Identity))) a)
-  deriving (Functor, Applicative, Monad, MonadWriter Logs, MonadReader (Env Term), MonadState (Env Result), MonadError String)
-
 -- TO DO LIST
+-- Mapにすると順序が勝手にソートされてEvalのときに評価順が変わるので、評価順をリストとして渡すか順序が維持されるように変更する
 -- テストの内容を再作成する（ユニットテスト）
 -- monad-loggerを利用したロギングに変更
 -- optparse-applicativeを利用してコマンドのオプション処理をする
@@ -49,10 +36,10 @@ runCheck :: Check a -> Env Alias -> (Either String a, Logs)
 runCheck (Check m) env = runIdentity (runWriterT (runExceptT (evalStateT m env)))
 
 -- Entrypoint of type checking
-check :: Program -> Err (String, Logs)
+check :: Program -> Err (([Ident], Env Alias), Logs)
 check p = case runCheck (checkProg p) M.empty of
-  (Left  s, logs) -> Bad $ unlines logs
-  (Right s, logs) -> Ok (s, logs)
+  (Left  str, logs) -> Bad $ unlines logs
+  (Right res, logs) -> Ok (res, logs)
 
 defNotFoundError :: (Show a, Print a) => a -> Check b
 defNotFoundError x = do
@@ -108,48 +95,37 @@ unificationMismatchError x y = do
   tell [debugLog str]
   throwError str
 
-data LogLevel
-  = Debug   -- 重要では無いが，記録しておきたい場合
-  | Info    -- 処理に問題は無いが，重要な情報を持つ場合
-  | Warn    -- 言語仕様の範囲内だが，計算や処理に問題がある場合
-  | Error   -- 言語仕様と明確に異なる動作をする場合
-  deriving (Eq, Ord, Show, Read)
-
-debugLog :: String -> String
-debugLog str = "[debug] " ++ str
-
-infoLog :: String -> String
-infoLog str = "[info]  " ++ str
-
-warnLog :: String -> String
-warnLog str = "[warn]  " ++ str
-
-errorLog :: String -> String
-errorLog str = "[error] " ++ str
-
-logAt :: LogLevel -> String -> String
-logAt Debug   = debugLog
-logAt Info    = infoLog
-logAt Warn    = warnLog
-logAt Error   = errorLog
-
-checkProg :: Program -> Check String
+checkProg :: Program -> Check ([Ident], Env Alias)
+checkProg (Prog []) = do
+  tell [infoLog "there is no program"]
+  throwError "there is no program"
 checkProg (Prog defs) = do
-  tell [infoLog "check started"]
-  res <- case defs of
-    [] -> do
-      tell [infoLog "there is no program"]
-      throwError "there is no program"
-    _  -> checkDefs defs
-  tell [infoLog "check finished"]
-  pure res
+  tell [infoLog "check start"]
+  ids <- checkDefs defs
+  tell [infoLog "check finish"]
+  env <- get
+  pure (f env ids, env)
+  where
+    -- ExprのIdentのみのリストを返す
+    f :: Env Alias -> [Ident] -> [Ident]
+    f env ls = filter (g env) ls
+    g :: Env Alias -> Ident -> Bool
+    g env (Ident s) = case M.lookup s env of
+      Nothing -> False
+      Just AType{} -> False
+      Just ATerm{} -> False
+      Just AExpr{} -> True
+      Just AVar{}  -> False
 
-checkDefs :: [Def] -> Check String
-checkDefs []   = pure ""
-checkDefs [d]  = checkDef d
-checkDefs (d:ds) = (++) <$> checkDef d <*> checkDefs ds
+checkDefs :: [Def] -> Check [Ident]
+checkDefs [] = pure []
+checkDefs (d:ds) = do
+  i <- checkDef d
+  is <- checkDefs ds
+  pure $ i:is
+-- checkDefs = foldr (\ d -> (<*>) ((++) <$> checkDef d)) (pure [])
 
-checkDef :: Def -> Check String
+checkDef :: Def -> Check Ident
 checkDef (DType (Ident s) ty) = do
   tell [infoLog $ "check type of alias " ++ printTree s]
   env <- get
@@ -160,7 +136,7 @@ checkDef (DType (Ident s) ty) = do
       tell [debugLog "checkType " ++ printTree ty']
       checkType [] ty'
       modify $ M.insert s (AType ty')
-      pure ""
+      pure $ Ident s
     Just v -> dupDefError v s
 checkDef (DTerm (Ident s) ty tm) = do
   tell [infoLog $ "check term of alias " ++ printTree s]
@@ -174,20 +150,20 @@ checkDef (DTerm (Ident s) ty tm) = do
       tell [debugLog "tmPurify " ++ printTree tm]
       tm' <- tmPurify tm
       tell [debugLog "infer " ++ printTree tm']
-      -- 推論が正しく機能しているか確認するため一時的に型変数を使う
       x <- TyVar <$> uvar
-      -- (cxt, cs) <- infer [] (tm', ty')
       (cxt, cs) <- infer [] (tm', x)
+      cvars
       tell [debugLog "unify " ++ constraints cs]
       if null cxt
         then do
-          sb <- unify cs
+          sb <- unify $ cs ++ [(x,ty')]
           if sb x `tyEquiv` ty'
             then tell [debugLog "unification success: " ++ printTree (sb x)]
-            else unificationMismatchError ty' (sb x)
+            else
+              unificationMismatchError ty' (sb x)
         else inferenceError Info "context must be empty after type inference."
       modify $ M.insert s (ATerm tm' ty')
-      pure ""
+      pure $ Ident s
     Just v -> dupDefError v s
 checkDef (DExpr (Ident s) ty ex) = do
   tell [infoLog $ "check expr of alias " ++ printTree s]
@@ -201,17 +177,16 @@ checkDef (DExpr (Ident s) ty ex) = do
       tell [debugLog "exPurify " ++ printTree ex]
       ex' <- exPurify ex
       tell [debugLog "infer " ++ printTree ex']
-      -- 推論が正しく機能しているか確認するため一時的に型変数を使う
       x <- TyVar <$> uvar
       cs <- inferExpr (ex', x)
-      -- cs <- inferExpr (ex', ty')
+      cvars
       tell [debugLog "unify " ++ constraints cs]
       sb <- unify cs
       if sb x `tyEquiv` ty'
         then tell [debugLog "unification success: " ++ printTree (sb x)]
         else unificationMismatchError ty' (sb x)
       modify $ M.insert s (AExpr ex' ty')
-      pure ""
+      pure $ Ident s
     Just v -> dupDefError v s
 
 -- The `purify` function replace type variables.
@@ -344,6 +319,9 @@ subst (TyRec y t)      x s = TyRec y (subst t x s)
 (~>) :: Ident -> Type -> (Type -> Type)
 x ~> ty = \t -> subst t x ty
 
+subs :: Ident -> Type -> M.Map Ident Type
+subs = M.singleton
+
 --型変数（自由束縛にかかわらず全て）
 tyvars :: Type -> S.Set Ident
 tyvars (TyVar x) = S.singleton x
@@ -389,44 +367,47 @@ unify [] = do
   pure id
 unify ((s,t):ls)
   | s == t = do
-    tell [infoLog $ "constraints: " ++ constraints ls]
+    tell [infoLog $ "constraints: " ++ constraints ((s, t):ls)]
     unify ls
 unify ((TyVar x, t):ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+  tell [infoLog $ "constraints: " ++ constraints ((TyVar x, t):ls)]
   unif <- unify $ map (bimap sig sig) ls
   pure $ unif . sig
   where
     sig = x ~> t
 unify ((s, TyVar x):ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+  tell [infoLog $ "constraints: " ++ constraints ((s, TyVar x):ls)]
   unif <- unify $ map (bimap sig sig) ls
   pure $ unif . sig
   where
     sig = x ~> s
-unify ((TyUnit,         TyUnit)        :ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+unify ((TyUnit, TyUnit):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ((TyUnit, TyUnit):ls)]
   unify ls
-unify ((TySum    s1 s2, TySum    t1 t2):ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+unify ((TySum s1 s2, TySum t1 t2):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ((TySum s1 s2, TySum t1 t2):ls)]
   unify $ (s1,t1) : (s2,t2) : ls
 unify ((TyTensor s1 s2, TyTensor t1 t2):ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+  tell [infoLog $ "constraints: " ++ constraints ((TyTensor s1 s2, TyTensor t1 t2):ls)]
   unify $ (s1,t1) : (s2,t2) : ls
-unify ((TyFunc   s1 s2, TyFunc   t1 t2):ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
+unify ((TyFunc s1 s2, TyFunc t1 t2):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ((TyFunc s1 s2, TyFunc t1 t2):ls)]
   unify $ (s1,t1) : (s2,t2) : ls
-unify ((TyRec x s,      TyRec y t)     :ls) = do
-  tell [infoLog $ "constraints: " ++ constraints ls]
-  unify $ (s', t') : ls　-- ここおかしいからそのうち修正するん
-  where
-    svs = tyvars (TyRec x s)
-    tvs = tyvars (TyRec y t)
-    f (Ident s) = s
-    uv = TyVar $ Ident $ unwords $ map f $ S.toList $ S.union svs tvs
-    s' = (x ~> uv) s
-    t' = (y ~> uv) t
+unify ((TyRec x s, TyRec y t):ls) = do
+  tell [infoLog $ "constraints: " ++ constraints ((TyRec x s, TyRec y t):ls)]
+  unify $ (TyVar x,TyVar y) : (s,t) : ls
+  -- unify $ (s', t') : ls -- ここおかしいからそのうち修正するん
+  -- where
+  -- -- 新しい変数導入してそれ使ってα変換…
+  -- -- x <- TyVar <$> uvar
+  --   svs = tyvars (TyRec x s)
+  --   tvs = tyvars (TyRec y t)
+  --   f (Ident s) = s
+  --   uv = TyVar $ Ident $ unwords $ map f $ S.toList $ S.union svs tvs
+  --   s' = (x ~> uv) s
+  --   t' = (y ~> uv) t
 unify cs = do
-  tell [infoLog $ "constraints: " ++ constraints cs]
+  tell [infoLog $ "constraints : " ++ constraints cs]
   unificationFailError
 
 -- クソザコフレッシュ変数製造機
@@ -443,6 +424,13 @@ uvar = do
     nextuvar e n = if M.member (var n) e
       then nextuvar e (n+1)
       else var n
+
+-- remove all X_n
+cvars :: Check ()
+cvars = do
+  modify $ M.filter (AVar /=)
+  -- env <- get
+  -- tell [debugLog $ "env: " ++ show env]
 
 type Typed = (Term, Type)
 type Context = [Typed]
@@ -481,11 +469,20 @@ infer cxt (TmVar i, ty) = do
   tell [infoLog $ "variable: " ++ judgement cxt (TmVar i, ty)]
   case lookup (TmVar i) cxt of
     Just ty' -> if ty == ty'
-      then pure (delete (TmVar i, ty') cxt, [])
+      then do
+        let cxt' = delete (TmVar i, ty') cxt
+        -- もしまだコンテキストに同じ変数名の項が残っている場合、そちらが適切かもしれない
+        if isJust $ lookup (TmVar i) cxt'
+          then do
+            tell [warnLog $ "the same two or more variables in context: " ++ printTree i]
+            tell [warnLog "there is a possibly of a failure even though type inference success in theory.."]
+          else
+            tell [infoLog $ "the variable appears exactly once in context: " ++ printTree i]
+        pure (cxt', [])
       else do
         tell [infoLog "same variable but different type."]
         pure (delete (TmVar i, ty') cxt, [(ty, ty')])
-    Nothing -> inferenceError Info $ "not found the variable" ++ show i
+    Nothing -> inferenceError Info $ "not found the variable" ++ printTree i
 -- unit_l
 infer ((TmUnit, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "unit_l: " ++ judgement ((TmUnit, vy) : cxt) (tm, ty)]
@@ -496,14 +493,14 @@ infer ((TmLeft tm1, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "inl_l: " ++ judgement ((TmLeft tm1, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
-  (cxt', cs) <- infer ((tm1, x1) : cxt) (tm, ty)
+  (cxt', cs) <- infer (cxt # (tm1, x1)) (tm, ty)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- inr_l
 infer ((TmRight tm2, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "inr_l: " ++ judgement ((TmRight tm2, vy) : cxt) (tm, ty)]
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
-  (cxt', cs) <- infer ((tm2, x2) : cxt) (tm, ty)
+  (cxt', cs) <- infer (cxt # (tm2, x2)) (tm, ty)
   pure (cxt', (vy, TySum x1 x2) : cs)
 -- tensor_l
 infer ((TmTensor tm1 tm2, vy) : cxt) (tm, ty) = do
@@ -525,7 +522,7 @@ infer ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty) = do
   tell [infoLog $ "fold_l: " ++ judgement ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty)]
   tell [infoLog $ "checkType " ++ printTree (TyRec y uy)]
   checkType [] (TyRec y uy)
-  (cxt', cs) <- infer (cxt # (um, (y ~> uy) uy)) (tm, ty)
+  (cxt', cs) <- infer (cxt # (um, (y ~> TyRec y uy) uy)) (tm, ty)
   pure (cxt', (vy, TyRec y uy): cs)
 -- trace_l
 infer ((TmTrace uy um, vy) : cxt) (tm, ty) = do
@@ -543,7 +540,7 @@ infer ((TmLin tm1 tm2, vy) : cxt) (tm, ty) = do
   (cxt1, cs1) <- infer (cxt # (tm1, x)) (tm, ty)
   (cxt2, cs2) <- infer (cxt # (tm2, x)) (tm, ty)
   if cxt1 == cxt2 -- 🤔
-    then pure (cxt1, (vy, x) : union cs1 cs2)
+    then pure (cxt1, (vy, x) : cs1 ++ cs2)
     else inferenceError Info "remainder contexts between lin are different."
 -- comp_l
 infer ((TmComp tm1 tm2, vy) : cxt) (tm, ty) = do
@@ -622,7 +619,7 @@ infer cxt (TmLin tm1 tm2, vy) = do
   (cxt1, cs1) <- infer cxt (tm1, x)
   (cxt2, cs2) <- infer cxt (tm2, x)
   if cxt1 == cxt2 -- 🤔
-    then pure (cxt1, (vy, x) : union cs1 cs2)
+    then pure (cxt1, (vy, x) : cs1 ++ cs2)
     else inferenceError Info "remainder contexts between lin are different."
 -- comp_r
 infer cxt (TmComp tm1 tm2, vy) = do
@@ -696,12 +693,3 @@ tmFV (TmComp tm1 tm2) = do
 tmFV (TmFlip tm) = tmFV tm
 tmFV TmEmpty = pure []
 tmFV TmId = pure []
-
--- -- 以降から実際の項の評価処理を書く
--- type Sbst = (M.Map Ident Term)
--- -- matching
--- mtch :: Term -> Term -> Maybe Sbst
--- -- substitution
--- sbst :: Sbst -> Term -> (Term, Sbst)
--- -- application
--- appl :: Expr -> Maybe Term

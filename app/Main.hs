@@ -16,12 +16,15 @@ import Omnirev.ParOmnirev
 import Omnirev.PrintOmnirev
 import Omnirev.AbsOmnirev
 import Omnirev.CheckOmnirev
+import Omnirev.EvalOmnirev
 
 
 
 
 import Omnirev.ErrM
 import Control.Monad.Writer.Strict
+import qualified Data.Map as M
+import Data.List (intercalate)
 
 type ParseFun a = [Token] -> Err a
 
@@ -65,11 +68,41 @@ runCheck v p s = let ts = myLLexer s in case p ts of
         putStrLn "\nCheck              Failed...\n"
         putStrLn s
         exitFailure
-      Ok (s,logs) -> do
+      Ok (env,logs) -> do
         putStrLn "\nCheck Successful!"
         putStrLn $ unlines logs
-        exitSuccess 
-      
+        exitSuccess
+
+runEvalFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
+runEvalFile v p f = putStrLn f >> readFile f >>= runEval v p
+
+runEval :: Verbosity -> ParseFun Program -> String -> IO ()
+runEval v p s = let ts = myLLexer s in case p ts of
+  Bad s   -> do
+    putStrLn "\nParse              Failed...\n"
+    putStrV v "Tokens:"
+    putStrV v $ show ts
+    putStrLn  s
+    exitFailure
+  Ok tree -> do
+    putStrLn "\nParse Successful!"
+    case check tree of
+      Bad s -> do
+        putStrLn s
+        putStrLn "\nCheck              Failed...\n"
+        exitFailure
+      Ok (env, clog) -> do
+        putStrLn "\nCheck Successful!"
+        putStrLn $ unlines clog
+        case eval env of
+          Bad err -> do
+            putStrLn err
+            putStrLn "\nEval              Failed...\n"
+            exitFailure
+          Ok (res,elog) -> do
+            putStrLn "\nEval Successful!"
+            putStrLn $ unlines elog
+            exitSuccess
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree
@@ -116,7 +149,8 @@ main = pas =<< execParser opts
 pas :: Args -> IO ()
 pas Version = exitFailure
 pas (FileInput path False eFlag tFlag oPath) = runFile 0 pProgram path
-pas (FileInput path True eFlag tFlag oPath) = runCheckFile 0 pProgram path
+pas (FileInput path True False tFlag oPath) = runCheckFile 0 pProgram path
+pas (FileInput path True True tFlag oPath) = runEvalFile 0 pProgram path
 pas StdInput = getContents >>= runParse 2 pProgram
 
 data Args

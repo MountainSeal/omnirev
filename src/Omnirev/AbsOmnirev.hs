@@ -41,3 +41,11 @@ data Term
 data Expr = ExTerm Term | ExApp Expr Term
   deriving (Eq, Ord, Show, Read)
 
+data TagedTerm
+  = TTVar Ident Type
+  | TTUnit
+  | TTLeft TagedTerm
+  | TTRight TagedTerm
+  | TTTensor TagedTerm TagedTerm
+  | TTArrow TagedTerm TagedTerm
+  | TTFold Type 
