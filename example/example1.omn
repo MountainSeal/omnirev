@@ -4,6 +4,11 @@ term not : qubit -> qubit =
   inl unit => inr unit
 | inr unit => inl unit
 
+term true  : qubit = inl unit
+term false : qubit = inr unit
+
+expr test : qubit = not @ true
+
 term swap : (qubit*qubit) -> (qubit*qubit)
 = inl unit, inl unit => inl unit, inl unit
 | inl unit, inr unit => inr unit, inl unit
@@ -16,16 +21,22 @@ term cnot : (qubit*qubit) -> (qubit*qubit)
 | inr unit, inl unit => inr unit, inr unit
 | inr unit, inr unit => inr unit, inl unit
 
+expr quant : (qubit*qubit) = swap @ (true, false)
+
 term notandid : (qubit*qubit) -> (qubit*qubit)
-= not ; id ; ~not
+= swap ; id ; ~swap
+
+term hoge : (qubit*qubit) = (true, false)
+expr same : (qubit*qubit) = notandid @ hoge
 
 type nat = rec X. (I + X)
 
-term add : (nat * nat) -> (nat * nat) = trace[nat]
-( inr (x, y)                     => inl (y, fold[nat] inl unit, x)
-| inl (a, b, fold[nat] inr n)    => inl (fold[nat] inr a, fold[nat] inr b, n)
-| inl (a, b, fold[nat] inl unit) => inr (a, b)
+term add : (nat * nat) -> (nat * nat)
+= trace[(nat*nat)*nat]
+( inr (x, y)                     => inl ((y, fold[nat] inl unit), x)
+| inl ((a, b), fold[nat] inr n)    => inl ((fold[nat] inr a, fold[nat] inr b), n)
+| inl ((a, b), fold[nat] inl unit) => inr (a, b)
 )
 
 term one : nat = fold[nat] inr fold[nat] inl unit
-expr two : nat = add @ (one, one)
+expr two : nat*nat = add @ (one, one)

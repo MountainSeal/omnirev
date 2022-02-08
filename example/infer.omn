@@ -1,0 +1,25 @@
+type qubit = I + I
+
+// term false : qubit = inl unit
+// term true  : qubit = inr unit
+
+// term not : qubit -> qubit
+// = inl unit => inr unit
+// | inr unit => inl unit
+
+type nat = rec X. (I + X)
+
+// term zero : nat = fold[nat] inl unit
+// term succ : nat -> nat = n => fold[nat] inr n
+
+//term parity : nat -> (nat * qubit)
+//= trace[nat*qubit] ( inl (fold[nat] inl unit, p) => inr (fold[nat] inl unit, p))
+
+term parity : nat -> (nat * qubit)
+= trace[nat*qubit]
+( inl (fold[nat] inl unit, p)     => inr (fold[nat] inl unit, p)        // end
+| inl (fold[nat] inr n, inl unit) => inl (n                 , inr unit) // loop
+| inl (fold[nat] inr n, inr unit) => inl (n                 , inl unit) // loop
+| inr fold[nat] inl unit          => inr (fold[nat] inl unit, inl unit) // nix
+| inr fold[nat] inr n             => inl (n                 , inr unit) // start
+)
