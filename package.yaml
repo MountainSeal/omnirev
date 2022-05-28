@@ -56,3 +56,4 @@ tests:
     dependencies:
     - omnirev
     - hspec
+    - QuickCheck

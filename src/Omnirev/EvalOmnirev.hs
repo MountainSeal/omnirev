@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-missing-fields #-}
 
-module Omnirev.EvalOmnirev(eval) where
+module Omnirev.EvalOmnirev(eval, evalEval, evalExpr) where
 
 
 import Control.Monad.Identity
@@ -30,6 +30,10 @@ newtype Eval a = Eval (ReaderT (Env Term) (StateT (Env Alias) (ExceptT String (W
 runEval :: Eval a -> Env Alias -> (Either String a, Logs)
 runEval (Eval m) env = runIdentity (runWriterT (runExceptT (evalStateT (runReaderT m M.empty) env)))
 
+evalEval :: Eval a -> Env Alias -> Either String a
+evalEval (Eval m) env = fst $ runEval (Eval m) env
+
+
 -- 各型，項，式の実行結果をログと共に返す
 eval :: ([Ident], Env Alias) -> Err ([(Ident, Term)], Logs)
 eval (is,env) = case runEval (evalIdents is) env of
@@ -46,7 +50,7 @@ evalIdents (i:is) = do
   mb <- M.lookup s <$> get
   case mb of
     Just (ATerm _ ty) -> modify $ M.insert s (ATerm tm ty)
-    Just AExpr{} -> throwError ""
+    Just (AExpr _ ty) -> modify $ M.insert s (ATerm tm ty)
     Just AType{} -> throwError ""
     Just AVar{} -> throwError ""
     Nothing -> throwError ""
