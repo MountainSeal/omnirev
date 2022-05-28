@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- Author: MountainSeal
-module Omnirev.CheckOmnirev(check) where
+module Omnirev.CheckOmnirev(check, Typed, (~>), checkComposition, tyEquiv, tyvars, tmvars) where
 
 
 import Control.Monad.Identity
@@ -40,6 +40,14 @@ check :: Program -> Err (([Ident], Env Alias), Logs)
 check p = case runCheck (checkProg p) M.empty of
   (Left  str, logs) -> Bad $ unlines logs
   (Right res, logs) -> Ok (res, logs)
+
+-- 関数の合成に関して，中間の型が唯一に定まるか確認する
+checkComposition :: Term -> Type -> Err Type
+checkComposition (TmComp tm1 tm2) (TyFunc ty1 ty2) =
+  case runCheck (checkComp (TmComp tm1 tm2) (TyFunc ty1 ty2)) M.empty of
+    (Left  str, logs) -> Bad $ unlines logs
+    (Right typ, logs) -> Ok typ
+checkComposition _ _ = Bad $ unlines []
 
 defNotFoundError :: (Show a, Print a) => a -> Check b
 defNotFoundError x = do
@@ -188,6 +196,18 @@ checkDef (DExpr (Ident s) ty ex) = do
       modify $ M.insert s (AExpr ex' ty')
       pure $ Ident s
     Just v -> dupDefError v s
+
+-- 関数合成値と関数型を受け取って，中間の型について入力側と出力側それぞれで型推論可能か判定し，可能なら中間の型を返す
+checkComp :: Term -> Type -> Check Type
+checkComp (TmComp tm1 tm2) (TyFunc ty1 ty2) = do
+  -- めんどくさいから与えられる項と型は検査済みの前提
+  x <- TyVar <$> uvar
+  (cxt1, cs1) <- infer [] (tm1, TyFunc ty1 x)
+  (cxt2, cs2) <- infer [] (tm2, TyFunc x ty2)
+  cvars
+  sb <- unify $ cs1 ++ cs2
+  pure $ sb x
+checkComp _ _ = throwError "関数合成の中間の型を得る為の関数だから他の目的で使ったりしたらダメだよ！"
 
 -- The `purify` function replace type variables.
 purify :: [Ident] -> Type -> Check Type
@@ -661,6 +681,22 @@ inferExpr (ExApp ex tm, vy) = do
   if null cxt
     then pure $ (vy, x2) : (cs1 ++ cs2)
     else inferenceError Info "context must be empty after type inference."
+
+--型変数（自由束縛にかかわらず全て）
+tmvars :: Term -> S.Set Ident
+tmvars (TmVar x) = S.singleton x
+tmvars TmUnit = S.empty
+tmvars (TmLeft tm) = tmvars tm
+tmvars (TmRight tm) = tmvars tm
+tmvars (TmTensor tm1 tm2) = tmvars tm1 `S.union` tmvars tm2
+tmvars (TmArrow tm1 tm2) = tmvars tm1 `S.union` tmvars tm2
+tmvars (TmFold ty tm) = tmvars tm
+tmvars (TmLin tm1 tm2) = tmvars tm1 `S.union` tmvars tm2
+tmvars (TmTrace ty tm) = tmvars tm
+tmvars (TmComp tm1 tm2) = tmvars tm1 `S.union` tmvars tm2
+tmvars (TmFlip tm) = tmvars tm
+tmvars TmEmpty = S.empty
+tmvars TmId = S.empty
 
 -- Termの中の自由変数のリスト
 tmFV :: Term -> Check [Ident]
