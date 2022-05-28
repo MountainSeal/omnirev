@@ -47,62 +47,42 @@ runParse v p s = let ts = myLLexer s in case p ts of
                           exitFailure
            Ok  tree -> do putStrLn "\nParse Successful!"
                           showTree v tree
-
                           exitSuccess
 
-runCheckFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
-runCheckFile v p f = putStrLn f >> readFile f >>= runCheck v p
-
-runCheck :: Verbosity -> ParseFun Program -> String -> IO ()
-runCheck v p s = let ts = myLLexer s in case p ts of
-  Bad s   -> do
-    putStrLn "\nParse              Failed...\n"
-    putStrV v "Tokens:"
-    putStrV v $ show ts
-    putStrLn  s
-    exitFailure
-  Ok tree -> do
-    putStrLn "\nParse Successful!"
-    case check tree of
-      Bad s -> do
-        putStrLn "\nCheck              Failed...\n"
-        putStrLn s
-        exitFailure
-      Ok (env,logs) -> do
-        putStrLn "\nCheck Successful!"
-        putStrLn $ unlines logs
-        exitSuccess
-
-runEvalFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
-runEvalFile v p f = putStrLn f >> readFile f >>= runEval v p
-
-runEval :: Verbosity -> ParseFun Program -> String -> IO ()
-runEval v p s = let ts = myLLexer s in case p ts of
-  Bad s   -> do
-    putStrLn "\nParse              Failed...\n"
-    putStrV v "Tokens:"
-    putStrV v $ show ts
-    putStrLn  s
-    exitFailure
-  Ok tree -> do
-    putStrLn "\nParse Successful!"
-    case check tree of
-      Bad s -> do
-        putStrLn s
-        putStrLn "\nCheck              Failed...\n"
-        exitFailure
-      Ok (env, clog) -> do
-        putStrLn "\nCheck Successful!"
-        putStrLn $ unlines clog
-        case eval env of
-          Bad err -> do
-            putStrLn err
-            putStrLn "\nEval              Failed...\n"
-            exitFailure
-          Ok (res,elog) -> do
-            putStrLn "\nEval Successful!"
-            putStrLn $ unlines elog
-            exitSuccess
+runCompile :: Verbosity -> ParseFun Program -> FilePath -> Bool -> Bool -> IO ()
+runCompile v p f cflg eflg = do
+  putStrLn f
+  src <- readFile f
+  let ts = myLLexer src
+  case p ts of
+    Bad s -> do
+      putStrLn "\nParse              Failed...\n"
+      putStrV v "Tokens:"
+      putStrV v $ show ts
+      putStrLn  s
+      exitFailure
+    Ok tree -> do
+      putStrLn "\nParse Successful!"
+      showTree v tree
+      if not cflg then exitSuccess
+      else case check tree of
+        Bad s -> do
+          putStrLn s
+          putStrLn "\nType Check         Failed...\n"
+          exitFailure
+        Ok (env, clog) -> do
+          putStrLn "\nCheck Successful!"
+          -- putStrLn $ unlines clog
+          if not eflg then exitSuccess
+          else case eval env of
+            Bad err -> do
+              putStrLn err
+              putStrLn "\nEval               Failed...\n"
+              exitFailure
+            Ok (res,elog) -> do
+              putStrLn "\nEval Successful!"
+              putStrLn $ unlines elog
+              exitSuccess
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree
@@ -124,21 +104,7 @@ usage = do
     ]
   exitFailure
 
--- version :: IO ()
--- version = do
---   putStrLn "omnirev-0.4.0"
---   exitFailure
-
 main :: IO ()
--- main = do
---   args <- getArgs
---   case args of
---     ["--help"] -> usage
---     [] -> getContents >>= runParse 2 pProgram
---     "-c":fs -> mapM_ (runCheckFile 2 pProgram) fs
---     "-s":fs -> mapM_ (runFile 0 pProgram) fs
---     ["-v"] -> version
---     fs -> mapM_ (runFile 2 pProgram) fs
 main = pas =<< execParser opts
   where
     opts = info (args <**> helper) -- 常にヘルプ文出す場合はhelper使う
@@ -148,9 +114,7 @@ main = pas =<< execParser opts
 
 pas :: Args -> IO ()
 pas Version = exitFailure
-pas (FileInput path False eFlag tFlag oPath) = runFile 0 pProgram path
-pas (FileInput path True False tFlag oPath) = runCheckFile 0 pProgram path
-pas (FileInput path True True tFlag oPath) = runEvalFile 0 pProgram path
+pas (FileInput path cflg eflg tflg oPath) = runCompile 0 pProgram path cflg eflg
 pas StdInput = getContents >>= runParse 2 pProgram
 
 data Args
