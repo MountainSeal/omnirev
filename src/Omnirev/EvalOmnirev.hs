@@ -192,10 +192,10 @@ sbst (Just m) (TmArrow tm1 tm2) = do
   pure (TmArrow tm1' tm2', sb'')
 sbst (Just m) (TmFold ty tm) = do
   (tm', sb') <- sbst (Just m) tm
-  pure (tm', sb')
+  pure (TmFold ty tm', sb')
 sbst (Just m) (TmTrace ty tm) = do
   (tm', sb') <- sbst (Just m) tm
-  pure (tm', sb')
+  pure (TmTrace ty tm', sb')
 sbst (Just m) (TmLin tm1 tm2) = do
   (tm1', sb')  <- sbst (Just m) tm1
   (tm2', sb'') <- sbst sb' tm2
@@ -210,7 +210,7 @@ sbst (Just m) TmEmpty =
   pure (TmEmpty, Just m)
 sbst (Just m) (TmFlip tm) = do
   (tm', sb') <- sbst (Just m) tm
-  pure (tm', sb')
+  pure (TmFlip tm', sb')
 sbst Nothing tm =
   pure (TmEmpty, Nothing)
 
@@ -306,7 +306,7 @@ conv (TmFlip tm) =
     TmTrace ty tm'     -> TmTrace ty <$> conv (TmFlip tm')
     TmLin tm1' tm2'    -> TmLin <$> conv (TmFlip tm1') <*> conv (TmFlip tm2')
     TmComp tm1' tm2'   -> TmComp <$> conv (TmFlip tm2') <*> conv (TmFlip tm1')
-    TmFlip tm'         -> pure tm'
+    TmFlip tm'         -> conv tm'
     TmId               -> pure TmId
     TmEmpty            -> pure TmEmpty
 conv TmId =
