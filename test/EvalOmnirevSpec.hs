@@ -37,9 +37,12 @@ hoge = map g $ filter f $ map (`M.lookup` env) strs
 terms :: [Either String Term]
 terms = map (\ex -> evalEval (evalExpr ex) env) hoge
 
+res = eval (idl,env)
+
 spec :: Spec
 spec = do
   describe "eval" $ do
-    it "term" $ head (tail $ tail terms) `shouldBe` Left ""
+    it "expression" $ res `shouldNotBe` Bad ""
+    -- it "term" $ head (tail $ tail terms) `shouldBe` Left ""
     -- it "term" $ eval (idl, env) `shouldBe` Bad ""
     -- it "term" $ (idl, env) `shouldBe` ([], M.empty)

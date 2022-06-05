@@ -25,7 +25,6 @@ newtype Eval a = Eval (ReaderT (Env Term) (StateT (Env Alias) (ExceptT String (W
 
 -- TO DO LIST
 -- Exprを評価して結果で置き換える
--- ログを各所に仕込む
 
 runEval :: Eval a -> Env Alias -> (Either String a, Logs)
 runEval (Eval m) env = runIdentity (runWriterT (runExceptT (evalStateT (runReaderT m M.empty) env)))
@@ -54,7 +53,7 @@ evalIdents (i:is) = do
     Just AType{} -> throwError ""
     Just AVar{} -> throwError ""
     Nothing -> throwError ""
-  
+
   tms <- evalIdents is
   tell [infoLog "eval finish"]
   pure $ (i,tm):tms
@@ -73,21 +72,21 @@ evalIdent (Ident s) = do
       tell [errorLog "something went wrong"]
       throwError "something went wrong"
     Just (AExpr ex _) -> do
-      tell [infoLog "eval expr of alias " ++ printTree s ++ ": " ++ printTree ex]
+      tell [infoLog $ "eval expr            : " ++ printTree s ++ " = " ++ printTree ex]
       tm <- evalExpr ex
-      tell [infoLog $ "result expr of alias " ++ printTree s ++ ": " ++ printTree tm]
+      tell [infoLog $ "result expr          : " ++ printTree s ++ " = " ++ printTree tm]
       pure (Ident s,tm)
     Just AVar{} -> do
       tell [errorLog "something went wrong"]
       throwError "something went wrong"
 
 evalExpr :: Expr -> Eval Term
-evalExpr (ExTerm tm) = do  
-  tell [infoLog $ "conversion : " ++ printTree (ExTerm tm)]
+evalExpr (ExTerm tm) = do
+  tell [infoLog "conversion"]
   conv tm
 evalExpr (ExApp ex tm) = do
   um <- evalExpr ex
-  tell [infoLog $ "application: " ++ printTree (ExApp ex tm)]
+  tell [infoLog $ "application : " ++ printTree (ExApp (ExTerm um) tm)]
   appl um tm
 
 -- 以降から実際の項の評価処理を書く
@@ -217,101 +216,206 @@ sbst Nothing tm =
 
 -- conversion
 -- 冪等律と対称律だけどうすればよいか思いつかない
+-- 射の足し算と掛け算は入れ子の場合があるので，doで中身についてもconv関数を通させる
 conv :: Term -> Eval Term
-conv (TmVar x) =
+conv (TmVar x) = do
+  tell [debugLog $ "var            : " ++ printTree (TmVar x)]
   pure $TmVar x
-conv TmUnit =
+conv TmUnit = do
+  tell [debugLog $ "unit           : " ++ printTree TmUnit]
   pure TmUnit
 conv (TmLeft tm) = do
   tm' <- conv tm
-  pure $ case tm' of
-    TmEmpty         -> TmEmpty
-    TmLin tm1' tm2' -> TmLin (TmLeft tm1') (TmLeft tm2')
-    _               -> TmLeft tm'
+  case tm' of
+    TmEmpty -> do
+      tell [debugLog $ "emp_inl        : " ++ printTree (TmLeft tm)]
+      pure TmEmpty
+    TmLin tm1' tm2' -> do
+      tell [debugLog $ "lin_inl        : " ++ printTree (TmLeft tm)]
+      pure $ TmLin (TmLeft tm1') (TmLeft tm2')
+    _ -> do
+      tell [debugLog $ "inl            : " ++ printTree (TmLeft tm)]
+      pure $ TmLeft tm'
 conv (TmRight tm) = do
   tm' <- conv tm
-  pure $ case tm' of
-    TmEmpty         -> TmEmpty
-    TmLin tm1' tm2' -> TmLin (TmRight tm1') (TmRight tm2')
-    _               -> TmRight tm'
+  case tm' of
+    TmEmpty -> do
+      tell [debugLog $ "emp_inr        : " ++ printTree (TmRight tm)]
+      pure TmEmpty
+    TmLin tm1' tm2' -> do
+      tell [debugLog $ "lin_inr        : " ++ printTree (TmRight tm)]
+      pure $ TmLin (TmRight tm1') (TmRight tm2')
+    _ -> do
+      tell [debugLog $ "inr            : " ++ printTree (TmRight tm)]
+      pure $ TmRight tm'
 conv (TmTensor tm1 tm2) = do
   tm1' <- conv tm1
   tm2' <- conv tm2
-  pure $ case (tm1', tm2') of
-    (TmEmpty          , TmEmpty          ) -> TmEmpty
-    (TmEmpty          , _                ) -> TmEmpty
-    (_                , TmEmpty          ) -> TmEmpty
-    (TmLin tm11' tm12', _                ) -> TmLin (TmTensor tm11' tm2') (TmTensor tm12' tm2')
-    (_                , TmLin tm21' tm22') -> TmLin (TmTensor tm1' tm21') (TmTensor tm1' tm22')
-    (_                , _                ) -> TmTensor tm1' tm2'
+  case (tm1', tm2') of
+    (TmEmpty, _) -> do
+      tell [debugLog $ "emp_l_tensor   : " ++ printTree (TmTensor tm1 tm2)]
+      pure TmEmpty
+    (_, TmEmpty) -> do
+      tell [debugLog $ "emp_r_tensor   : " ++ printTree (TmTensor tm1 tm2)]
+      pure TmEmpty
+    (TmLin tm11' tm12', _) -> do
+      tell [debugLog $ "lin_l_tensor   : " ++ printTree (TmTensor tm1 tm2)]
+      pure $ TmLin (TmTensor tm11' tm2') (TmTensor tm12' tm2')
+    (_, TmLin tm21' tm22') -> do
+      tell [debugLog $ "emp_r_tensor   : " ++ printTree (TmTensor tm1 tm2)]
+      pure $ TmLin (TmTensor tm1' tm21') (TmTensor tm1' tm22')
+    (_, _) -> do
+      tell [debugLog $ "tensor         : " ++ printTree (TmTensor tm1 tm2)]
+      pure $ TmTensor tm1' tm2'
 conv (TmArrow tm1 tm2) = do
   tm1' <- conv tm1
   tm2' <- conv tm2
-  pure $ case (tm1', tm2') of
-    (TmEmpty          , TmEmpty          ) -> TmEmpty
-    (TmEmpty          , _                ) -> TmEmpty
-    (_                , TmEmpty          ) -> TmEmpty
-    (TmLin tm11' tm12', _                ) -> TmLin (TmArrow tm11' tm2') (TmArrow tm12' tm2')
-    (_                , TmLin tm21' tm22') -> TmLin (TmArrow tm1' tm21') (TmArrow tm1' tm22')
-    (_                , _                ) -> TmArrow tm1' tm2'
+  case (tm1', tm2') of
+    (TmEmpty, _) -> do
+      tell [debugLog $ "emp_l_arrow    : " ++ printTree (TmArrow tm1 tm2)]
+      pure TmEmpty
+    (_, TmEmpty) -> do
+      tell [debugLog $ "emp_r_arrow    : " ++ printTree (TmArrow tm1 tm2)]
+      pure TmEmpty
+    (TmLin tm11' tm12', _) -> do
+      tell [debugLog $ "lin_l_arrow    : " ++ printTree (TmArrow tm1 tm2)]
+      pure $ TmLin (TmArrow tm11' tm2') (TmArrow tm12' tm2')
+    (_, TmLin tm21' tm22') -> do
+      tell [debugLog $ "lin_r_arrow    : " ++ printTree (TmArrow tm1 tm2)]
+      pure $ TmLin (TmArrow tm1' tm21') (TmArrow tm1' tm22')
+    _ -> do
+      tell [debugLog $ "arrow          : " ++ printTree (TmArrow tm1 tm2)]
+      pure $ TmArrow tm1' tm2'
 conv (TmFold ty tm) = do
   tm' <- conv tm
-  pure $ case tm' of
-    TmEmpty         -> TmEmpty
-    TmLin tm1' tm2' -> TmLin (TmFold ty tm1') (TmFold ty tm2')
-    _               -> TmFold ty tm'
+  case tm' of
+    TmEmpty -> do
+      tell [debugLog $ "emp_fold       : " ++ printTree (TmFold ty tm)]
+      pure TmEmpty
+    TmLin tm1' tm2' -> do
+      tell [debugLog $ "lin_fold       : " ++ printTree (TmFold ty tm)]
+      pure $ TmLin (TmFold ty tm1') (TmFold ty tm2')
+    _ -> do
+      tell [debugLog $ "fold           : " ++ printTree (TmFold ty tm)]
+      pure $ TmFold ty tm'
 conv (TmTrace ty tm) = do
   tm' <- conv tm
-  pure $ case tm' of
-    TmEmpty -> TmEmpty
-    tm'     -> TmTrace ty tm'
+  case tm' of
+    TmEmpty -> do
+      tell [debugLog $ "emp_trace      : " ++ printTree (TmTrace ty tm)]
+      pure TmEmpty
+    tm' -> do
+      tell [debugLog $ "trace          : " ++ printTree (TmTrace ty tm)]
+      pure $ TmTrace ty tm'
 conv (TmLin tm1 tm2) = do
   tm1' <- conv tm1
   tm2' <- conv tm2
-  pure $ case (tm1', tm2') of
-    (TmEmpty          , TmEmpty          ) -> TmEmpty
-    (TmEmpty          , _                ) -> tm2'
-    (_                , TmEmpty          ) -> tm1'
-    (TmLin tm11' tm12', _                ) -> TmLin tm11' (TmLin tm12' tm2')
-    (_                , TmLin tm21' tm22') -> TmLin tm1' (TmLin tm21' tm22')
-    (_                , _                ) -> TmLin tm1' tm2'
+  case (tm1', tm2') of
+    (TmEmpty, _) -> do
+      tell [debugLog $ "emp_l_linear   : " ++ printTree (TmLin tm1 tm2)]
+      pure tm2'
+    (_, TmEmpty) -> do
+      tell [debugLog $ "emp_r_linear   : " ++ printTree (TmLin tm1 tm2)]
+      pure tm1'
+    (TmLin tm11' tm12', _) -> do
+      tell [debugLog $ "lin_l_linear   : " ++ printTree (TmLin tm1 tm2)]
+      pure $ TmLin tm11' (TmLin tm12' tm2')
+    (_, TmLin tm21' tm22') -> do
+      tell [debugLog $ "lin_r_linear   : " ++ printTree (TmLin tm1 tm2)]
+      pure $ TmLin tm1' (TmLin tm21' tm22')
+    _ -> do
+      tell [debugLog $ "linear         : " ++ printTree (TmLin tm1 tm2)]
+      pure $ TmLin tm1' tm2' -- 等しいかどうかで場合分けしたい
 conv (TmComp tm1 tm2) = do
   tm1' <- conv tm1
   tm2' <- conv tm2
   case (tm1', tm2') of
-    (TmEmpty           , TmEmpty           ) -> pure TmEmpty
-    (TmEmpty           , _                 ) -> pure TmEmpty
-    (_                 , TmEmpty           ) -> pure TmEmpty
-    (TmLin tm11' tm12' , _                 ) -> pure $ TmLin (TmComp tm11' tm2') (TmComp tm12' tm2')
-    (_                 , TmLin tm21' tm22' ) -> pure $ TmLin (TmComp tm1' tm21') (TmComp tm1' tm22')
-    (TmId              , _                 ) -> pure tm2'
-    (_                 , TmId              ) -> pure tm1'
-    (TmComp tm11' tm12', _                 ) -> pure $ TmComp tm11' (TmComp tm12' tm2')
-    (_                 , TmComp tm21' tm22') -> pure $ TmComp tm1' (TmComp tm21' tm22')
+    (TmEmpty, _) -> do
+      tell [debugLog $ "emp_l_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure TmEmpty
+    (_, TmEmpty) -> do
+      tell [debugLog $ "emp_r_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure TmEmpty
+    (TmId, _) -> do
+      tell [debugLog $ "id_l_compose   : " ++ printTree (TmComp tm1 tm2)]
+      pure tm2'
+    (_, TmId) -> do
+      tell [debugLog $ "id_r_compose   : " ++ printTree (TmComp tm1 tm2)]
+      pure tm1'
+    (TmLin tm11' tm12' , _) -> do
+      
+      tm112 <- conv $ TmComp tm11' tm2'
+      tm122 <- conv $ TmComp tm12' tm2'
+      tell [debugLog $ "lin_l_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure $ TmLin tm112 tm122
+      -- pure $ TmLin (TmComp tm11' tm2') (TmComp tm12' tm2') -- デバッグの結果，2つのcompそれぞれ改めてconv関数にかける必要がある
+    (_, TmLin tm21' tm22' ) -> do
+      tm121 <- conv $ TmComp tm1' tm21'
+      tm122 <- conv $ TmComp tm1' tm22'
+      tell [debugLog $ "lin_r_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure $ TmLin tm121 tm122
+      -- pure $ TmLin (TmComp tm1' tm21') (TmComp tm1' tm22')
+    (TmComp tm11' tm12', _) -> do
+      tell [debugLog $ "cmp_l_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure $ TmComp tm11' (TmComp tm12' tm2')
+    (_, TmComp tm21' tm22') -> do
+      tell [debugLog $ "cmp_r_compose  : " ++ printTree (TmComp tm1 tm2)]
+      pure $ TmComp tm1' (TmComp tm21' tm22')
     (TmArrow tm11 tm12 , TmArrow tm21 tm22 ) -> do
+      tell [debugLog $ "arrw_compose   : " ++ printTree (TmComp tm1 tm2)]
       sb <- mtch tm21 tm12
       (tm11', sb1) <- sbst sb tm11
       (tm22', sb2) <- sbst sb tm22
       pure $ TmArrow tm11' tm22' -- sb1 sb2の環境が空になっているか検証したほうが良いかも
-    (_                 , _                 ) -> pure $ TmComp tm1' tm2'
+    _ -> do
+      tell [debugLog $ "composition    : " ++ printTree (TmComp tm1 tm2)]
+      pure $ TmComp tm1' tm2'
 conv (TmFlip tm) =
   case tm of
-    TmVar x            -> pure $ TmFlip $ TmVar x
-    TmUnit             -> pure TmUnit
-    TmLeft tm'         -> TmLeft <$> conv (TmFlip tm')
-    TmRight tm'        -> TmRight <$> conv (TmFlip tm')
-    TmTensor tm1' tm2' -> TmTensor <$> conv (TmFlip tm1') <*> conv (TmFlip tm2')
-    TmArrow tm1' tm2'  -> TmArrow <$> conv tm2' <*> conv tm1'
-    TmFold ty tm'      -> TmFold ty <$> conv (TmFlip tm')
-    TmTrace ty tm'     -> TmTrace ty <$> conv (TmFlip tm')
-    TmLin tm1' tm2'    -> TmLin <$> conv (TmFlip tm1') <*> conv (TmFlip tm2')
-    TmComp tm1' tm2'   -> TmComp <$> conv (TmFlip tm2') <*> conv (TmFlip tm1')
-    TmFlip tm'         -> conv tm'
-    TmId               -> pure TmId
-    TmEmpty            -> pure TmEmpty
-conv TmId =
+    TmVar x -> do
+      tell [debugLog $ "flip_var       : " ++ printTree (TmFlip tm)]
+      pure $ TmFlip $ TmVar x
+    TmUnit -> do
+      tell [debugLog $ "flip_unit      : " ++ printTree (TmFlip tm)]
+      pure TmUnit
+    TmLeft tm' -> do
+      tell [debugLog $ "flip_inl       : " ++ printTree (TmFlip tm)]
+      TmLeft <$> conv (TmFlip tm')
+    TmRight tm' -> do
+      tell [debugLog $ "flip_inr       : " ++ printTree (TmFlip tm)]
+      TmRight <$> conv (TmFlip tm')
+    TmTensor tm1' tm2' -> do
+      tell [debugLog $ "flip_tensor    : " ++ printTree (TmFlip tm)]
+      TmTensor <$> conv (TmFlip tm1') <*> conv (TmFlip tm2')
+    TmArrow tm1' tm2' -> do
+      tell [debugLog $ "flip_arrow     : " ++ printTree (TmFlip tm)]
+      TmArrow <$> conv tm2' <*> conv tm1'
+    TmFold ty tm' -> do
+      tell [debugLog $ "flip_fold      : " ++ printTree (TmFlip tm)]
+      TmFold ty <$> conv (TmFlip tm')
+    TmTrace ty tm' -> do
+      tell [debugLog $ "flip_trace     : " ++ printTree (TmFlip tm)]
+      TmTrace ty <$> conv (TmFlip tm')
+    TmLin tm1' tm2' -> do
+      tell [debugLog $ "flip_linear    : " ++ printTree (TmFlip tm)]
+      TmLin <$> conv (TmFlip tm1') <*> conv (TmFlip tm2')
+    TmComp tm1' tm2' -> do
+      tell [debugLog $ "flip_compose   : " ++ printTree (TmFlip tm)]
+      TmComp <$> conv (TmFlip tm2') <*> conv (TmFlip tm1')
+    TmFlip tm' -> do
+      tell [debugLog $ "flip_flip      : " ++ printTree (TmFlip tm)]
+      conv tm'
+    TmId -> do
+      tell [debugLog $ "flip_id        : " ++ printTree (TmFlip tm)]
+      pure TmId
+    TmEmpty -> do
+      tell [debugLog $ "flip_empty     : " ++ printTree (TmFlip tm)]
+      pure TmEmpty
+conv TmId = do
+  tell [debugLog $ "id             : " ++ printTree TmId]
   pure TmId
-conv TmEmpty =
+conv TmEmpty = do
+  tell [debugLog $ "empty          : " ++ printTree TmEmpty]
   pure TmEmpty
 
 
@@ -320,15 +424,15 @@ conv TmEmpty =
 appl :: Term -> Term -> Eval Term
 appl (TmArrow tm1 tm2) tm = do
   tm1'        <- conv tm1
-  tell [debugLog $ "pattern : " ++ printTree tm1']
+  tell [infoLog $ "pattern : " ++ printTree tm1']
   tm2'        <- conv tm2
-  tell [debugLog $ "matcher : " ++ printTree tm2']
+  tell [infoLog $ "matcher : " ++ printTree tm2']
   tm'         <- conv tm
-  tell [debugLog $ "input   : " ++ printTree tm']
+  tell [infoLog $ "input   : " ++ printTree tm']
   sb          <- mtch tm1' tm'
-  tell [infoLog $ "term context: " ++ context sb]
+  tell [infoLog $ "context : " ++ context sb]
   (tm'', sb') <- sbst sb tm2'
-  tell [debugLog $ "output  : " ++ printTree tm'']
+  tell [infoLog $ "output  : " ++ printTree tm'']
   case sb' of
     Nothing ->
       pure tm''
@@ -336,42 +440,52 @@ appl (TmArrow tm1 tm2) tm = do
       if null cxt
         then pure tm''
         else do
-          tell [errorLog "context not empty: " ++ context sb']
-          throwError $ "context not empty: " ++ context sb'
+          tell [errorLog "context not empty   : " ++ context sb']
+          throwError $ "context not empty   : " ++ context sb'
 appl TmEmpty tm = do
-  tell [debugLog "empty application"]
+  tell [infoLog "empty application    : "]
   pure TmEmpty
 appl TmId tm = do
-  tell [debugLog "identity application"]
+  tell [infoLog "identity application : "]
   conv tm
 appl (TmLin tm1 tm2) tm = do
-  tell [infoLog $ "sepate lin at function: " ++ printTree (TmLin tm1 tm2)]
+  tell [infoLog "sepate at function"]
+  tell [infoLog "application of left"]
   tm1' <- appl tm1 tm
+  tell [infoLog "application of right"]
   tm2' <- appl tm2 tm
+  tell [infoLog "conversion"]
   conv $ TmLin tm1' tm2'
 appl tm (TmLin tm1 tm2) = do
-  tell [infoLog $ "sepate lin at value   : " ++ printTree (TmLin tm1 tm2)]
+  tell [infoLog "sepate at value"]
+  tell [infoLog "application of left"]
   tm1' <- appl tm1 tm
+  tell [infoLog "application of right"]
   tm2' <- appl tm2 tm
+  tell [infoLog "conversion"]
   conv $ TmLin tm1' tm2'
 appl (TmTrace ty tm) (TmLeft um) = do
   um' <- appl tm (TmLeft um)
   case um' of
-    -- loop
-    TmLeft  um'' -> appl (TmTrace ty tm) (TmLeft um'')
-    -- end
-    TmRight um'' -> pure um''
+    TmLeft  um'' -> do
+      tell [debugLog "trace loop           : " ++ printTree um'']
+      appl (TmTrace ty tm) (TmLeft um'')
+    TmRight um'' -> do
+      tell [debugLog "trace end            : " ++ printTree um'']
+      pure um''
     _ -> do
-      tell [errorLog "trace must inl or inr: " ++ printTree um']
-      throwError $ "trace must inl or inr: " ++ printTree um'
+      tell [errorLog "trace must inl or inr : " ++ printTree um']
+      throwError $ "trace must inl or inr : " ++ printTree um'
 appl (TmTrace ty tm) um = do
   um' <- appl tm (TmRight um)
   case um' of
-    -- start
-    TmLeft  um'' -> appl (TmTrace ty tm) (TmLeft um'')
-    -- nix
-    TmRight um'' -> pure um''
+    TmLeft  um'' -> do
+      tell [debugLog "trace start          : " ++ printTree um'']
+      appl (TmTrace ty tm) (TmLeft um'')
+    TmRight um'' -> do
+      tell [debugLog "trace nix            : " ++ printTree um'']
+      pure um''
     _ -> do
-      tell [errorLog "trace must inl or inr: " ++ printTree um']
-      throwError $ "trace must inl or inr: " ++ printTree um'
+      tell [errorLog "trace must inl or inr : " ++ printTree um']
+      throwError $ "trace must inl or inr : " ++ printTree um'
 appl _ _ = throwError ""

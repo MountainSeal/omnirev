@@ -1465,9 +1465,9 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{\text{inl}\;\varnothing}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{\text{inl}\;t_1'+\text{inl}\;t_2'}$}
+      \AxiomC{$\equi{\text{inl}\;t_1}{t_1'}$}
+      \AxiomC{$\equi{\text{inl}\;t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inl}\;(t_1+t_2)}{t_1'+t_2'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t}{t'}$}
@@ -1480,9 +1480,9 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{\text{inr}\;\varnothing}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{\text{inr}\;t_1'+\text{inr}\;t_2'}$}
+      \AxiomC{$\equi{\text{inr}\;t_1}{t_1'}$}
+      \AxiomC{$\equi{\text{inr}\;t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{inr}\;(t_1+t_2)}{t_1'+t_2'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t}{t'}$}
@@ -1499,16 +1499,14 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{\varnothing\times{}t_2}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{(t_1+t_2)\times{}t_3}{(t_1'\times{}t_3')+(t_2'\times{}t_3')}$}
+      \AxiomC{$\equi{t_1\times{}t_3}{t_{13}}$}
+      \AxiomC{$\equi{t_2\times{}t_3}{t_{23}}$}
+      \BinaryInfC{$\equi{(t_1+t_2)\times{}t_3}{t_{13}+t_{23}}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{t_1\times{}(t_2+t_3)}{(t_1'\times{}t_2')+(t_1'\times{}t_3')}$}
+      \AxiomC{$\equi{t_1\times{}t_2}{t_{12}}$}
+      \AxiomC{$\equi{t_1\times{}t_3}{t_{13}}$}
+      \BinaryInfC{$\equi{t_1\times{}(t_2+t_3)}{t_{12}+t_{13}}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
@@ -1526,16 +1524,14 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{\varnothing\mapsto{}t_2}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{(t_1+t_2)\mapsto{}t_3}{(t_1'\mapsto{}t_3')+(t_2'\mapsto{}t_3')}$}
+      \AxiomC{$\equi{t_1\mapsto{}t_3}{t_{13}}$}
+      \AxiomC{$\equi{t_2\mapsto{}t_3}{t_{23}}$}
+      \BinaryInfC{$\equi{(t_1+t_2)\mapsto{}t_3}{t_{13}+t_{23}}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{(t_1'\mapsto{}t_2')+(t_1'\mapsto{}t_3')}$}
+      \AxiomC{$\equi{t_1\mapsto{}t_2}{t_{12}}$}
+      \AxiomC{$\equi{t_1\mapsto{}t_3}{t_{13}}$}
+      \BinaryInfC{$\equi{t_1\mapsto{}(t_2+t_3)}{t_{12}+t_{13}}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
@@ -1549,9 +1545,9 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{\text{fold}\;\varnothing}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \BinaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{\text{fold}\;t_1'+\text{fold}\;t_2'}$}
+      \AxiomC{$\equi{\text{fold}\;t_1}{t_1'}$}
+      \AxiomC{$\equi{\text{fold}\;t_2}{t_2'}$}
+      \BinaryInfC{$\equi{\text{fold}\;(t_1+t_2)}{t_1'+t_2'}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t}{t'}$}
@@ -1581,7 +1577,7 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \AxiomC{$\equi{t_1}{t_1'}$}
       \AxiomC{$\equi{t_2}{t_2'}$}
       \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{(t_1+t_2)+t_3}{t_1'+(t_2'+t_3')}$}
+      \TrinaryInfC{$\equi{(t_1+t_2)+t_3}{t_3'+(t_1'+t_2')}$}
     \end{bprooftree}
     \begin{bprooftree}
       \AxiomC{$\equi{t_1}{t_1'}$}
@@ -1605,16 +1601,14 @@ $|\Theta|$はコンテキスト$\Theta$に含まれる型変数の数 \\
       \UnaryInfC{$\equi{t\fcmp\varnothing}{\varnothing}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{t_1\fcmp(t_2+t_3)}{(t_1'\fcmp{}t_2')+(t_1'\fcmp{}t_3')}$}
+      \AxiomC{$\equi{t_1\fcmp{}t_2}{t_{12}}$}
+      \AxiomC{$\equi{t_1\fcmp{}t_3}{t_{13}}$}
+      \BinaryInfC{$\equi{t_1\fcmp(t_2+t_3)}{t_{12}+t_{13}}$}
     \end{bprooftree}
     \begin{bprooftree}
-      \AxiomC{$\equi{t_1}{t_1'}$}
-      \AxiomC{$\equi{t_2}{t_2'}$}
-      \AxiomC{$\equi{t_3}{t_3'}$}
-      \TrinaryInfC{$\equi{(t_1+t_2)\fcmp{}t_3}{(t_1'\fcmp{}t_3')+(t_2'\fcmp{}t_3')}$}
+      \AxiomC{$\equi{t_1\fcmp{}t_3}{t_{13}}$}
+      \AxiomC{$\equi{t_2\fcmp{}t_3}{t_{23}}$}
+      \BinaryInfC{$\equi{(t_1+t_2)\fcmp{}t_3}{t_{13}+t_{23}}$}
     \end{bprooftree}
   \end{center}
   \begin{center}

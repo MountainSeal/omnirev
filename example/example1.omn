@@ -9,6 +9,8 @@ term false : qubit = inr unit
 
 expr test : qubit = not @ true
 
+expr reve : qubit = not ; ~not @ true
+
 term swap : (qubit*qubit) -> (qubit*qubit)
 = inl unit, inl unit => inl unit, inl unit
 | inl unit, inr unit => inr unit, inl unit
@@ -33,7 +35,7 @@ type nat = rec X. (I + X)
 
 term add : (nat * nat) -> (nat * nat)
 = trace[(nat*nat)*nat]
-( inr (x, y)                     => inl ((y, fold[nat] inl unit), x)
+( inr (x, y)                       => inl ((y, fold[nat] inl unit), x)
 | inl ((a, b), fold[nat] inr n)    => inl ((fold[nat] inr a, fold[nat] inr b), n)
 | inl ((a, b), fold[nat] inl unit) => inr (a, b)
 )
