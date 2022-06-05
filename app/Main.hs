@@ -35,9 +35,6 @@ type Verbosity = Int
 putStrV :: Verbosity -> String -> IO ()
 putStrV v s = when (v > 1) $ putStrLn s
 
-runFile :: (Print a, Show a) => Verbosity -> ParseFun a -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= runParse v p
-
 runParse :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
 runParse v p s = let ts = myLLexer s in case p ts of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
@@ -49,8 +46,8 @@ runParse v p s = let ts = myLLexer s in case p ts of
                           showTree v tree
                           exitSuccess
 
-runCompile :: Verbosity -> ParseFun Program -> FilePath -> Bool -> Bool -> IO ()
-runCompile v p f cflg eflg = do
+runCompile :: Verbosity -> ParseFun Program -> FilePath -> Bool -> Bool -> Bool -> IO ()
+runCompile v p f cflg eflg lflg = do
   putStrLn f
   src <- readFile f
   let ts = myLLexer src
@@ -62,8 +59,10 @@ runCompile v p f cflg eflg = do
       putStrLn  s
       exitFailure
     Ok tree -> do
-      putStrLn "\nParse Successful!"
-      showTree v tree
+      if lflg then do
+        putStrLn "\nParse Successful!"
+        showTree v tree
+      else pure ()
       if not cflg then exitSuccess
       else case check tree of
         Bad s -> do
@@ -71,8 +70,10 @@ runCompile v p f cflg eflg = do
           putStrLn "\nType Check         Failed...\n"
           exitFailure
         Ok (env, clog) -> do
-          putStrLn "\nCheck Successful!"
-          -- putStrLn $ unlines clog
+          if lflg then do
+            putStrLn "\nCheck Successful!"
+            putStrLn $ unlines clog
+          else pure ()
           if not eflg then exitSuccess
           else case eval env of
             Bad err -> do
@@ -80,8 +81,11 @@ runCompile v p f cflg eflg = do
               putStrLn "\nEval               Failed...\n"
               exitFailure
             Ok (res,elog) -> do
-              putStrLn "\nEval Successful!"
-              putStrLn $ unlines elog
+              if lflg then do
+                putStrLn "\nEval Successful!"
+                putStrLn $ unlines elog
+              else pure ()
+              putStrLn $ unlines $ map (\(i,tm) -> printTree i ++ " = " ++ printTree tm) res
               exitSuccess
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
@@ -89,20 +93,6 @@ showTree v tree
  = do
       putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
       putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
-
-usage :: IO ()
-usage = do
-  putStrLn $ unlines
-    [ "usage: Call with one of the following argument combinations:"
-    , "  --help          Display this help message."
-    , "  (no arguments)  Parse stdin verbosely."
-    , "  (files)         Parse content of files verbosely."
-    , "  -s (files)      Silent mode. Parse content of files silently."
-    , "  -c (files)      Check type of files."
-    , "  -e (files)      Evaluate of files."
-    , "  -v             Output version information."
-    ]
-  exitFailure
 
 main :: IO ()
 main = pas =<< execParser opts
@@ -114,7 +104,7 @@ main = pas =<< execParser opts
 
 pas :: Args -> IO ()
 pas Version = exitFailure
-pas (FileInput path cflg eflg tflg oPath) = runCompile 0 pProgram path cflg eflg
+pas (FileInput path cflg eflg lflg oPath) = runCompile 2 pProgram path cflg eflg lflg
 pas StdInput = getContents >>= runParse 2 pProgram
 
 data Args
@@ -124,7 +114,7 @@ data Args
     { filePath :: String
     , fcheck :: Bool
     , feval :: Bool
-    , ftrace :: Bool
+    , flog :: Bool
     , output :: Maybe FilePath
     } deriving (Read, Show)
 
@@ -141,10 +131,10 @@ fileInput = do
     ( help "Evaluate program of files"
    <> long "eval"
    <> short 'e' )
-  ftrace <- switch
-    ( help "Print trace log"
-   <> long "trace"
-   <> short 't' )
+  flog <- switch
+    ( help "Print log"
+   <> long "log"
+   <> short 'l' )
   output <- optional $ strOption
     ( help "Choose output directory (default current directory)"
    <> long "output"
