@@ -43,10 +43,10 @@ see LICENSE.
 
 # ToDo (Implementation) List
 
-- [o] type inference
-- [o] exhaustiveness check
-- [o] interpreter
-- [x] online playground
-  - [x] syntax highlighter
-  - [x] web server
-- [x] REPL
+- [x] type inference
+- [x] exhaustiveness check
+- [x] interpreter
+- [ ] online playground
+  - [ ] syntax highlighter
+  - [ ] web server
+- [ ] REPL
