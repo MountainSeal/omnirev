@@ -1,19 +1,21 @@
 # omnirev
-線形型に基づく可逆なプログラミング言語 ***(予定)***
 
-# Dependency
-- stack
-- alex
-- happy
-- bnfc
+Typed reversible programming language based on linear type and it's compiler.
+
+The reversibility is guaranteed by type inference and exhaustiveness check.
+
+
 
 # Setup
+
 ## install stack
+
 ```bash
 sudo apt install -y stack
 ```
 
 ## build omnirev
+
 1. clone this project
 ```bash
 git clone https://github.com/MountainSeal/omnirev
@@ -23,18 +25,28 @@ git clone https://github.com/MountainSeal/omnirev
 cd omnirev
 ```
 
-3. build this project
+3. build this project and install
 ```bash
-stack build
+stack install
 ```
 
 # Usage
-まだそこまで開発してないので…無いです…
+
+see help
+```bash
+omnirev --help
+```
 
 # Licence
-This is released under the GPLv2 License, see LICENSE.
 
-# ToDo
-1. implements type checker
-2. implements interpreter
-3. どこかのタイミングで披露したい・・・
+see LICENSE.
+
+# ToDo (Implementation) List
+
+- [o] type inference
+- [o] exhaustiveness check
+- [o] interpreter
+- [x] online playground
+  - [x] syntax highlighter
+  - [x] web server
+- [x] REPL
