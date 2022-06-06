@@ -14,3 +14,5 @@ pdf/*.synctex.gz
 bin/
 .liquid
 src/*.v
+
+tree-sitter-omnirev/node_modules/
