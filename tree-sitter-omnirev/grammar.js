@@ -2,36 +2,44 @@ module.exports = grammar({
   name: 'omnirev',
 
   rules: {
-    // TODO: add the actual grammar rules
-    source_file: $ => repeat($._definition),
+    source_file: $ => $.definition,
 
-    // definition
-    _definition: $ => choice(
-      'type', $._identifier, '=', $._type,
-      'expr', $._identifier, ':', $._type, '=', $._expression,
-      'term', $._identifier, ':', $._type, '=', $._term
+    definition: $ => choice(
+      seq('type', $.identifier, '=', $.type),
+      seq('expr', $.identifier, ':', $.type, '=', $.expression),
+      seq('term', $.identifier, ':', $.type, '=', $.term),
     ),
 
-    // type
-    _type: $ => choice(
-      $._identifier,
+    type: $ => choice(
+      $.identifier,
       'I',
-      // prec. left(or right)を使って結合度を設定
-      choice($._type, '+', $._type),
-      choice($._type, '*', $._type),
-      choice($._type, '->', $._type),
+      prec. left(2, seq($.type, '+', $.type)),
+      prec. left(3, seq($.type, '*', $.type)),
+      prec. left(1, seq($.type, '->', $.type)),
+      seq('rec', $.identifier, '.', $.type),
     ),
 
-    
-
-    _term: $ => (
-
+    term: $ => choice(
+      $.identifier,
+      'unit',
+      seq('inl', $.term),
+      seq('inr', $.term),
+      prec. left(4, seq($.term, ',', $.term)),
+      prec. left(3, seq($.term, '=>', $.term)),
+      seq('fold', '[', $.type, ']', $.term),
+      prec. left(2, seq($.term, '|', $.term)),
+      seq('trace', '[', $.type, ']', $.term),
+      prec. left(1, seq($.term, ';', $.term)),
+      seq('~', $.term),
+      'empty',
+      'id',
     ),
 
-    _expression: $ => (
-
+    expression: $ => choice(
+      $.term,
+      seq($.expression, '@', $.term),
     ),
 
-    _identifier: $ => /letter (letter | digit | '_' | '\'')*/
+    identifier: $ => /[a-zA-Z](\w|'_'|'\'')*/
   }
 });
