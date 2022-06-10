@@ -8,7 +8,15 @@
       "required": true,
       "types": [
         {
+          "type": "expression",
+          "named": true
+        },
+        {
           "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "term",
           "named": true
         },
         {
@@ -42,8 +50,8 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
-      "required": true,
+      "multiple": true,
+      "required": false,
       "types": [
         {
           "type": "definition",
@@ -95,6 +103,14 @@
     }
   },
   {
+    "type": "(",
+    "named": false
+  },
+  {
+    "type": ")",
+    "named": false
+  },
+  {
     "type": "*",
     "named": false
   },
@@ -112,6 +128,10 @@
   },
   {
     "type": ".",
+    "named": false
+  },
+  {
+    "type": ":",
     "named": false
   },
   {
@@ -147,6 +167,10 @@
     "named": false
   },
   {
+    "type": "expr",
+    "named": false
+  },
+  {
     "type": "fold",
     "named": false
   },
@@ -168,6 +192,10 @@
   },
   {
     "type": "rec",
+    "named": false
+  },
+  {
+    "type": "term",
     "named": false
   },
   {

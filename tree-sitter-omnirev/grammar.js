@@ -2,7 +2,7 @@ module.exports = grammar({
   name: 'omnirev',
 
   rules: {
-    source_file: $ => $.definition,
+    source_file: $ => repeat($.definition),
 
     definition: $ => choice(
       seq('type', $.identifier, '=', $.type),
@@ -17,7 +17,10 @@ module.exports = grammar({
       prec. left(3, seq($.type, '*', $.type)),
       prec. left(1, seq($.type, '->', $.type)),
       seq('rec', $.identifier, '.', $.type),
+      $._parenthesis_type,
     ),
+
+    _parenthesis_type: $ => seq('(', $.type, ')'),
 
     term: $ => choice(
       $.identifier,
@@ -33,12 +36,18 @@ module.exports = grammar({
       seq('~', $.term),
       'empty',
       'id',
+      $._parenthesis_term,
     ),
+
+    _parenthesis_term: $ => prec(1, seq('(', $.term, ')')),
 
     expression: $ => choice(
       $.term,
       seq($.expression, '@', $.term),
+      $._parenthesis_expr,
     ),
+
+    _parenthesis_expr: $ => seq('(', $.expression, ')'),
 
     identifier: $ => /[a-zA-Z](\w|'_'|'\'')*/
   }

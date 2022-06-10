@@ -2,8 +2,11 @@
   "name": "omnirev",
   "rules": {
     "source_file": {
-      "type": "SYMBOL",
-      "name": "definition"
+      "type": "REPEAT",
+      "content": {
+        "type": "SYMBOL",
+        "name": "definition"
+      }
     },
     "definition": {
       "type": "CHOICE",
@@ -26,6 +29,64 @@
             {
               "type": "SYMBOL",
               "name": "type"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "expr"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "STRING",
+              "value": ":"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "type"
+            },
+            {
+              "type": "STRING",
+              "value": "="
+            },
+            {
+              "type": "SYMBOL",
+              "name": "expression"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "term"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "STRING",
+              "value": ":"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "type"
+            },
+            {
+              "type": "STRING",
+              "value": "="
+            },
+            {
+              "type": "SYMBOL",
+              "name": "term"
             }
           ]
         }
@@ -125,6 +186,27 @@
               "name": "type"
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_parenthesis_type"
+        }
+      ]
+    },
+    "_parenthesis_type": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "("
+        },
+        {
+          "type": "SYMBOL",
+          "name": "type"
+        },
+        {
+          "type": "STRING",
+          "value": ")"
         }
       ]
     },
@@ -319,8 +401,33 @@
         {
           "type": "STRING",
           "value": "id"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_parenthesis_term"
         }
       ]
+    },
+    "_parenthesis_term": {
+      "type": "PREC",
+      "value": 1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "("
+          },
+          {
+            "type": "SYMBOL",
+            "name": "term"
+          },
+          {
+            "type": "STRING",
+            "value": ")"
+          }
+        ]
+      }
     },
     "expression": {
       "type": "CHOICE",
@@ -345,6 +452,27 @@
               "name": "term"
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_parenthesis_expr"
+        }
+      ]
+    },
+    "_parenthesis_expr": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "("
+        },
+        {
+          "type": "SYMBOL",
+          "name": "expression"
+        },
+        {
+          "type": "STRING",
+          "value": ")"
         }
       ]
     },
