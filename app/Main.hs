@@ -4,9 +4,9 @@
 module Main where
 
 
-import System.IO ( stdin, hGetContents )
+import System.IO ( stdin, hGetContents, hSetBuffering, stdin, stdout, BufferMode (NoBuffering) )
 import System.Environment ( getArgs, getProgName )
-import System.Exit ( exitFailure, exitSuccess )
+import System.Exit ( exitFailure, exitSuccess, ExitCode (ExitFailure) )
 import Control.Monad (when)
 import Options.Applicative
 import Data.Semigroup ((<>))
@@ -30,44 +30,30 @@ type ParseFun a = [Token] -> Err a
 
 myLLexer = myLexer
 
-type Verbosity = Int
-
-putStrV :: Verbosity -> String -> IO ()
-putStrV v s = when (v > 1) $ putStrLn s
-
-runParse :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
-runParse v p s = let ts = myLLexer s in case p ts of
-           Bad s    -> do putStrLn "\nParse              Failed...\n"
-                          putStrV v "Tokens:"
-                          putStrV v $ show ts
-                          putStrLn s
-                          exitFailure
-           Ok  tree -> do putStrLn "\nParse Successful!"
-                          showTree v tree
-                          exitSuccess
-
-runCompile :: Verbosity -> ParseFun Program -> FilePath -> Bool -> Bool -> Bool -> IO ()
-runCompile v p f cflg eflg lflg = do
-  putStrLn f
-  src <- readFile f
+runCompile :: ParseFun Program -> Bool -> Bool -> Bool -> String -> IO ()
+runCompile prog cflg eflg lflg src = do
   let ts = myLLexer src
-  case p ts of
+  case prog ts of
     Bad s -> do
-      putStrLn "\nParse              Failed...\n"
-      putStrV v "Tokens:"
-      putStrV v $ show ts
-      putStrLn  s
+      if lflg then do
+        putStrLn "\nParse              Failed...\n"
+        putStrLn "Tokens:"
+        print ts
+        putStrLn s
+      else pure ()
       exitFailure
     Ok tree -> do
       if lflg then do
         putStrLn "\nParse Successful!"
-        showTree v tree
+        showTree tree
       else pure ()
       if not cflg then exitSuccess
       else case check tree of
         Bad s -> do
-          putStrLn s
-          putStrLn "\nType Check         Failed...\n"
+          if lflg then do
+            putStrLn s
+            putStrLn "\nType Check         Failed...\n"
+          else pure ()
           exitFailure
         Ok (env, clog) -> do
           if lflg then do
@@ -77,8 +63,10 @@ runCompile v p f cflg eflg lflg = do
           if not eflg then exitSuccess
           else case eval env of
             Bad err -> do
-              putStrLn err
-              putStrLn "\nEval               Failed...\n"
+              if lflg then do
+                putStrLn err
+                putStrLn "\nEval               Failed...\n"
+              else pure ()
               exitFailure
             Ok (res,elog) -> do
               if lflg then do
@@ -88,11 +76,11 @@ runCompile v p f cflg eflg lflg = do
               putStrLn $ unlines $ map (\(i,tm) -> printTree i ++ " = " ++ printTree tm) res
               exitSuccess
 
-showTree :: (Show a, Print a) => Int -> a -> IO ()
-showTree v tree
+showTree :: (Show a, Print a) => a -> IO ()
+showTree tree
  = do
-      putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-      putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
+      putStrLn $ "\n[Abstract Syntax]\n\n" ++ show tree
+      putStrLn $ "\n[Linearized tree]\n\n" ++ printTree tree
 
 main :: IO ()
 main = pas =<< execParser opts
@@ -104,25 +92,24 @@ main = pas =<< execParser opts
 
 pas :: Args -> IO ()
 pas Version = exitFailure
-pas (FileInput path cflg eflg lflg oPath) = runCompile 2 pProgram path cflg eflg lflg
-pas StdInput = getContents >>= runParse 2 pProgram
+pas (Source cflg eflg lflg Nothing) = getContents >>= runCompile pProgram cflg eflg lflg
+pas (Source cflg eflg lflg (Just path)) = do
+  if lflg then putStrLn path else pure ()
+  src <- readFile path
+  runCompile pProgram cflg eflg lflg src
 
 data Args
   = Version
-  | StdInput
-  | FileInput
-    { filePath :: String
-    , fcheck :: Bool
-    , feval :: Bool
-    , flog :: Bool
-    , output :: Maybe FilePath
-    } deriving (Read, Show)
+  | Source
+  { fcheck :: Bool
+  , feval :: Bool
+  , flog :: Bool
+  , path :: Maybe FilePath
+  }
+  deriving (Read, Show)
 
-fileInput :: Parser Args
-fileInput = do
-  filePath <- strArgument
-    ( help "Program file"
-   <> metavar "<filepath>" )
+source :: Parser Args
+source = do
   fcheck <- switch
     ( help "Check type of files"
    <> long "check"
@@ -135,16 +122,11 @@ fileInput = do
     ( help "Print log"
    <> long "log"
    <> short 'l' )
-  output <- optional $ strOption
-    ( help "Choose output directory (default current directory)"
-   <> long "output"
-   <> short 'o'
-   <> metavar "<path>" )
-  pure FileInput {..}
-
-stdInput :: Parser Args
-stdInput =
-  pure StdInput
+  path <- optional $ strOption
+    ( help "file path"
+   <> short 'f'
+   <> metavar "<filepath>" )
+  pure Source {..}
 
 version :: Parser Args
 version = do
@@ -155,4 +137,4 @@ version = do
   pure Version
 
 args :: Parser Args
-args = fileInput <|> stdInput <|> version
+args = source <|> version
