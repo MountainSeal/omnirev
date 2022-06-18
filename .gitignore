@@ -15,4 +15,6 @@ bin/
 .liquid
 src/*.v
 
-tree-sitter-omnirev/node_modules/
+dist-newstyle
+.github
+server

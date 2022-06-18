@@ -1,13 +1,13 @@
-FROM fpco/stack-build:lts-14.7 as build
+FROM fpco/stack-build:lts-18.28 as build
 RUN mkdir /opt/build
 COPY . /opt/build
-RUN cd /opt/build && stack build --system-ghc
+WORKDIR /opt/build
+RUN stack install --system-ghc
 
-FROM ubuntu:bionic
+FROM ubuntu:focal as prod
 RUN mkdir -p /opt/app
 WORKDIR /opt/app
-RUN apt update && apt install -y \
-  ca-certificates \
-  libgmp-dev
-COPY --from=build /opt/build/.stack-work/install/x86_64-linux/lts-14.7/8.6.5/bin .
-#CMD [ "/opt/app/omnirev" ]
+RUN  apt update && apt upgrade -y
+COPY ./server/static /opt/app/static
+COPY --from=build /root/.local/bin .
+# ENTRYPOINT [ "/opt/app/server" ]

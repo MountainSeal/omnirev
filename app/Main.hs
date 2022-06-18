@@ -130,7 +130,7 @@ source = do
 
 version :: Parser Args
 version = do
-  infoOption "0.4.0"
+  infoOption "0.5.0"
     ( help "Show version"
    <> long "version"
    <> short 'v' )
