@@ -47,6 +47,6 @@ see LICENSE.
 - [x] exhaustiveness check
 - [x] interpreter
 - [x] online playground
-  - [ ] syntax highlighter
-  - [ ] web server
+  - [x] syntax highlighter
+  - [x] web server
 - [ ] REPL
