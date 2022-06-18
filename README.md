@@ -46,7 +46,7 @@ see LICENSE.
 - [x] type inference
 - [x] exhaustiveness check
 - [x] interpreter
-- [ ] online playground
-  - [ ] syntax highlighter
-  - [ ] web server
+- [x] online playground
+  - [x] syntax highlighter
+  - [x] web server
 - [ ] REPL
