@@ -303,6 +303,7 @@ Inductive tm : Type :=
 | tm_flip   : tm -> tm
 | tm_nix    : tm
 | tm_id     : tm
+| tm_app    : tm -> tm -> tm
 .
 Notation "'ﾍ' x" := (tm_var x) (at level 10).
 Notation "'unit'" := tm_unit.
@@ -317,6 +318,7 @@ Notation "t1 '⨾' t2" := (tm_comp t1 t2) (at level 50).
 Notation "'†' t" := (tm_flip t) (at level 10).
 Notation "'nix'" := tm_nix.
 Notation "'identity'" := tm_id.
+Notation "t1 '@' t2" := (tm_app t1 t2) (at level 60).
 
 Fixpoint beq_tm (tm um : tm) : bool :=
   match (tm, um) with
@@ -333,6 +335,7 @@ Fixpoint beq_tm (tm um : tm) : bool :=
   | († t, † u) => beq_tm t u
   | (nix, nix) => true
   | (identity, identity) => true
+  | (t1 @ t2, u1 @ u2) => (beq_tm t1 u1) && (beq_tm t2 u2)
   | _ => false
   end.
 
@@ -345,38 +348,23 @@ Definition eq_dec := @tm_eq_dec.
 End TmEq.
 Module TmSet := MSetWeakList.Make TmEq.
 
-Fixpoint tm_size (trm : tm) : nat :=
-  match trm with
-  | ﾍ x => 1
-  | unit => 1
-  | inl t => S (tm_size t)
-  | inr t => S (tm_size t)
-  | t1 × t2 => S ((tm_size t1) + (tm_size t2))
-  | t1 ↦ t2 => S ((tm_size t1) + (tm_size t2))
-  | fld[T] t => S (tm_size t)
-  | trace[T] t => S (tm_size t)
-  | t1 ∥ t2 => S ((tm_size t1) + (tm_size t2))
-  | t1 ⨾ t2 => S ((tm_size t1) + (tm_size t2))
-  | † t => S (tm_size t)
-  | identity => 1
-  | nix => 1
-  end.
+(* Inductive ex : Type :=
+| ex_tm  : tm -> ex
+| ex_lin : ex -> ex -> ex
+| ex_app : ex -> ex -> ex
+. *)
+(* Notation "'ｼ' t" := (ex_tm t) (at level 50).
+Notation "e1 '▱' e2" := (ex_lin e1 e2) (at level 60).
+Notation "e1 '@' e2" := (ex_app e1 e2) (at level 60). *)
 
-Inductive ex : Type :=
-| ex_tm    : tm -> ex
-| ex_app   : ex -> tm -> ex
-.
-Notation "'ｼ' t" := (ex_tm t) (at level 50).
-Notation "e '@' t" := (ex_app e t) (at level 60).
-
-Scheme Equality for ex.
+(* Scheme Equality for ex.
 Module ExEq : DecidableType with Definition t := ex.
 Definition t := ex.
 Definition eq := @eq ex.
 Definition eq_equiv : Equivalence eq := _.
 Definition eq_dec := @ex_eq_dec.
 End ExEq.
-Module ExSet := MSetWeakList.Make ExEq.
+Module ExSet := MSetWeakList.Make ExEq. *)
 
 End ASTree.
 
@@ -425,6 +413,8 @@ Fixpoint ty_sbst (S:ty) (X:id) (T:ty) : ty :=
 (* where "'❲' S '⥷' X '❳' T" := (ty_sbst S X T). *)
 Notation "X '~>' S" := (ty_sbst S X) (at level 80).
 
+(* Fixpoint ty_closed *)
+
 Import IdSet.
 
 Fixpoint ty_vars (T:ty) : IdSet.t :=
@@ -446,8 +436,6 @@ Fixpoint ty_size (typ : ty) : nat :=
   | T1 ⊸ T2 => S ((ty_size T1) + (ty_size T2))
   | X ∾ T => S (ty_size T)
   end.
-
-Check In.
 
 Definition occurs (X : id) (T : ty) : {In X (ty_vars T)}+{~In X (ty_vars T)}.
 Proof.
@@ -506,11 +494,12 @@ Definition typed : Type := tm * ty.
 Definition env := list typed.
 
 Notation "t '⦂' T" := (t, T) (at level 80).
-Notation "Γ '#' c" := (c :: Γ) (at level 80).
-Notation "Γ '⊨' c" := (Γ, c) (at level 80).
+Notation "Γ '#' c" := (c :: Γ) (at level 85).
+
+Definition judgement : Type := (env * typed).
 
 Definition cstrs := list (ty * ty).
-Notation "T1 '≖' T2" := (T1, T2) (at level 80).
+(* Notation "T1 '≖' T2" := (T1, T2) (at level 83). *)
 
 (* 同じ変数名の変数を、最初に見つかったものを除外する *)
 Fixpoint delete (x:typed) (l:env) : env :=
@@ -538,26 +527,123 @@ Fixpoint lookup (x : id) (env : list typed) : option ty :=
       end
   end.
 
-(* isetは変数集合を最初に与えるため *)
-(* Fixpoint infer (e:env) (trm:tm) (typ:ty) (iset:IdSet.t) {struct trm} : (env * IdSet.t * cstrs) :=
-  match (e, (trm, typ)) with
-  (* unit_l *)
-  | Γ # (unit ⦂ V) ⊨ (t ⦂ T) =>
-      let '(Γ', χ, C) := infer Γ t T iset in (Γ', χ, C#(V≖T))
-  (* unit_r *)
-  | Γ ⊨ (unit ⦂ V) =>
-      (Γ, ❲❳, [V≖I])
-  (* inl_l *)
-  | Γ # (inl t1 ⦂ V) ⊨ (t ⦂ T) =>
-      let X1 := uvar iset in
-      let X2 := uvar (iset∪❲X1❳) in
-      let '(Γ', χ, C) := infer (Γ#(t1 ⦂ ﾋ X1)) t T iset in
-      (Γ', χ∪❲X1❳∪❲X2❳, C # (V ≖ ﾋ X1 ⊕ ﾋ X2))
-  (* otherwise *)
-  | _ => ([], empty, [])
-  end. *)
+Reserved Notation "Γ '⊢' c" (at level 90).
+Inductive has_type : env -> typed -> Prop :=
 
-Reserved Notation "Γ '⊨' c '▷' Θ '⃒' χ '⟪' C '⟫'" (at level 80).
+| ht_var : forall x T,
+  [ﾍ x ⦂ T] ⊢ ﾍ x ⦂ T
+
+| ht_exch : forall Γ1 Γ2 c,
+  Γ1 ++ Γ2 ⊢ c ->
+  Γ2 ++ Γ1 ⊢ c
+
+| ht_unit_l : forall Γ c,
+  Γ ⊢ c ->
+  Γ # (unit ⦂ I) ⊢ c
+
+| ht_unit_r :
+  [] ⊢ unit ⦂ I
+
+| ht_inl_l : forall Γ t T1 T2 c,
+  Γ # (t ⦂ T1) ⊢ c ->
+  Γ # (inl t ⦂ T1 ⊕ T2) ⊢ c
+
+| ht_inl_r : forall Γ t T1 T2,
+  Γ ⊢ t ⦂ T1 ->
+  Γ ⊢ inl t ⦂ T1 ⊕ T2
+
+| ht_inr_l : forall Γ t T1 T2 c,
+  Γ # (t ⦂ T2) ⊢ c ->
+  Γ # (inr t ⦂ T1 ⊕ T2) ⊢ c
+
+| ht_inr_r : forall Γ t T1 T2,
+  Γ ⊢ t ⦂ T2 ->
+  Γ ⊢ inr t ⦂ T1 ⊕ T2
+
+| ht_tensor_l : forall Γ t1 t2 T1 T2 c,
+  Γ # (t1 ⦂ T1) # (t2 ⦂ T2) ⊢ c ->
+  Γ # (t1 × t2 ⦂ T1 ⊗ T2) ⊢ c
+
+| ht_tensor_r : forall Γ1 Γ2 t1 t2 T1 T2,
+  Γ1 ⊢ t1 ⦂ T1 ->
+  Γ2 ⊢ t2 ⦂ T2 ->
+  Γ1 ++ Γ2 ⊢ t1 × t2 ⦂ T1 ⊗ T2
+
+| ht_arrow_l : forall Γ1 Γ2 t1 t2 T1 T2 c,
+  Γ1 ⊢ t1 ⦂ T1 ->
+  Γ2 # (t2 ⦂ T2) ⊢ c ->
+  Γ1 ++ Γ2 # (t1 ↦ t2 ⦂ T1 ⊸ T2) ⊢ c
+
+| ht_arrow_r : forall Γ t1 t2 T1 T2,
+  Γ # (t1 ⦂ T1) ⊢ t2 ⦂ T2 ->
+  Γ ⊢ t1 ↦ t2 ⦂ T1 ⊸ T2
+
+| ht_fold_l : forall Γ t X T c,
+  Γ # (t ⦂ (X~>X∾T)T) ⊢ c ->
+  Γ # (fld[X∾T] t ⦂ X∾T) ⊢ c
+
+| ht_fold_r : forall Γ t X T,
+  Γ ⊢ t ⦂ (X~>X∾T)T ->
+  Γ ⊢ fld[X∾T] t ⦂ X∾T
+
+| ht_trace_l : forall Γ t T1 T2 U c,
+  Γ # (t ⦂ (U ⊕ T1) ⊸ (U ⊕ T2)) ⊢ c ->
+  Γ # (trace[U] t ⦂ T1 ⊸ T2) ⊢ c
+
+| ht_trace_r : forall Γ t T1 T2 U,
+  Γ ⊢ t ⦂ (U ⊕ T1) ⊸ (U ⊕ T2) ->
+  Γ ⊢ trace[U] t ⦂ T1 ⊸ T2
+
+| ht_para_l : forall Γ t1 t2 T c,
+  Γ # (t1 ⦂ T) ⊢ c ->
+  Γ # (t2 ⦂ T) ⊢ c ->
+  Γ # (t1 ∥ t2 ⦂ T) ⊢ c
+
+| ht_para_r : forall Γ t1 t2 T,
+  Γ ⊢ t1 ⦂ T ->
+  Γ ⊢ t2 ⦂ T ->
+  Γ ⊢ t1 ∥ t2 ⦂ T
+
+| ht_seq_l : forall Γ t1 t2 T1 T2 T3 c,
+  Γ # (t1 ⦂ T1 ⊸ T2) # (t2 ⦂ T2 ⊸ T3) ⊢ c ->
+  Γ # (t1 ⨾ t2 ⦂ T1 ⊸ T3) ⊢ c
+
+| ht_seq_r : forall Γ1 Γ2 t1 t2 T1 T2 T3,
+  Γ1 ⊢ t1 ⦂ T1 ⊸ T2 ->
+  Γ2 ⊢ t2 ⦂ T2 ⊸ T3 ->
+  Γ1 ++ Γ2 ⊢ t1 ⨾ t2 ⦂ T1 ⊸ T3
+
+| ht_flip_l : forall Γ t T1 T2 c,
+  Γ # (t ⦂ T2 ⊸ T1) ⊢ c ->
+  Γ # († t ⦂ T1 ⊸ T2) ⊢ c
+
+| ht_flip_r : forall Γ t T1 T2,
+  Γ ⊢ t ⦂ T2 ⊸ T1 ->
+  Γ ⊢ † t ⦂ T1 ⊸ T2
+
+| ht_id_l : forall Γ T c,
+  Γ ⊢ c ->
+  Γ # (identity ⦂ T ⊸ T) ⊢ c
+
+| ht_id_r : forall T,
+  [] ⊢ identity ⦂ T ⊸ T
+
+| ht_app : forall t t1 T1 T2,
+  [] ⊢ t ⦂ T1 ⊸ T2 ->
+  [] ⊢ t1 ⦂ T1 ->
+  [] ⊢ t @ t1 ⦂ T2
+
+where "Γ '⊢' c" := (has_type Γ c).
+
+
+(* Theorem types_unique : forall Γ t T T',
+  Γ ⊢ (t⦂T) -> Γ ⊢ (t⦂T') -> T = T'.
+Proof.
+  intros Γ t T T' H H'. induction H.
+Admitted. *)
+
+
+(* Reserved Notation "Γ '⊨' c '▷' Θ '⃒' χ '⟪' C '⟫'" (at level 90).
 Inductive infer_type : env -> typed -> env -> IdSet.t -> cstrs -> Prop :=
 
 | it_var : forall Γ x V T,
@@ -671,22 +757,26 @@ Inductive infer_type : env -> typed -> env -> IdSet.t -> cstrs -> Prop :=
     (*----------------------------------------------------*)
     Γ ⊨ (identity ⦂ V) ▷ Γ ⃒ ❲X❳ ⟪[V ≖ ﾋ X ⊸ ﾋ X]⟫
 
-where "Γ '⊨' c '▷' Θ '⃒' χ '⟪' C '⟫'" := (infer_type Γ c Θ χ C).
+where "Γ '⊨' c '▷' Θ '⃒' χ '⟪' C '⟫'" := (infer_type Γ c Θ χ C). *)
 
-Reserved Notation "'⊨' c '⃒' χ '⟪' C '⟫'" (at level 80).
-Inductive infer_expr_type : (ex * ty) -> IdSet.t -> cstrs -> Prop :=
-| it_tm : forall t T χ C,
-    [] ⊨ (t ⦂ T) ▷ [] ⃒ χ ⟪C⟫ ->
-    (*----------------------------------------------------*)
-    ⊨ (ｼ t ⦂ T) ⃒ χ ⟪C⟫
-
-| it_app : forall e t1 V χ1 χ2 X1 X2 C1 C2,
-    ⊨ (e ⦂ ﾋ X1 ⊸ ﾋ X2) ⃒ χ1 ⟪C1⟫ ->
-    [] ⊨ (t1 ⦂ ﾋ X1) ▷ [] ⃒ χ2 ⟪C2⟫ ->
-    (*----------------------------------------------------*)
-    ⊨ (e @ t1 ⦂ V) ⃒ χ1∪χ2∪❲X1❳∪❲X2❳ ⟪C1++C2#(V ≖ ﾋ X2)⟫
-
-where "'⊨' c '⃒' χ '⟪' C '⟫'" := (infer_expr_type c χ C).
+(* isetは変数集合を最初に与えるため
+Fixpoint infer (e:env) (trm:tm) (typ:ty) (iset:IdSet.t) {struct trm} : (env * IdSet.t * cstrs) :=
+  match (e, (trm, typ)) with
+  (* unit_l *)
+  | Γ # (unit ⦂ V) ⊨ (t ⦂ T) =>
+      let '(Γ', χ, C) := infer Γ t T iset in (Γ', χ, C#(V≖T))
+  (* unit_r *)
+  | Γ ⊨ (unit ⦂ V) =>
+      (Γ, ❲❳, [V≖I])
+  (* inl_l *)
+  | Γ # (inl t1 ⦂ V) ⊨ (t ⦂ T) =>
+      let X1 := uvar iset in
+      let X2 := uvar (iset∪❲X1❳) in
+      let '(Γ', χ, C) := infer (Γ#(t1 ⦂ ﾋ X1)) t T iset in
+      (Γ', χ∪❲X1❳∪❲X2❳, C # (V ≖ ﾋ X1 ⊕ ﾋ X2))
+  (* otherwise *)
+  | _ => ([], empty, [])
+  end. *)
 
 Definition sbst_pair (X : id) (T : ty) (p:ty*ty) :=
   let (T1, T2) := p in (ty_sbst T X T1, ty_sbst T X T2).
@@ -766,22 +856,6 @@ Definition unify l := unify2 (size_pairs l + 1) l.
 (*         end *)
 (*   end. *)
 
-(* Inductive taged : Type :=
-| tt_var    : ty -> id -> taged
-| tt_unit   : ty -> taged
-| tt_left   : ty -> taged -> taged
-| tt_right  : ty -> taged -> taged
-| tt_tensor : ty -> taged -> taged -> taged
-| tt_arrow  : ty -> taged -> taged -> taged
-| tt_fold   : ty -> ty -> taged -> taged
-| tt_trace  : ty -> ty -> taged -> taged
-| tt_lin    : ty -> taged -> taged -> taged
-| tt_comp   : ty -> taged -> taged -> taged
-| tt_flip   : ty -> taged -> taged
-| tt_nix    : ty -> taged
-| tt_id     : ty -> taged
-. *)
-
 Example X := fun n => (Id n).
 Example qubit := I ⊕ I.
 Example nott :=
@@ -795,12 +869,12 @@ Example swap :=
 Example natt := (X 0) ∾ (I ⊕ ﾋ(X 0)).
 Example one := fld[natt] inr fld[natt] inl unit.
 
-Compute [] ⊨ (one ⦂ ﾋ(Id 0)) ▷ [] ⃒ empty ⟪ [] ⟫.
+(* Compute [] ⊨ (one ⦂ ﾋ(Id 0)) ▷ [] ⃒ empty ⟪ [] ⟫. *)
 
 (* 型のタグを持つデータ型を作成(taged_term) *)
 (* unifyで得られた型の等式集合から項の全てにタグ付け *)
 
-Inductive space : Type :=
+(* Inductive space : Type :=
 | sp_empty : space
 | sp_type  : ty -> space
 | sp_sum   : space -> space -> space
@@ -827,7 +901,7 @@ Fixpoint subtract (a b : sp) :=
   match (a,b) with
   | (sp_nix,   sp_var x) => sp_nix
   | (sp_var x, sp_nix)   => sp_var x
-  | 
+  |  *)
 
 End TyJudge.
 
@@ -864,152 +938,194 @@ Definition union_or (s1 s2 : tenv) : tenv :=
   | (None   , None)    => None
   end.
 
-Fixpoint mtch_sub (h:nat) (tm1 tm2 : tm) : tenv :=
+(* 項の木構造に関する深さ *)
+Fixpoint height (trm:tm) : nat :=
+  match trm with
+  | ﾍ x        => 0
+  | unit       => 0
+  | inl t      => S (height t)
+  | inr t      => S (height t)
+  | t1 × t2    => S (Nat.max (height t1) (height t2))
+  | t1 ↦ t2    => S (Nat.max (height t1) (height t2))
+  | fld[T] t   => S (height t)
+  | trace[T] t => S (height t)
+  | t1 ∥ t2    => S (Nat.max (height t1) (height t2))
+  | t1 ⨾ t2    => S (Nat.max (height t1) (height t2))
+  | † t        => S ( height t)
+  | identity   => 0
+  | nix        => 0
+  | t1 @ t2    => S (Nat.max (height t1) (height t2))
+  end.
+
+Fixpoint mtch' (h:nat) (tm1 tm2 : tm) : tenv :=
   match h with
-  | O    => None
-  | S h' =>
-      match (tm1, tm2) with
-      | (ﾍ x, t) => Some (singleton x t)
-      | (unit, unit) => Some (@IdMap.empty tm)
-      | (inl t, inl u) => mtch_sub h' t u
-      | (inl t, inr u) => None
-      | (inr t, inl u) => None
-      | (inr t, inr u) => mtch_sub h' t u
-      | (t1 × t2, u1 × u2) => union_and (mtch_sub h' t1 u1) (mtch_sub h' t2 u2)
-      | (t1 ↦ t2, u1 ↦ u2) => union_and (mtch_sub h' t1 u1) (mtch_sub h' t2 u2)
-      | (fld[T] t, fld[U] u) => mtch_sub h' t u
-      | (trace[T] t, trace[U] u) => mtch_sub h' t u
-      | (t, u1 ∥ u2) => union_or (mtch_sub h' t u1) (mtch_sub h' t u2)
-      | (t1 ∥ t2, u) => union_or (mtch_sub h' t1 u) (mtch_sub h' t2 u)
-      | (t1 ⨾ t2, u1 ⨾ u2) => union_and (mtch_sub h' t1 u1) (mtch_sub h' t2 u2)
-      | († t, † u) => mtch_sub h' t u
-      | (identity, identity) => Some (@IdMap.empty tm)
-      | (nix, nix) => Some (@IdMap.empty tm)
-      | _ => None
-      end
+  | 0 => None
+  | S h' => 
+    match (tm1, tm2) with
+    | (ﾍ x, t) => Some (singleton x t)
+    | (unit, unit) => Some (@IdMap.empty tm)
+    | (inl t, inl u) => mtch' h' t u
+    | (inl t, inr u) => None
+    | (inr t, inl u) => None
+    | (inr t, inr u) => mtch' h' t u
+    | (t1 × t2, u1 × u2) => union_and (mtch' h' t1 u1) (mtch' h' t2 u2)
+    | (t1 ↦ t2, u1 ↦ u2) => union_and (mtch' h' t1 u1) (mtch' h' t2 u2)
+    | (fld[T] t, fld[U] u) => mtch' h' t u
+    | (trace[T] t, trace[U] u) => mtch' h' t u
+    | (t, u1 ∥ u2) => union_or (mtch' h' t u1) (mtch' h' t u2)
+    | (t1 ∥ t2, u) => union_or (mtch' h' t1 u) (mtch' h' t2 u)
+    | (t1 ⨾ t2, u1 ⨾ u2) => union_and (mtch' h' t1 u1) (mtch' h' t2 u2)
+    | (t ⨾ ﾍ x, u) => mtch' h' (ﾍ x) († t ⨾ u)
+    | (ﾍ x ⨾ t, u) => mtch' h' (ﾍ x) (u ⨾ † t)
+    | († t, u) => mtch' h' t († u)
+    | (identity, identity) => Some (@IdMap.empty tm)
+    | (nix, _) => None
+    | (_, nix) => None
+    | _ => None
+    end
   end.
 
-Definition mtch (tm1 tm2 : tm) : tenv := mtch_sub (tm_size tm1 + tm_size tm2) tm1 tm2.
+Definition mtch (tm1 tm2 : tm) : tenv := mtch' (Nat.max (height tm1) (height tm2)) tm1 tm2.
 
-Fixpoint sbst (m : tenv) (trm : tm) : (tm * tenv) :=
+Notation "t '▹' u" := (mtch t u) (at level 80).
+
+Fixpoint sbst' (m : tenv) (trm : tm) : (tm * tenv) :=
   match m with
-  | None   => (nix, None)
   | Some e =>
-      match trm with
-      | ﾍ x =>
-          match IdMap.find x e with
-          | None   => (nix, m)
-          | Some t => (t, Some (IdMap.remove x e))
-          end
-      | unit => (unit, Some (@IdMap.empty tm))
-      | inl t => match sbst m t with (t', m') => (inl t', m') end
-      | inr t => match sbst m t with (t', m') => (inr t', m') end
-      | t1 × t2 =>
-          match sbst m t1 with
-            (t1', m') =>
-              match sbst m' t2 with
-                (t2', m'') => (t1' × t2', m'')
-              end
-          end
-      | t1 ↦ t2 =>
-          match sbst m t1 with
-            (t1', m') =>
-              match sbst m' t2 with
-                (t2', m'') => (t1' × t2', m'')
-              end
-          end
-      | fld[T] t => match sbst m t with (t', m') => (fld[T] t', m') end
-      | trace[T] t => match sbst m t with (t', m') => (trace[T] t', m') end
-      | t1 ∥ t2 =>
-          match sbst m t1 with
-            (t1', m') =>
-              match sbst m' t2 with
-                (t2', m'') => (t1' ∥ t2', m'')
-              end
-          end
-      | t1 ⨾ t2 =>
-          match sbst m t1 with
-            (t1', m') =>
-              match sbst m' t2 with
-                (t2', m'') => (t1' ⨾ t2', m'')
-              end
-          end
-      | † t => match sbst m t with (t', m') => († t', m') end
-      | identity => (identity, Some (@IdMap.empty tm))
-      | nix => (nix, Some (@IdMap.empty tm))
+    if IdMap.is_empty e then (trm, m)
+    else match trm with
+    | ﾍ x =>
+      match IdMap.find x e with
+      | Some t =>
+        (t, Some (IdMap.remove x e))
+      | None   =>
+        (nix, m)
       end
+    | unit =>
+      (unit, m)
+    | inl t =>
+      let (t', m') := sbst' m t in
+        (inl t', m')
+    | inr t =>
+      let (t', m') := sbst' m t in
+        (inr t', m')
+    | t1 × t2 =>
+      let (t1', m')  := sbst' m t1 in
+      let (t2', m'') := sbst' m' t2 in
+        (t1' × t2', m'')
+    | t1 ↦ t2 =>
+      let (t1', m')  := sbst' m t1 in
+      let (t2', m'') := sbst' m' t2 in
+        (t1' ↦ t2', m'')
+    | fld[T] t =>
+      let (t', m') := sbst' m t in
+        (fld[T] t', m')
+    | trace[T] t =>
+    let (t', m') := sbst' m t in
+      (trace[T] t', m')
+    | t1 ∥ t2 =>
+      let (t1', m1) := sbst' m t1 in
+      let (t2', m2) := sbst' m t2 in
+        (t1' ∥ t2', m1)
+        (* m1とm2は同じになる（並びは不定） *)
+    | t1 ⨾ t2 =>
+      let (t1', m')  := sbst' m t1 in
+      let (t2', m'') := sbst' m' t2 in
+        (t1' ⨾ t2', m'')
+    | † t =>
+      let (t', m') := sbst' m t in
+        (t', m')
+    | identity => (identity, Some (@IdMap.empty tm))
+    | nix => (nix, Some (@IdMap.empty tm))
+    | t1 @ t2 => (* このパターンは型付けされているのであれば必ず通らない *)
+      (nix, None)
+    end
+  | None => (nix, None)
   end.
+
+Definition sbst (m : tenv) (trm : tm) : tm := fst (sbst' m trm).
+
+Notation "'⟨' σ '⟩' t" := (sbst σ t) (at level 80).
 
 Reserved Notation "tm1 '≡' tm2" (at level 80).
-Inductive tequiv : tm -> tm -> Prop :=
-| teq_sym : forall t1 t2,
-    t1 ∥ t2 ≡ t2 ∥ t1
-| teq_unit :
-    unit ≡ unit
-| teq_var : forall x,
-    ﾍ x ≡ ﾍ x
-| teq_inl : forall t t',
-    t ≡ t' ->
-    inl t ≡ inl t'
-| teq_inr : forall t t',
-    t ≡ t' ->
-    inr t ≡ inr t'
-| teq_tensor : forall t1 t2 t1' t2',
-    t1 ≡ t1' ->
-    t2 ≡ t2' ->
-    t1 × t2 ≡ t1' × t2'
-| teq_arrow : forall t1 t2 t1' t2',
-    t1 ≡ t1' ->
-    t2 ≡ t2' ->
-    t1 ↦ t2 ≡ t1' ↦ t2'
-where "tm1 '≡' tm2" := (tequiv tm1 tm2).
+Inductive tm_equiv : tm -> tm -> Prop :=
+| teq_add_ident : forall t, nix ∥ t ≡ t
+| teq_add_assoc : forall t1 t2 t3, (t1 ∥ t2) ∥ t3 ≡ t1 ∥ (t2 ∥ t3)
+| teq_add_sym   : forall t1 t2, t1 ∥ t2 ≡ t2 ∥ t1
+| teq_add_idemp : forall t, t ∥ t ≡ t
+| teq_mul_id_l  : forall t, identity ⨾ t ≡ t
+| teq_mul_id_r  : forall t, t ⨾ identity ≡ t
+| teq_mul_assoc : forall t1 t2 t3, (t1 ⨾ t2) ⨾ t3 ≡ t1 ⨾ (t2 ⨾ t3)
+| teq_mul_ann_l : forall t, nix ⨾ t ≡ t
+| teq_mul_ann_r : forall t, t ⨾ nix ≡ t
+| teq_distr_l   : forall t1 t2 t3, (t1 ∥ t2) ⨾ t3 ≡ (t1 ⨾ t3) ∥ (t2 ⨾ t3)
+| teq_distr_r   : forall t1 t2 t3, t1 ⨾ (t2 ∥ t3) ≡ (t1 ⨾ t2) ∥ (t1 ⨾ t3)
+
+| teq_inl_ann    : inl nix ≡ nix
+| teq_inr_ann    : inr nix ≡ nix
+| teq_tens_ann_l : forall t, nix × t ≡ nix
+| teq_tens_ann_r : forall t, t × nix ≡ nix
+| teq_arr_ann_l  : forall t, nix ↦ t ≡ nix
+| teq_arr_ann_r  : forall t, t ↦ nix ≡ nix
+| teq_fld_ann    : forall T, fld[T] nix ≡ nix
+| teq_trace_ann  : forall T, trace[T] nix ≡ nix
+
+| teq_dag_nix   : † nix ≡ nix
+| teq_dag_ident : † identity ≡ identity
+| teq_dag_unit  : † unit ≡ unit
+| teq_dag_add   : forall t1 t2, † (t1 ∥ t2) ≡ († t1) ∥ († t2)
+| teq_dag_mul   : forall t1 t2, † (t1 ⨾ t2) ≡ († t1) ⨾ († t2)
+| teq_dag_inl   : forall t, † (inl t) ≡ inl († t)
+| teq_dag_inr   : forall t, † (inr t) ≡ inr († t)
+| teq_dag_tens  : forall t1 t2, † (t1 × t2) ≡ († t1) × († t2)
+| teq_dag_arr   : forall t1 t2, † (t1 ↦ t2) ≡ († t1) ↦ († t2)
+| teq_dag_fld   : forall t T, † (fld[T] t) ≡ fld[T] († t)
+| teq_dag_tr    : forall t T, † (trace[T] t) ≡ trace[T] († t)
+| teq_dag_dag   : forall t, † († t) ≡ t
+
+| teq_add_inl    : forall t1 t2, inl (t1 ∥ t2) ≡ (inl t1) ∥ (inl t2)
+| teq_add_inr    : forall t1 t2, inr (t1 ∥ t2) ≡ (inr t1) ∥ (inr t2)
+| teq_add_tens_l : forall t1 t2 t3, (t1 ∥ t2) × t3 ≡ (t1 × t3) ∥ (t2 × t3)
+| teq_add_tens_r : forall t1 t2 t3, t1 × (t2 ∥ t3) ≡ (t1 × t2) ∥ (t1 × t3)
+| teq_add_arr_l  : forall t1 t2 t3, (t1 ∥ t2) ↦ t3 ≡ (t1 ↦ t3) ∥ (t2 ↦ t3)
+| teq_add_arr_r  : forall t1 t2 t3, t1 ↦ (t2 ∥ t3) ≡ (t1 ↦ t2) ∥ (t1 ↦ t3)
+| teq_add_fld    : forall t1 t2 T, fld[T] (t1 ∥ t2) ≡ (fld[T] t1) ∥ (fld[T] t2)
+
+| teq_cong_add  : forall t1 t1' t2 t2', t1 ≡ t1' -> t2 ≡ t2' -> t1 ∥ t2 ≡ t1' ∥ t2'
+| teq_cong_mul  : forall t1 t1' t2 t2', t1 ≡ t1' -> t2 ≡ t2' -> t1 ⨾ t2 ≡ t1' ⨾ t2'
+| teq_cong_inl  : forall t t', t ≡ t' -> inl t ≡ inl t'
+| teq_cong_inr  : forall t t', t ≡ t' -> inr t ≡ inr t'
+| teq_cong_tens : forall t1 t1' t2 t2', t1 ≡ t1' -> t2 ≡ t2' -> t1 × t2 ≡ t1' × t2'
+| teq_cong_arr  : forall t1 t1' t2 t2', t1 ≡ t1' -> t2 ≡ t2' -> t1 ↦ t2 ≡ t1' ↦ t2'
+| teq_cong_fld  : forall t t' T, t ≡ t' -> fld[T] t ≡ fld[T] t'
+| teq_cong_tr   : forall t t' T, t ≡ t' -> trace[T] t ≡ trace[T] t'
+| teq_cong_app  : forall t1 t1' t2 t2', t1 ≡ t1' -> t2 ≡ t2' -> t1 @ t2 ≡ t1' @ t2'
+
+| teq_app_arrow : forall t1 t2 t, (t1 ↦ t2) @ t ≡ ⟨t1 ▹ t⟩ t2
+| teq_app_nix_l : forall t, nix @ t ≡ nix
+| teq_app_nix_r : forall t, t @ nix ≡ nix
+| teq_app_add_l : forall t1 t2 t, (t1 ∥ t2) @ t ≡ (t1 @ t) ∥ (t2 @ t)
+| teq_app_add_r : forall t1 t2 t, t @ (t1 ∥ t2) ≡ (t @ t1) ∥ (t @ t2)
+| teq_app_ident : forall t, identity @ t ≡ t
+| teq_app_mul   : forall t1 t2 t, (t1 ⨾ t2) @ t ≡ t2 @ (t1 @ t)
+
+| teq_tr_evade : forall t u u' T, t @ inr u ≡ inr u -> trace[T] t @ u ≡ u'
+| teq_tr_enter : forall t u u' u'' T, t @ inr u ≡ inl u' -> trace[T] t @ inl u' ≡ u'' -> trace[T] t @ u ≡ u''
+| teq_tr_echo  : forall t u u' u'' T, t @ inl u ≡ inl u' -> trace[T] t @ inl u' ≡ u'' -> trace[T] t @ u ≡ u''
+| teq_tr_exit  : forall t u u' T, t @ inl u ≡ inr u -> trace[T] t @ inl u ≡ u'
+
+where "tm1 '≡' tm2" := (tm_equiv tm1 tm2).
+
+Import TyJudge.
+
+Theorem type_preservation : forall Γ t t' T,
+  Γ ⊢ (t ⦂ T) -> t ≡ t' -> Γ ⊢ (t' ⦂ T).
+Proof.
+  intros Γ t t' T H E. induction t.
+  admit.
+  admit.
 
 
-Fixpoint transpose (t:tm) : tm :=
-  match t with
-  | † (t1 ~> t2)   => t2 ~> t1
-  | † (t1 ∥ t2)   => (transpose t1) ∥ (transpose t2)
-  | † (trace T t) => trace T (transpose t)
-  | _ => t
-  end
-.
 
 End TyEval.
 End Omnirev.
-
-Inductive tm_step : (list (id * tm) * tm) -> (list (id * tm) * tm) -> Prop :=
-| tmst_var : forall Θ x t,
-    (* tm_step ((x,t)::nil,(ﾍ x)) (nil,t) *)
-    tm_step ((x, t) :: Θ, (ﾍ x)) (Θ, t)
-
-| tmst_unit :
-    (* forall Θ, tm_step (Θ,i) (Θ,i) *)
-    tm_step (nil, i) (nil, i)
-
-| tmst_left : forall Θ Ξ t1 u1,
-    tm_step (Θ, t1) (Ξ, u1) ->
-    tm_step (Θ, inl t1) (Ξ, inl u1)
-
-| tmst_right : forall Θ Ξ t2 u2,
-    tm_step (Θ, t2) (Ξ, u2) ->
-    tm_step (Θ, inr t2) (Ξ, inr u2)
-
-| tmst_tensor : forall Θ1 Θ2 Ξ1 Ξ2 t1 t2 u1 u2,
-    tm_step (Θ1, t1) (Ξ1, u1) ->
-    tm_step (Θ2, t2) (Θ2, u2) ->
-    tm_step ((Θ1 ++ Θ2), (t1 × t2)) ((Ξ1 ++ Ξ2), (u1 × u2))
-
-| 要修正tmst_arrow : forall Θ1 Θ2 Ξ1 Ξ2 t1 t2 u1 u2,
-    tm_step (Θ1, t1) (Ξ1, u1) ->
-    tm_step (Θ2, t2) (Ξ2, u2) ->
-    tm_step ((Θ1 ++ Θ2), (t1 ~> t2)) ((Ξ1 ++ Ξ2), (u1 ~> u2))
-
-| tmst_fold : forall Θ Ξ t u,
-    tm_step (Θ, t) (Ξ, u) ->
-    tm_step (Θ, fld t) (Ξ, fld u)
-
-| tmst_lin : forall Θ Ξ t1 t2 u1 u2,
-    tm_step (Θ, t1) (Ξ, u1) ->
-    tm_step (Θ, t2) (Ξ, u2) ->
-    tm_step (Θ, t1 ∥ t2) (Ξ, u1 ∥ u2)
-.
