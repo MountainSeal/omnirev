@@ -45,8 +45,10 @@ see LICENSE.
 
 - [x] type inference
 - [x] exhaustiveness check
+  - Not sure if it works properly
 - [x] interpreter
-- [x] online playground
+  - MANY BUGS
+- [x] [online playground](https://omnirev.dev/)
   - [x] syntax highlighter
   - [x] web server
 - [ ] REPL
