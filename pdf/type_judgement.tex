@@ -34,6 +34,8 @@
 \newcommand{\subst}[4]{#1 \;\triangleright\; #2 \quad\rightsquigarrow\quad #3 \;\triangleright\; #4}
 \newcommand{\reduct}[2]{#1 &\;\Rrightarrow\; #2}
 \newcommand{\reduction}[2]{#1 \;\Rrightarrow\; #2}
+\newcommand{\nreduct}[2]{#1 &\;\not\Rrightarrow\; #2}
+\newcommand{\nreduction}[2]{#1 \;\not\Rrightarrow\; #2}
 
 
 % https://tex.stackexchange.com/questions/417895/how-to-typeset-utimes-akin-to-uplus
@@ -47,7 +49,9 @@
 
 
 \begin{document}
+
 \section{構文}
+
 \begin{figure}[H]
   \begin{alignat*}{3}
     &\text{Type Variable} & \quad\ni & \quad X,Y,Z \quad         &              & \\
@@ -67,6 +71,7 @@
 \end{figure}
 
 \section{型の構成}
+
 \begin{figure}[H]
   \begin{align*}
     \begin{bprooftree}
@@ -119,6 +124,7 @@
 \newpage
 
 \section{型検査}
+
 \begin{figure}[H]
   \begin{center}
     \begin{bprooftree}
@@ -881,14 +887,14 @@
 
 \begin{figure}[H]
   \begin{equation*}
-    \sigma_1\cup^+_\bot\sigma_2 :=
+    \sigma_1\cup^\times_\bot\sigma_2 :=
     \begin{cases}
       \bot                 &\text{if}\;\sigma_1=\bot\vee\sigma_2=\bot \\
       \sigma_1\cup\sigma_2 &\text{otherwise}
     \end{cases}
   \end{equation*}
   \begin{equation*}
-    \sigma_1\cup^\times_\bot\sigma_2 :=
+    \sigma_1\cup^+_\bot\sigma_2 :=
     \begin{cases}
       \bot                 &\text{if}\;\sigma_1=\bot\wedge\sigma_2=\bot \\
       \sigma_1             &\text{if}\;\sigma_2=\bot \\
@@ -896,6 +902,22 @@
       \sigma_1\cup\sigma_2 &\text{otherwise}
     \end{cases}
   \end{equation*}
+  \begin{equation*}
+    \sigma_1\ltimes_\bot\sigma_2 :=
+    \begin{cases}
+      \sigma_1 &\text{if}\;\sigma_1\neq\bot \\
+      \sigma_2 &\text{if}\;\sigma_1=\bot\wedge\sigma_2\neq\bot \\
+      \bot     &\text{otherwise}
+    \end{cases}
+  \end{equation*}
+  % \begin{equation*}
+  %   \sigma_1\rtimes_\bot\sigma_2 :=
+  %   \begin{cases}
+  %     \sigma_2 &\text{if}\;\sigma_2\neq\bot \\
+  %     \sigma_1 &\text{if}\;\sigma_2=\bot\wedge\sigma_1\neq\bot \\
+  %     \bot     &\text{otherwise}
+  %   \end{cases}
+  % \end{equation*}
   \caption{Operations on Environment $\sigma$}
   \label{fig:op_env}
 \end{figure}
@@ -914,7 +936,7 @@
       \text{fold}_T\;t  &\triangleright \text{fold}_T\;u  \;&:=\; &t \triangleright u \\
       \text{trace}_T\;t &\triangleright \text{trace}_T\;u \;&:=\; &t \triangleright u \\
       t                 &\triangleright u_1\parallel{}u_2 \;&:=\; &(t \triangleright u_1)\cup^+_\bot(t \triangleright u_2) \\
-      t_1\parallel{}t_2 &\triangleright u                 \;&:=\; &(t_1 \triangleright u)\cup^+_\bot(t_2 \triangleright u) \\
+      t_1\parallel{}t_2 &\triangleright u                 \;&:=\; &(t_1 \triangleright u)\ltimes_\bot(t_2 \triangleright u) \\
       t_1\fcmp{}t_2     &\triangleright u_1\fcmp{}u_2     \;&:=\; &(t_1 \triangleright u_1)\cup^\times_\bot(t_2 \triangleright u_2) \\
       t\fcmp{}x         &\triangleright u                 \;&:=\; &x \triangleright t^\dagger\fcmp{}u \\
       x\fcmp{}t         &\triangleright u                 \;&:=\; &x \triangleright u\fcmp{}t^\dagger \\
@@ -1003,9 +1025,14 @@
     \reduction{t_1}{t_1'} \;\;\Longrightarrow\;\; \reduction{t_2}{t_2'} &\;\;\Longrightarrow\;\; \reduction{t_1\;\text{@}\;t_2}{t_1'\;\text{@}\;t_2'}
   \end{align*}
   \begin{align*}
-    \reduct{(t_1\mapsto{}t_2)\;\text{@}\;t}{(t_1\triangleright{}t)\;t_2} \\
-    \reduct{\varnothing\;\text{@}\;t}{\varnothing} &
-    \reduct{(t_1\parallel{}t_2)\;\text{@}\;t}{(t_1\;\text{@}\;t)\parallel(t_2\;\text{@}\;t)} \\
+    \reduct{(t_1\mapsto{}t_2)\;\text{@}\;t}{(t_1\triangleright{}t)\;t_2}
+  \end{align*}
+  \begin{align*}
+    \nreduction{t_1}{\varnothing} &\;\;\Longrightarrow\;\; \reduction{(t_1\parallel{}t_2)\;\text{@}\;t}{t_1\;\text{@}\;t} \\
+    \reduction{t_1}{\varnothing} &\;\;\Longrightarrow\;\; \reduction{(t_1\parallel{}t_2)\;\text{@}\;t}{t_2\;\text{@}\;t} \\
+  \end{align*}
+  \begin{align*}
+    \reduct{\varnothing\;\text{@}\;t}{\varnothing} \\
     \reduct{t\;\text{@}\;\varnothing}{\varnothing} &
     \reduct{t\;\text{@}\;(t_1\parallel{}t_2)}{(t\;\text{@}\;t_1)\parallel(t\;\text{@}\;t_2)} \\
     \reduct{\text{id}\;\text{@}\;t}{t} &
@@ -1020,6 +1047,8 @@
   \caption{Reduction}
   \label{fig:reduction}
 \end{figure}
+
+\section{評価戦略}
 
 % \begin{figure}[H]
 %     % $ x \prec () \prec \text{inl}\;t \prec \text{inr}\;t \prec t_1\times{}t_2 \prec t_1\mapsto{}t_2 \prec \text{fold}\;t \prec t\;\text{trace}_T \prec t_1+t_2 \prec -t $
