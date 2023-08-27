@@ -1,0 +1,604 @@
+\documentclass[type_judgement.tex]{subfiles}
+
+\begin{document}
+扱いたい構造は以下の全てを持つ圏
+\begin{itemize}
+    \item 自己双対コンパクト閉圏(Self--Dual Compact Closed Category)
+    \item トレース付き有限双積(Traced Finite Biproduct)
+    \item 半環圏（Rig Category）
+    \item 逆圏（Inverse Category）
+    \item 上限による豊穣化（Sup enrichment）
+    \item 余代数モーダリティの余クライスリ圏(coKleisli Category of coAlgebra Modality)
+    \item ダガーファイブレーション(Dagger Fibration)
+    % \item 代数的コンパクト(Algebraically Compact)
+\end{itemize}
+
+\subsection{圏}
+\begin{defn}[Category（圏）]
+圏$\mathcal{C}$は以下の構造を備える
+\begin{itemize}
+    \item 対象（Object）の類$|\mathcal{C}|$を持つ（各対象は$A,B,C$等の大文字で表す）
+    \item $A,B\in|\mathcal{C}|$に対する射（Morphism）の類$Hom_\mathcal{C}(A,B)$を持つ（各射は単に$A \rightarrow B$で表すか，$f,g,h$等の小文字で表す）
+        \begin{itemize}
+            \item 射$f:A \rightarrow B$の$A$を始域（Domain），$B$を終域（Codomain）と呼び，それぞれ$Dom(f)$，$Cod(f)$で表す
+        \end{itemize}
+    \item 任意の対象$A$に対して恒等射$id_A:A \rightarrow A$が存在する
+    \item 任意の射$f:A \rightarrow B$及び$g:B \rightarrow C$に対して射の合成$g \circ f: A \rightarrow C$が存在する
+    \item 任意の対象$A$,$B$及び射$f:A \rightarrow B$について，単位律$id_B \circ f = f$　$f \circ id_A = f$を満たす
+    \item 任意の射$f:A \rightarrow B$, $g:B \rightarrow C$, $h:C \rightarrow D$に対して結合律$(h \circ g) \circ f = h \circ (g \circ f)$を満たす
+\end{itemize}
+
+\begin{defn}[Monomorphism（単射）]
+射$f:A \rightarrow B$は，任意の射$g_1,g_2:C \rightarrow A$に対して$f \circ g_1 = f \circ g_2$ならば$g_1 = g_2$が成り立つとき，単射と呼ぶ．
+\end{defn}
+
+\begin{defn}[Epimorphism（全射）]
+射$f:A \rightarrow B$は，任意の射$g_1,g_2:B \rightarrow C$に対して$g_1 \circ f = g_2 \circ f$ならば$g_1 = g_2$が成り立つとき，全射と呼ぶ．
+\end{defn}
+
+\begin{defn}[Bimorphism（双射）]
+単射かつ全射である射を全単射もしくは双射と呼ぶ．
+\end{defn}
+
+\begin{defn}[Isomorphism（同型射）]
+射$f:A \rightarrow B$が同型射（Isomorphism）であるとは，$g \circ f = id_A$かつ$f \circ g = id_B$を満たす$g:B \rightarrow A$が存在することをいう．このとき$g$は$f$の逆射（Inverse morphism）と呼び$f^{-1}$で表す．
+二つの等式のうち，左のみ満たす場合の射$g$を$f$の引き込み（Retraction）と呼び，右のみ満たす場合の$g$を$f$の断面（Section）と呼ぶ．
+射が同型射であることを強調する場合，$f:A \xrightarrow{\cong} B$と表す．
+圏の対象$A,B$の間に同型射が存在するとき，$A$と$B$は同型（Isomorphic）であるといい，$A \cong B$で表す．
+\end{defn}
+
+任意の同型射は双射だが，双射は必ずしも同型射ではないことに留意すること．
+
+\begin{defn}[Functor（関手）]
+$\mathcal{C}$と$\mathcal{D}$を圏とする．関手$\mathbf{F}:\mathcal{C} \rightarrow \mathcal{D}$は，$\mathcal{C}$の対象を$\mathcal{D}$の対象へ写す関数$|\mathcal{C}| \rightarrow |\mathcal{D}|$と，$\mathcal{C}$の射を$\mathcal{D}$の射に写す関数$Hom_\mathcal{C}(A,B) \rightarrow Hom_\mathcal{D}(\mathbf{F}A,\mathbf{F}B)$であり，
+$\mathbf{F}(g \circ f) = \mathbf{F}(g) \circ \mathbf{F}(f)$と$\mathbf{F}(id_A) = id_{(\mathbf{F}A)}$を満たす．
+\end{defn}
+
+% \begin{defn}[Fully faithful ]
+
+% \end{defn}
+
+\begin{defn}[Natural Transformation（自然変換）]
+$\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \rightarrow \mathcal{D}$を関手とする．自然変換$\tau:\mathbf{F} \Rightarrow \mathbf{G}$は，射の族$\tau_A:\mathbf{F}A \rightarrow \mathbf{G}A$から成り，圏$\mathcal{C}$の任意の射$f:A \rightarrow B$について，以下の図式が可換（矢印をどの順番に通っても，射の合成に関して等式が成り立つこと）になる．
+\begin{center}
+\begin{tikzcd}
+  \mathbf{F}A \ar[r, "\tau_A"] \ar[d, "\mathbf{F}f"'] & \mathbf{G}A \ar[d, "\mathbf{G}f"] \\
+  \mathbf{F}B \ar[r, "\tau_B"] & \mathbf{G}B
+\end{tikzcd}
+\end{center}
+任意の対象$A\in|\mathcal{C}|$について射$\tau_A$が$\mathcal{D}$の同型射であるとき，$\tau$は自然同型（Natural Isomorphism）であるという．
+\end{defn}
+
+\begin{defn}[Categorical Equivalence（圏同値）]
+圏$\mathcal{C}$と$\mathcal{D}$は，関手$\mathbf{F}:\mathcal{C} \rightarrow \mathcal{D}$と$\mathbf{G}:\mathcal{D} \rightarrow \mathcal{C}$が存在して$\mathbf{Id}_\mathcal{C} \cong \mathbf{G}\circ\mathbf{F}$かつ$\mathbf{Id}_\mathcal{D} \cong \mathbf{F}\circ\mathbf{G}$であるとき，同値であるという（$\mathbf{Id}_\mathcal{C}$と$\mathbf{Id}_\mathcal{D}$は各圏の恒等関手）．
+圏同値は$\mathcal{C} \simeq \mathcal{D}$で表す．
+\end{defn}
+
+\begin{defn}[Opposite Category（反対圏）]
+圏$\mathcal{C}$の反対圏$\mathcal{C}^{op}$とは，$|\mathcal{C}^{op}| = |\mathcal{C}|$かつ$Hom_{\mathcal{C}^{op}}(A,B) = Hom_\mathcal{C}(B,A)$である圏である．
+\end{defn}
+
+\begin{defn}[Universal Morphism（普遍射）]
+
+\end{defn}
+
+\begin{defn}[Adjunction（随伴）]
+普遍射（及び普遍性）から導かれる随伴関手
+右随伴と左随伴の定義をここに書く．
+随伴の定義は他にも
+\begin{enumerate}
+    \item 余単位--単位随伴による定義
+    \item ホム集合随伴による定義
+\end{enumerate}
+があるが，モノイド積と内部ホムの随伴，最終的にはsix operationsのうちWirthmüller contextの場合を説明する際に随伴関手の三つ組として定義してくため，この目的に適した定義にしたい．
+\end{defn}
+
+\begin{defn}[Yoneda's Lemma（米田の補題）]
+
+\end{defn}
+
+\subsection{モノイド圏}
+\end{defn}
+\begin{defn}[Monoidal Category（モノイド圏）\cite{selinger09}]
+モノイド圏$\mathcal{C}$は以下の構造を備える
+\begin{itemize}
+    \item 双関手$(-)\otimes(-):\mathcal{C}\times\mathcal{C} \rightarrow \mathcal{C}$（モノイド積と呼ばれる）
+    \item 単位対象$I\in|\mathcal{C}|$
+    \item （自然同型）結合子$\alpha_{A,B,C}:(A \otimes B)\otimes C \xrightarrow{\cong} A \otimes (B \otimes C)$
+    \item （自然同型）左単位子$\lambda_A:I \otimes A \xrightarrow{\cong} A$
+    \item （自然同型）右単位子$\rho_A:A \otimes I \xrightarrow{\cong} A$
+    \item 二つの図式（五角等式，三角等式）が可換となる
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}
+    \node[
+        regular polygon,
+        regular polygon sides=5,
+        minimum width=50mm,
+        yscale=.75,
+        xscale=1.75
+    ] (PG) {}
+      (PG.corner 1) node (PG1) {$(A \otimes B)\otimes(C \otimes D)$}
+      (PG.corner 2) node (PG2) {$((A \otimes B) \otimes C )\otimes D$}
+      (PG.corner 3) node (PG3) {$(A\otimes(B \otimes C))\otimes D$}
+      (PG.corner 4) node (PG4) {$A\otimes((B\otimes C)\otimes D)$}
+      (PG.corner 5) node (PG5) {$A\otimes(B\otimes(C\otimes D))$}
+    ;
+    \draw[->] (PG1) -- (PG5) node[midway, above right] {$\alpha_{A, B, C \otimes D}$};
+    \draw[->] (PG2) -- (PG1) node[midway, above left] {$\alpha_{A \otimes B, C, D}$};
+    \draw[->] (PG2) -- (PG3) node[midway, left] {$\alpha_{A,B,C} \otimes id_D$};
+    \draw[->] (PG3) -- (PG4) node[midway, below] {$\alpha_{A, B \otimes C, D}$};
+    \draw[->] (PG4) -- (PG5) node[midway, right] {$id_A \otimes \alpha_{B,C,D}$};
+\end{tikzpicture}
+\end{center}
+\begin{center}
+\begin{tikzpicture}
+    \node[
+        regular polygon,
+        regular polygon sides=3,
+        shape border rotate=180,
+        minimum width=40mm,
+        yscale=.5,
+        xscale=1.25
+    ] (PG) {}
+      (PG.corner 1) node (PG1) {$A \otimes B$}
+      (PG.corner 2) node (PG2) {$A \otimes (I \otimes B)$}
+      (PG.corner 3) node (PG3) {$(A \otimes I) \otimes B$}
+    ;
+    \draw[->] (PG2) -- (PG1) node[midway, below right] {$id_A \otimes \lambda_B$};
+    \draw[->] (PG3) -- (PG1) node[midway, below left] {$\rho_A \otimes id_B$};
+    \draw[->] (PG3) -- (PG2) node[midway, above] {$\alpha_{A,I,B}$};
+\end{tikzpicture}
+\end{center}
+\end{defn}
+
+\begin{defn}[Symmetric Monoidal Category（対称モノイド圏）\cite{selinger09}]
+対称モノイド圏$\mathcal{C}$はモノイド圏であり，以下の構造を備える．
+\begin{itemize}
+    \item （自然同型）対称子$\sigma_{A,B}:A \otimes B \xrightarrow{\cong} B \otimes A$
+    \item 等式$\sigma_{A,B} = \sigma_{B,A}^{-1}$を満たす
+    \item 六角等式が可換となる
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}
+    \node[
+        regular polygon,
+        regular polygon sides=6,
+        minimum width=50mm,
+        yscale=.75,
+        xscale=1.75
+    ] (PG) {}
+      (PG.corner 1) node (PG1) {$B \otimes (A \otimes C)$}
+      (PG.corner 2) node (PG2) {$(B \otimes A) \otimes C$}
+      (PG.corner 3) node (PG3) {$(A \otimes B) \otimes C$}
+      (PG.corner 4) node (PG4) {$A \otimes (B \otimes C)$}
+      (PG.corner 5) node (PG5) {$(B \otimes C) \otimes A$}
+      (PG.corner 6) node (PG6) {$B \otimes (C \otimes A)$}
+    ;
+    \draw[->] (PG1) -- (PG6) node[midway, above right] {$id_B \otimes \sigma_{A,C}$};
+    \draw[->] (PG2) -- (PG1) node[midway, above] {$\alpha_{B,A,C}$};
+    \draw[->] (PG3) -- (PG2) node[midway, above left] {$\sigma_{A,B} \otimes id_C$};
+    \draw[->] (PG3) -- (PG4) node[midway, below left] {$\alpha_{A,B,C}$};
+    \draw[->] (PG4) -- (PG5) node[midway, below] {$\sigma_{A, B \otimes C}$};
+    \draw[->] (PG5) -- (PG6) node[midway, below right] {$\alpha_{B,C,A}$};
+\end{tikzpicture}
+\end{center}
+\end{defn}
+
+\begin{defn}[Symmetric Monoidal Closed Category（対称モノイド閉圏）\cite{barr91}]
+対称モノイド閉圏$\mathcal{C}$は対象モノイド圏であり，以下の構造を備える．
+\begin{itemize}
+    \item 双関手$(-)\multimap(-):\mathcal{C}^{op}\times\mathcal{C} \rightarrow \mathcal{C}$（内部ホムと呼ばれる）
+    \item 任意の対象$A\in|\mathcal{C}|$について，モノイド積$\otimes$と内部ホム$\multimap$の随伴$((-)\otimes{A} \dashv A \multimap(-)):\mathcal{C} \rightarrow \mathcal{C}$が存在する
+\end{itemize}
+\end{defn}
+
+\begin{prop}
+\label{prop:mc_adj}
+対称モノイド閉圏$\mathcal{C}$は任意の$A,B,C\in|\mathcal{C}|$について、同型$(A \otimes B) \multimap C \cong A \multimap (B \multimap C)$を持つ．
+\end{prop}
+\begin{proof}
+モノイド積$\otimes$と内部ホム$\multimap$の随伴から自然同型
+\begin{equation*}
+    Hom_\mathcal{C}(A \otimes B, C) \cong Hom_\mathcal{C}(A, B \multimap C)
+\end{equation*}
+が得られる．
+任意の$X\in|\mathcal{C}|$について，自然同型の合成により，
+\begin{align*}
+    Hom_\mathcal{C}(X, (A \otimes B) \multimap C) &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes (A \otimes B), C) \\
+     &\xrightarrow{\cong} Hom_\mathcal{C}((X \otimes A) \otimes B, C) \\
+     &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes A, B \multimap C) \\
+     &\xrightarrow{\cong} Hom_\mathcal{C}(X, A \multimap (B \multimap C))
+\end{align*}
+を得る．
+米田の補題より，同型$(A \otimes B) \multimap C \cong A \multimap (B \multimap C)$が存在する．
+\end{proof}
+
+\begin{prop}
+\label{prop:unit}
+対称モノイド閉圏$\mathcal{C}$は任意の$X\in|\mathcal{C}|$について、同型$I \multimap A \cong A$を持つ．
+\end{prop}
+\begin{proof}
+任意の$X\in|\mathcal{C}|$について、自然同型の合成により，
+\begin{align*}
+    Hom_\mathcal{C}(X, I \multimap A) &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes I, A) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(X, A)
+\end{align*}
+を得る．米田の補題より、同型$I \multimap A \cong A$が存在する．
+\end{proof}
+
+\begin{prop}
+\label{prop:mc_c}
+対称モノイド閉圏$\mathcal{C}$は任意の$A,B,C\in|\mathcal{C}|$について，以下の3つの射を持つ．
+\begin{align*}
+    \eta_{A}'    &: I \rightarrow A \multimap A \\
+    eval_{A,B}   &: (A \multimap B) \otimes A \rightarrow B \\
+    comp_{A,B,C} &: (A \multimap C) \otimes (B \multimap C) \rightarrow A \multimap C
+\end{align*}
+\end{prop}
+\begin{proof}
+恒等射$id_A$より，射の同型
+\begin{align*}
+    Hom_\mathcal{C}(A,A) &\xrightarrow{\cong} Hom_\mathcal{C}(I \otimes A, A) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A \multimap A)
+\end{align*}
+を得るので，射$\eta_{A}$は存在する．
+次に，恒等射$id_{A \multimap B}$より，射の同型
+\begin{align*}
+    Hom_\mathcal{C}(A \multimap B, A \multimap B) &\xrightarrow{\cong} Hom_\mathcal{C}((A \multimap B) \otimes A, B)
+\end{align*}
+を得るので，射$eval_{A,B}$は存在する．
+次に，合成射$eval_{B,C}\circ(id_{B\multimap{}C}\otimes eval_{A,B})$より，射の同型
+\begin{align*}
+    Hom_\mathcal{C}((B \multimap C)\otimes((A \multimap B)\otimes A), C) &\xrightarrow{\cong} Hom_\mathcal{C}( ((B \multimap C)\otimes(A \multimap B)) \otimes A, C) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}((B \multimap C) \otimes (A \multimap B), A \multimap C)
+\end{align*}
+を得るので，射$comp_{A,B,C}$は存在する．
+\end{proof}
+
+命題\ref{prop:mc_adj},命題\ref{prop:unit},命題\ref{prop:mc_c}は，対称子を使用せず証明しており，モノイド閉圏でも成り立つ．
+
+命題\ref{prop:mc_c}で用いた射$eval_{A,B}$より，射の同型から
+\begin{align*}
+    Hom_\mathcal{C}((A\multimap B) \otimes A, B) &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes (A \multimap B), B) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A, (A \multimap B) \multimap B)
+\end{align*}
+を得る．
+
+% 定義に漏れあり
+% \begin{defn}[Closed Category（閉圏）]
+% 閉圏$\mathcal{C}$は以下の構造を備える．
+% \begin{itemize}
+%     \item 双関手$(-)\multimap(-):\mathcal{C}^{op} \times \mathcal{C} \rightarrow \mathcal{C}$
+%     \item 単位対象$I\in|\mathcal{C}|$
+%     \item （自然同型）$o_A:A \cong I \multimap A$
+%     \item （dinatural変換）$\vartheta_A:I \rightarrow A \multimap A$
+%     \item （$B,C$に対して自然，$A$　に対してdinaturalな変換）$L_{A,B,C}:B \multimap C \rightarrow (A \multimap B) \multimap (A \multimap C)$
+%     \item 以下の図式が全て可換
+%         \begin{itemize}
+%             \item 
+%         \end{itemize}
+% \end{itemize}
+% \end{defn}
+
+\begin{defn}[$\star\mathchar`-$autonomous Category（$\star\mathchar`-$自立圏）\cite{barr91}]
+\label{def:star-auto}
+$\star\mathchar`-$自立圏$\mathcal{C}$は対称モノイド閉圏であり，以下の構造を備える．
+\begin{itemize}
+    \item 双対化対象$\bot\in|\mathcal{C}|$
+    \item 双対化関手$(-)^\star:=(-)\multimap \bot:\mathcal{C}^{op} \rightarrow \mathcal{C}$
+    \item （自然同型）二重双対$A \xrightarrow{\cong} A^{\star\star}$
+\end{itemize}
+\end{defn}
+
+双対化関手$(-)^\star$から射の同型
+\begin{align*}
+    Hom_\mathcal{C}(A \otimes B, C^\star) &= Hom_\mathcal{C}(A \otimes B, C \multimap \bot) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}((A \otimes B) \otimes C, \bot) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes (B \otimes C),  \bot) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A, (B \otimes C) \multimap \bot) \\
+    &= Hom_\mathcal{C}(A, (B \otimes C)^\star)
+\end{align*}
+を得る．
+
+二重双対により，以下の同型
+\begin{align*}
+    A \otimes B &\cong (A \multimap B^\star)^\star  &  A \multimap B &\cong (A \otimes B^\star)^\star  &  A \multimap B &\cong B^\star \multimap A^\star
+\end{align*}
+を得る．
+\begin{proof}
+\begin{align*}
+&\begin{aligned}
+    A \otimes B &\xrightarrow{\cong} (A \otimes B)^{\star\star} \\
+    &= ((A \otimes B) \multimap \bot)^\star \\
+    &\xrightarrow{\cong} (A \multimap (B \multimap \bot))^\star \\
+    &= (A \multimap B^\star)^\star \\
+    & \\
+    &
+\end{aligned}
+&
+&\begin{aligned}
+    A \multimap B &\xrightarrow{\cong} A \multimap B^{\star\star} \\
+    &= A \multimap (B^\star \multimap \bot) \\
+    &\xrightarrow{\cong} (A \otimes B^\star) \multimap \bot \\
+    &= (A \otimes B^\star)^\star \\
+    & \\
+    &
+\end{aligned}
+&
+&\begin{aligned}
+    A \multimap B &\xrightarrow{\cong} A \multimap B^{\star\star} \\
+    &= A \multimap (B^\star \multimap \bot) \\
+    &\xrightarrow{\cong} (A \otimes B^\star) \multimap \bot \\
+    &\xrightarrow{\cong} (B^\star \otimes A) \multimap \bot \\
+    &\xrightarrow{\cong} B^\star \multimap (A \multimap \bot) \\
+    &= B^\star \multimap A^\star
+\end{aligned}
+\end{align*}
+\end{proof}
+
+同様に，自然同型の合成により$Hom_\mathcal{C}(A,B) \cong Hom_\mathcal{C}(B^\star, A^\star)$を得る．
+また，命題\ref{prop:unit}より，同型$I^\star \cong \bot$を得る．
+
+\begin{defn}[Compact Closed Category（コンパクト閉圏）\cite{abramsky09}\cite{kelly80}]
+コンパクト閉圏$\mathcal{C}$は$\star\mathchar`-$自立圏であり，以下の構造を備える．
+\begin{itemize}
+    \item （自然同型）自己双対$\varsigma_{A,B}:(A \otimes B)^\star \xrightarrow{\cong} A^\star \otimes B^\star$
+    \item （自然同型）自己双対$\varsigma_I:I^\star \xrightarrow{\cong} I$
+\end{itemize}
+\end{defn}
+
+コンパクト閉圏の定義から同型を得る．
+\begin{align*}
+    A \multimap B &\xrightarrow{\cong} (A \otimes B^\star)^\star \\
+    &\xrightarrow{\cong} (A^\star \otimes B^{\star\star}) \\
+    &\xrightarrow{\cong} A^\star \otimes B
+\end{align*}
+また，コンパクト閉圏$\mathcal{C}$の任意の対象$A,B,B$について，以下の射の同型を得る．
+\begin{equation*}
+    Hom_\mathcal{C}(A, B^\star \otimes C) \cong Hom_\mathcal{C}(A, B \multimap C) \cong Hom_\mathcal{C}(A \otimes B, C)
+\end{equation*}
+
+コンパクト閉圏$\mathcal{C}$の任意の対象$A\in|\mathcal{C}|$の恒等射$id_A$について，二つの射の同型
+\begin{align*}
+&\begin{aligned}
+    Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} Hom_\mathcal{C}(I \otimes A, A) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A \multimap A) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A^\star \otimes A) \\
+    &
+\end{aligned}
+&
+&\begin{aligned}
+    Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} Hom_\mathcal{C}(A, I \multimap A) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A, A^\star \multimap I^\star) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A, A^\star \multimap I) \\
+    &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes A^\star, I)
+\end{aligned}
+\end{align*}
+から，$\eta_A:I \rightarrow A^\star \otimes A$と$\epsilon_A:A \otimes A^\star \rightarrow I$を得る．
+
+コンパクト閉圏$\mathcal{C}$の任意の対象$A$について，$\eta_A$から射$decomp_{A,B,C}: A \multimap C \rightarrow (A \multimap B) \otimes (B \multimap C)$を以下の射の合成として得る
+\begin{align*}
+    A \multimap C &\xrightarrow{\cong} (A^\star \otimes C) \\
+                  &\xrightarrow{\rho_{A^\star \otimes C}} (A^\star \otimes C) \otimes I \\
+                  &\xrightarrow{id_{A^\star \otimes C} \otimes \eta_B} (A^\star \otimes C) \otimes (B^\star \otimes B) \\
+                  &\xrightarrow{id_{A^\star \otimes C} \otimes \sigma_{B^\star,B}} (A^\star \otimes C) \otimes (B \otimes B^\star) \\
+                  &\xrightarrow{\alpha_{A^\star,C,B \otimes B^\star}} A^\star \otimes (C \otimes (B \otimes B^\star)) \\
+                  &\xrightarrow{id_{A^\star} \otimes \sigma_{C,B \otimes B^\star}} A^\star \otimes ((B \otimes B^\star) \otimes C) \\
+                  &\xrightarrow{\alpha^{-1}_{A^\star, B \otimes B^\star, C}} (A^\star \otimes (B \otimes B^\star)) \otimes C \\
+                  &\xrightarrow{\alpha^{-1}_{A^\star, B, B^\star} \otimes id_C} ((A^\star \otimes B) \otimes B^\star) \otimes C \\
+                  &\xrightarrow{\alpha_{A^\star \otimes B, B^\star, C}} (A^\star \otimes B) \otimes (B^\star \otimes C) \\
+                  &\xrightarrow{\cong} (A \multimap B) \otimes (B \multimap C)
+\end{align*}
+
+\subsection{ダガー圏}
+\begin{defn}[$\dagger\mathchar`-$Category（$\dagger\mathchar`-$圏）\cite{selinger09}]
+$\dagger\mathchar`-$圏$\mathcal{C}$は，以下の構造を備える．
+\begin{itemize}
+    \item 関手$\dagger:\mathcal{C}^{op} \rightarrow \mathcal{C}$
+    \item $\dagger$は対象に対して恒等
+    \item 対合的$\dagger\circ\dagger = id_\mathcal{C}$
+\end{itemize}
+\end{defn}
+$\dagger\mathchar`-$圏の定義から，任意の射$:A \rightarrow B, g:B \rightarrow C$について，以下の等式が導かれる．
+\begin{alignat*}{2}
+    id_A^\dagger       &= id_A                      &:A &\rightarrow A \\
+    (g\circ f)^\dagger &= f^\dagger \circ g^\dagger &:C &\rightarrow A \\
+    f^{\dagger\dagger} &= f                         &:A &\rightarrow B,
+\end{alignat*}
+
+$f^\dagger=f^{-1}$となる$f$をユニタリーと呼び，$f^\dagger=f$となるfを自己随伴と呼ぶ．
+% $^\dagger\mathchar`-$関手$\mathbf{F}$は$\dagger\mathchar`-$圏間の関手であり，任意の射$f$について，$\mathbf{F}(f^\dagger)=(\mathbf{F}f)^\dagger$を満たす．
+
+\begin{defn}[$\dagger\mathchar`-$Symmetric Monoidal Category（$\dagger\mathchar`-$対称モノイド圏）\cite{selinger09}\cite{abramsky09}]
+$\dagger\mathchar`-$対称モノイド圏$\mathcal{C}$は，対称モノイド圏かつ$\dagger\mathchar`-$圏であり，以下の構造を備える．
+\begin{itemize}
+    \item 任意の$A,B,C\in|\mathcal{C}|$について，$\alpha_{A,B,C},\lambda_{A},\rho_{A},\sigma_{A,B}$がユニタリ
+    \item 関手$\dagger$が厳密モノイド関手であり，任意の射$f,g$について，$(f\otimes g)^\dagger = f^\dagger \otimes g^\dagger$
+\end{itemize}
+\end{defn}
+
+\begin{defn}[$\dagger\mathchar`-$Comact Category（$\dagger\mathchar`-$コンパクト圏）\cite{abramsky09}]
+$\dagger\mathchar`-$コンパクト圏$\mathcal{C}$は，コンパクト閉圏かつ$\dagger\mathchar`-$対称モノイド圏であり，以下の構造を備える．
+\begin{itemize}
+    \item 任意の$A\in|\mathcal{C}|$について，以下の図式が可換\\
+    \begin{center}
+        \begin{tikzcd}
+            I
+            \ar[r, "\eta_A"]
+            \ar[dr, "\epsilon_A^\dagger"']
+            & A^\star \otimes A
+            \ar[d, "\sigma_{A^\star, A}"] \\
+            & A \otimes A^\star
+        \end{tikzcd}
+    \end{center}
+\end{itemize}
+\end{defn}
+定義から$\epsilon_A$は$\epsilon_A=\eta_A^\dagger\circ\sigma_{A,A^\star}$として定義可能となる．逆に$\epsilon_A$から$\eta_A$を定義することもできる．
+
+$\dagger\mathchar`-$コンパクト圏$\mathcal{C}$は，任意の対象$A,B$の内部ホム$A \multimap B$について，以下の図式を可換にする射$dagger_{A,B}:A \multimap B \rightarrow B \multimap A$を持つ．
+\begin{center}
+    \begin{tikzcd}[column sep=3cm]
+        Hom(I,A\multimap{}B) \ar[r, "{Hom(I,dagger_{A,B})}"] \ar[d, "\cong"'] & Hom(I,B\multimap{}A) \ar[d, "\cong"] \\
+        Hom(A,B) \ar[r, "(-)^\dagger"] & Hom(B,A)
+    \end{tikzcd}
+\end{center}
+
+\subsection{その他の構造}
+\begin{defn}[Finite Product（有限積）\cite{selinger09}]
+圏$\mathcal{C}$における対象$A,B$に対して有限積$A \times B$は，以下の構造を備える．
+\begin{itemize}
+    \item 射$\pi_1:A \times B \rightarrow A$と$\pi_2:A \times B \rightarrow B$
+    \item 任意の対象$C$と射の組$f:C \rightarrow A, g:C \rightarrow B$に対して一意な射$h:C \rightarrow A \times B$が存在して以下の図式が可換
+    \begin{center}
+        \begin{tikzcd}
+            & C
+            \ar[dl, "f"']
+            \ar[d, dashed, "h"]
+            \ar[dr, "g"] \\
+            A
+            & A \times B
+            \ar[l, "\pi_1"]
+            \ar[r, "\pi_2"']
+            & B
+        \end{tikzcd}
+    \end{center}
+    射$h$は$\langle f,g \rangle$と表記されることが多い．
+    \item （終対象）任意の対象$C$に対して一意な射$h:C \rightarrow I$が存在する対象$I$
+\end{itemize}
+
+\end{defn}
+有限積からなる圏（デカルト圏）は，以下の構造と満たすべきいくつかの公理\cite{selinger09}を持つ対称モノイド圏と同値である．
+\begin{itemize}
+    \item （自然な射の族）複製$\Delta_A:A \rightarrow A \otimes A$
+    \item （自然な射の族）削除$\Diamond_A:A \rightarrow I$
+\end{itemize}
+
+\begin{defn}[Finite Coproduct（有限余積）\cite{selinger09}]]
+圏$\mathcal{C}$における対象$A,B$に対して有限余積$A + B$は，以下の構造を備える．
+\begin{itemize}
+    \item 射$\iota_1:A \rightarrow A \oplus B$と$\iota_2:B \rightarrow A \oplus B$
+    \item 任意の対象$C$と射の組$f:A \rightarrow C, g:B \rightarrow C$に対して一意な射$h:A + B \rightarrow C$が存在して以下の図式が可換
+    \begin{center}
+        \begin{tikzcd}
+            & C \\
+            A
+            \ar[r, "\iota_1"']
+            \ar[ur, "f"]
+            & A + B
+            \ar[u, dashed, "h"']
+            & B
+            \ar[l, "\iota_2"]
+            \ar[ul, "g"']
+        \end{tikzcd}
+    \end{center}
+        射$h$は$[ f,g ]$と表記されることが多い．
+    \item （始対象）任意の対象$C$に対して一意な射$h:I \rightarrow C$が存在する対象$I$
+\end{itemize}
+\end{defn}
+
+有限余積からなる圏（余デカルト圏）は，以下の構造と満たすべきいくつかの公理\cite{selinger09}を持つ対称モノイド圏と同値である．
+\begin{itemize}
+    \item （自然な射の族）合併$\nabla_A:A \oplus A \rightarrow A$
+    \item （自然な射の族）追加$\square_A:I \rightarrow A$
+\end{itemize}
+
+\begin{defn}[Finite Biproduct（有限双積）\cite{selinger09}]
+圏$\mathcal{C}$における対象$A_1,A_2$に対して有限双積$A_1 \oplus A_2$は，以下の構造を備える．
+\begin{itemize}
+    \item （零対象）任意の対象$A_1,A_2$に対して一意な射$0_{A_1,A_2}:A_1 \rightarrow O \rightarrow A_2$が存在する対象$O$
+    \item 射$\pi_1:A_1 \oplus A_2 \rightarrow A_1$と$\pi_2:A_1 \oplus A_2 \rightarrow A_2$
+    \item $\pi_1,\pi_2$に関して有限積
+    \item 射$\iota_1:A_1 \rightarrow A_1 \oplus A_2$と$\iota_2:A_2 \rightarrow A_1 \oplus A_2$
+    \item$\iota_1,\iota_2$に関して有限余積
+    \item
+    $
+    \delta_{ij} = \pi_i \circ \iota_j =
+        \begin{cases}
+            id_A        & \text{if}\quad i = j \\
+            0_{A_j,A_i} & \text{if}\quad i \neq j
+        \end{cases}
+    $
+\end{itemize}
+\end{defn}
+
+有限双積からなる圏（半加法圏）は，以下の構造と満たすべきいくつかの公理\cite{selinger09}を持つ対称モノイド圏と同値である．
+\begin{itemize}
+    \item （自然な射の族）複製$\Delta_A:A \rightarrow A \otimes A$
+    \item （自然な射の族）削除$\Diamond_A:A \rightarrow I$
+    \item （自然な射の族）合併$\nabla_A:A \otimes A \rightarrow A$
+    \item （自然な射の族）追加$\square_A:I \rightarrow A$
+\end{itemize}
+
+
+\begin{defn}[Semi Additive Category（半加法圏）]
+% 18,19章を参照
+有限双積を持つ圏は半加法圏\cite{LACK2012593}である．半加法圏$\mathcal{C}$の任意の射$f,g:A \rightarrow B$に対して
+\begin{equation*}
+    f+g = \nabla_B \circ (f \oplus g) \circ \Delta_A:A \rightarrow B
+\end{equation*}
+と定義できる\cite{maclane1950duality}．
+各射$f:A \rightarrow B$に対して逆$-f:A \rightarrow B$が存在する場合，半加法圏はAdditive Category（加法圏）である．他方，$f+f=f$となる場合，Semilattice Category（半束圏）で豊穣化された圏である．
+\end{defn}
+
+% \begin{prop}[射の加法の可換性，結合性，双線型性({\bf nlabのadditive categoryの記事を参照})]
+% 半加法圏$\mathcal{C}$の任意の射$f,g,h:Z \rightarrow Y$に対して，射の加法$+$は可換モノイドを成し，射の合成に関して双線型性を満たす．
+% \end{prop}
+% \begin{proof}
+% 可換性，結合性，単位元は有限双積$\oplus$の対称モノイド構造($\mathcal{C},\oplus,\sigma,\alpha,\lambda,\rho,O$)から自動的に得られる．以下の図式が可換であることから，射の合成に関する双線型性を満たす．
+% \begin{center}
+% \begin{tikzcd}
+%     W
+%     \ar[r, "\Delta_W"]
+%     \ar[d, "e"]
+%     & W \oplus W
+%     \ar[d, "e \oplus e"]
+%     & & \\
+%     X
+%     \ar[r, "\Delta_X"]
+%     & X \oplus X
+%     \ar[r, "f \oplus g"]
+%     & Y \oplus Y
+%     \ar[r, "\nabla_Y"]
+%     \ar[d, "h \oplus h"]
+%     & Y
+%     \ar[d, "h"] \\
+%     & &
+%     Z \oplus Z
+%     \ar[r, "\nabla_Z"]
+%     & Z
+% \end{tikzcd}
+% \end{center}
+% \end{proof}
+
+
+\begin{defn}[Rig Category（半環圏）\cite{laplaza72}]
+半環圏$\mathcal{C}$は以下の構造を備える．
+\begin{itemize}
+    \item （加法としての）対称モノイド構造$(\mathcal{C},\oplus,O)$
+    \item （乗法としての）モノイド構造$(\mathcal{C},\otimes,I)$
+    \item （自然同型）左分配子$\delta_l:A \otimes (B \oplus C) \cong (A \otimes B) \oplus (A \otimes C)$
+    \item （自然同型）右分配子$\delta_r:(A \oplus B) \otimes C \cong (A \otimes C) \oplus (B \otimes C)$
+    \item （自然同型）左吸収子$\kappa_l:A \otimes O \cong O$
+    \item （自然同型）右吸収子$\kappa_r:O \otimes A \cong O$
+    \item 諸々のコヒーレンス公理\cite{laplaza72}
+\end{itemize}
+\end{defn}
+
+\begin{defn}[Trace（トレース）]
+\end{defn}
+
+\begin{defn}[Restriction Category（制約圏）]
+
+\end{defn}
+
+\begin{defn}[Inverse Category（逆圏）]
+
+\end{defn}
+
+\begin{defn}[Algebraically Compact Category（代数的コンパクト圏）]
+
+\end{defn}
+
+
+\end{document}
