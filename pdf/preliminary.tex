@@ -1,6 +1,7 @@
 \documentclass[type_judgement.tex]{subfiles}
 
 \begin{document}
+
 扱いたい構造は以下の全てを持つ圏
 \begin{itemize}
     \item 自己双対コンパクト閉圏(Self--Dual Compact Closed Category)
@@ -18,7 +19,7 @@
 圏$\mathcal{C}$は以下の構造を備える
 \begin{itemize}
     \item 対象（Object）の類$|\mathcal{C}|$を持つ（各対象は$A,B,C$等の大文字で表す）
-    \item $A,B\in|\mathcal{C}|$に対する射（Morphism）の類$Hom_\mathcal{C}(A,B)$を持つ（各射は単に$A \rightarrow B$で表すか，$f,g,h$等の小文字で表す）
+    \item $A,B\in|\mathcal{C}|$に対する射（Morphism）の類$\Hom_\mathcal{C}(A,B)$を持つ（各射は単に$A \rightarrow B$で表すか，$f,g,h$等の小文字で表す）
         \begin{itemize}
             \item 射$f:A \rightarrow B$の$A$を始域（Domain），$B$を終域（Codomain）と呼び，それぞれ$Dom(f)$，$Cod(f)$で表す
         \end{itemize}
@@ -50,7 +51,7 @@
 任意の同型射は双射だが，双射は必ずしも同型射ではないことに留意すること．
 
 \begin{defn}[Functor（関手）]
-$\mathcal{C}$と$\mathcal{D}$を圏とする．関手$\mathbf{F}:\mathcal{C} \rightarrow \mathcal{D}$は，$\mathcal{C}$の対象を$\mathcal{D}$の対象へ写す関数$|\mathcal{C}| \rightarrow |\mathcal{D}|$と，$\mathcal{C}$の射を$\mathcal{D}$の射に写す関数$Hom_\mathcal{C}(A,B) \rightarrow Hom_\mathcal{D}(\mathbf{F}A,\mathbf{F}B)$であり，
+$\mathcal{C}$と$\mathcal{D}$を圏とする．関手$\mathbf{F}:\mathcal{C} \rightarrow \mathcal{D}$は，$\mathcal{C}$の対象を$\mathcal{D}$の対象へ写す関数$|\mathcal{C}| \rightarrow |\mathcal{D}|$と，$\mathcal{C}$の射を$\mathcal{D}$の射に写す関数$\Hom_\mathcal{C}(A,B) \rightarrow \Hom_\mathcal{D}(\mathbf{F}A,\mathbf{F}B)$であり，
 $\mathbf{F}(g \circ f) = \mathbf{F}(g) \circ \mathbf{F}(f)$と$\mathbf{F}(id_A) = id_{(\mathbf{F}A)}$を満たす．
 \end{defn}
 
@@ -75,12 +76,12 @@ $\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \
 \end{defn}
 
 \begin{defn}[Opposite Category（反対圏）]
-圏$\mathcal{C}$の反対圏$\mathcal{C}^{op}$とは，$|\mathcal{C}^{op}| = |\mathcal{C}|$かつ$Hom_{\mathcal{C}^{op}}(A,B) = Hom_\mathcal{C}(B,A)$である圏である．
+圏$\mathcal{C}$の反対圏$\mathcal{C}^{op}$とは，$|\mathcal{C}^{op}| = |\mathcal{C}|$かつ$\Hom_{\mathcal{C}^{op}}(A,B) = \Hom_\mathcal{C}(B,A)$である圏である．
 \end{defn}
 
-\begin{defn}[Universal Morphism（普遍射）]
+% \begin{defn}[Universal Morphism（普遍射）]
 
-\end{defn}
+% \end{defn}
 
 \begin{defn}[Adjunction（随伴）]
 普遍射（及び普遍性）から導かれる随伴関手
@@ -200,15 +201,15 @@ $\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \
 \begin{proof}
 モノイド積$\otimes$と内部ホム$\multimap$の随伴から自然同型
 \begin{equation*}
-    Hom_\mathcal{C}(A \otimes B, C) \cong Hom_\mathcal{C}(A, B \multimap C)
+    \Hom_\mathcal{C}(A \otimes B, C) \cong \Hom_\mathcal{C}(A, B \multimap C)
 \end{equation*}
 が得られる．
 任意の$X\in|\mathcal{C}|$について，自然同型の合成により，
 \begin{align*}
-    Hom_\mathcal{C}(X, (A \otimes B) \multimap C) &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes (A \otimes B), C) \\
-     &\xrightarrow{\cong} Hom_\mathcal{C}((X \otimes A) \otimes B, C) \\
-     &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes A, B \multimap C) \\
-     &\xrightarrow{\cong} Hom_\mathcal{C}(X, A \multimap (B \multimap C))
+    \Hom_\mathcal{C}(X, (A \otimes B) \multimap C) &\xrightarrow{\cong} \Hom_\mathcal{C}(X \otimes (A \otimes B), C) \\
+     &\xrightarrow{\cong} \Hom_\mathcal{C}((X \otimes A) \otimes B, C) \\
+     &\xrightarrow{\cong} \Hom_\mathcal{C}(X \otimes A, B \multimap C) \\
+     &\xrightarrow{\cong} \Hom_\mathcal{C}(X, A \multimap (B \multimap C))
 \end{align*}
 を得る．
 米田の補題より，同型$(A \otimes B) \multimap C \cong A \multimap (B \multimap C)$が存在する．
@@ -221,8 +222,8 @@ $\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \
 \begin{proof}
 任意の$X\in|\mathcal{C}|$について、自然同型の合成により，
 \begin{align*}
-    Hom_\mathcal{C}(X, I \multimap A) &\xrightarrow{\cong} Hom_\mathcal{C}(X \otimes I, A) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(X, A)
+    \Hom_\mathcal{C}(X, I \multimap A) &\xrightarrow{\cong} \Hom_\mathcal{C}(X \otimes I, A) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(X, A)
 \end{align*}
 を得る．米田の補題より、同型$I \multimap A \cong A$が存在する．
 \end{proof}
@@ -239,19 +240,19 @@ $\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \
 \begin{proof}
 恒等射$id_A$より，射の同型
 \begin{align*}
-    Hom_\mathcal{C}(A,A) &\xrightarrow{\cong} Hom_\mathcal{C}(I \otimes A, A) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A \multimap A)
+    \Hom_\mathcal{C}(A,A) &\xrightarrow{\cong} \Hom_\mathcal{C}(I \otimes A, A) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(I, A \multimap A)
 \end{align*}
 を得るので，射$\eta_{A}$は存在する．
 次に，恒等射$id_{A \multimap B}$より，射の同型
 \begin{align*}
-    Hom_\mathcal{C}(A \multimap B, A \multimap B) &\xrightarrow{\cong} Hom_\mathcal{C}((A \multimap B) \otimes A, B)
+    \Hom_\mathcal{C}(A \multimap B, A \multimap B) &\xrightarrow{\cong} \Hom_\mathcal{C}((A \multimap B) \otimes A, B)
 \end{align*}
 を得るので，射$eval_{A,B}$は存在する．
 次に，合成射$eval_{B,C}\circ(id_{B\multimap{}C}\otimes eval_{A,B})$より，射の同型
 \begin{align*}
-    Hom_\mathcal{C}((B \multimap C)\otimes((A \multimap B)\otimes A), C) &\xrightarrow{\cong} Hom_\mathcal{C}( ((B \multimap C)\otimes(A \multimap B)) \otimes A, C) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}((B \multimap C) \otimes (A \multimap B), A \multimap C)
+    \Hom_\mathcal{C}((B \multimap C)\otimes((A \multimap B)\otimes A), C) &\xrightarrow{\cong} \Hom_\mathcal{C}( ((B \multimap C)\otimes(A \multimap B)) \otimes A, C) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}((B \multimap C) \otimes (A \multimap B), A \multimap C)
 \end{align*}
 を得るので，射$comp_{A,B,C}$は存在する．
 \end{proof}
@@ -260,8 +261,8 @@ $\mathcal{C}$と$\mathcal{D}$を圏とし，$\mathbf{F},\mathbf{G}:\mathcal{C} \
 
 命題\ref{prop:mc_c}で用いた射$eval_{A,B}$より，射の同型から
 \begin{align*}
-    Hom_\mathcal{C}((A\multimap B) \otimes A, B) &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes (A \multimap B), B) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A, (A \multimap B) \multimap B)
+    \Hom_\mathcal{C}((A\multimap B) \otimes A, B) &\xrightarrow{\cong} \Hom_\mathcal{C}(A \otimes (A \multimap B), B) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A, (A \multimap B) \multimap B)
 \end{align*}
 を得る．
 
@@ -293,11 +294,11 @@ $\star\mathchar`-$自立圏$\mathcal{C}$は対称モノイド閉圏であり，�
 
 双対化関手$(-)^\star$から射の同型
 \begin{align*}
-    Hom_\mathcal{C}(A \otimes B, C^\star) &= Hom_\mathcal{C}(A \otimes B, C \multimap \bot) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}((A \otimes B) \otimes C, \bot) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes (B \otimes C),  \bot) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A, (B \otimes C) \multimap \bot) \\
-    &= Hom_\mathcal{C}(A, (B \otimes C)^\star)
+    \Hom_\mathcal{C}(A \otimes B, C^\star) &= \Hom_\mathcal{C}(A \otimes B, C \multimap \bot) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}((A \otimes B) \otimes C, \bot) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A \otimes (B \otimes C),  \bot) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A, (B \otimes C) \multimap \bot) \\
+    &= \Hom_\mathcal{C}(A, (B \otimes C)^\star)
 \end{align*}
 を得る．
 
@@ -337,7 +338,7 @@ $\star\mathchar`-$自立圏$\mathcal{C}$は対称モノイド閉圏であり，�
 \end{align*}
 \end{proof}
 
-同様に，自然同型の合成により$Hom_\mathcal{C}(A,B) \cong Hom_\mathcal{C}(B^\star, A^\star)$を得る．
+同様に，自然同型の合成により$\Hom_\mathcal{C}(A,B) \cong \Hom_\mathcal{C}(B^\star, A^\star)$を得る．
 また，命題\ref{prop:unit}より，同型$I^\star \cong \bot$を得る．
 
 \begin{defn}[Compact Closed Category（コンパクト閉圏）\cite{abramsky09}\cite{kelly80}]
@@ -356,23 +357,23 @@ $\star\mathchar`-$自立圏$\mathcal{C}$は対称モノイド閉圏であり，�
 \end{align*}
 また，コンパクト閉圏$\mathcal{C}$の任意の対象$A,B,B$について，以下の射の同型を得る．
 \begin{equation*}
-    Hom_\mathcal{C}(A, B^\star \otimes C) \cong Hom_\mathcal{C}(A, B \multimap C) \cong Hom_\mathcal{C}(A \otimes B, C)
+    \Hom_\mathcal{C}(A, B^\star \otimes C) \cong \Hom_\mathcal{C}(A, B \multimap C) \cong \Hom_\mathcal{C}(A \otimes B, C)
 \end{equation*}
 
 コンパクト閉圏$\mathcal{C}$の任意の対象$A\in|\mathcal{C}|$の恒等射$id_A$について，二つの射の同型
 \begin{align*}
 &\begin{aligned}
-    Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} Hom_\mathcal{C}(I \otimes A, A) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A \multimap A) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(I, A^\star \otimes A) \\
+    \Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} \Hom_\mathcal{C}(I \otimes A, A) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(I, A \multimap A) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(I, A^\star \otimes A) \\
     &
 \end{aligned}
 &
 &\begin{aligned}
-    Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} Hom_\mathcal{C}(A, I \multimap A) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A, A^\star \multimap I^\star) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A, A^\star \multimap I) \\
-    &\xrightarrow{\cong} Hom_\mathcal{C}(A \otimes A^\star, I)
+    \Hom_\mathcal{C}(A, A) &\xrightarrow{\cong} \Hom_\mathcal{C}(A, I \multimap A) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A, A^\star \multimap I^\star) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A, A^\star \multimap I) \\
+    &\xrightarrow{\cong} \Hom_\mathcal{C}(A \otimes A^\star, I)
 \end{aligned}
 \end{align*}
 から，$\eta_A:I \rightarrow A^\star \otimes A$と$\epsilon_A:A \otimes A^\star \rightarrow I$を得る．
@@ -439,8 +440,8 @@ $\dagger\mathchar`-$コンパクト圏$\mathcal{C}$は，コンパクト閉圏�
 $\dagger\mathchar`-$コンパクト圏$\mathcal{C}$は，任意の対象$A,B$の内部ホム$A \multimap B$について，以下の図式を可換にする射$dagger_{A,B}:A \multimap B \rightarrow B \multimap A$を持つ．
 \begin{center}
     \begin{tikzcd}[column sep=3cm]
-        Hom(I,A\multimap{}B) \ar[r, "{Hom(I,dagger_{A,B})}"] \ar[d, "\cong"'] & Hom(I,B\multimap{}A) \ar[d, "\cong"] \\
-        Hom(A,B) \ar[r, "(-)^\dagger"] & Hom(B,A)
+        \Hom(I,A\multimap{}B) \ar[r, "{\Hom(I,dagger_{A,B})}"] \ar[d, "\cong"'] & \Hom(I,B\multimap{}A) \ar[d, "\cong"] \\
+        \Hom(A,B) \ar[r, "(-)^\dagger"] & \Hom(B,A)
     \end{tikzcd}
 \end{center}
 
