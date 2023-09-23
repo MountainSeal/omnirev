@@ -2,21 +2,11 @@
 omnirev.cabal
 stack.yaml.lock
 example/*.log
-pdf/*.aux
-pdf/*.dvi
-pdf/*.fdb_latexmk
-pdf/*.fls
-pdf/*.log
-pdf/*.bbl
-pdf/*.blg
-pdf/*.out
-pdf/*.synctex.gz
 *~
 .DS_Store
 *.bak
 bin/
 .liquid
-src/*.v
 
 dist-newstyle
 .github
