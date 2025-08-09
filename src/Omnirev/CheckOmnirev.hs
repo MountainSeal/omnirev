@@ -535,7 +535,7 @@ infer ((TmArrow tm1 tm2, vy) : cxt) (tm, ty) = do
   x1 <- TyVar <$> uvar
   x2 <- TyVar <$> uvar
   (cxt',  cs1) <- infer cxt (tm1, x1)
-  (cxt'', cs2) <- infer (cxt # (tm2, x2)) (tm, ty)
+  (cxt'', cs2) <- infer (cxt' # (tm2, x2)) (tm, ty)
   pure (cxt'', (vy, TyFunc x1 x2) : (cs1 ++ cs2))
 -- fold_l
 infer ((TmFold (TyRec y uy) um, vy) : cxt) (tm, ty) = do
