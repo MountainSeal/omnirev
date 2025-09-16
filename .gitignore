@@ -21,3 +21,7 @@ src/*.v
 dist-newstyle
 .github
 server
+
+.vscode
+.codex
+.lake
